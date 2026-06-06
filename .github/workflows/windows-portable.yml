@@ -156,9 +156,18 @@ jobs:
       - name: Build Android arm64 APK
         run: |
           export GRADLE_OPTS="-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC"
-          flutter build apk --release --target-platform android-arm64 --verbose
+          flutter build apk --release --split-per-abi --target-platform android-arm64 --verbose
           cd build/app/outputs/flutter-apk
-          mv app-arm64-v8a-release.apk "Mangayomi-v${APP_VERSION}-android-arm64-v8a.apk"
+          apk="app-arm64-v8a-release.apk"
+          if [ ! -f "$apk" ] && [ -f app-release.apk ]; then
+            apk="app-release.apk"
+          fi
+          if [ ! -f "$apk" ]; then
+            echo "Expected APK not found in $(pwd):"
+            ls -la
+            exit 1
+          fi
+          mv "$apk" "Mangayomi-v${APP_VERSION}-android-arm64-v8a.apk"
 
       - name: Upload Android arm64 artifact
         uses: actions/upload-artifact@v4
