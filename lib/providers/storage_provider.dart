@@ -18,6 +18,7 @@ import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/models/track.dart';
 import 'package:mangayomi/models/track_preference.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
+import 'package:mangayomi/utils/portable_paths.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as path;
@@ -47,12 +48,19 @@ class StorageProvider {
     if (await tmpDir.exists()) await tmpDir.delete(recursive: true);
   }
 
+  Future<Directory> _documentsDirectory() async {
+    if (PortablePaths.isEnabled) {
+      return PortablePaths.documentsDirectory();
+    }
+    return getApplicationDocumentsDirectory();
+  }
+
   Future<Directory?> getDefaultDirectory() async {
     Directory? directory;
     if (Platform.isAndroid) {
       directory = Directory("/storage/emulated/0/Mangayomi/");
     } else {
-      final dir = await getApplicationDocumentsDirectory();
+      final dir = await _documentsDirectory();
       // The documents dir in iOS is already named "Mangayomi".
       // Appending "Mangayomi" to the documents dir would create
       // unnecessarily nested Mangayomi/Mangayomi/ folder.
@@ -94,8 +102,11 @@ class StorageProvider {
   }
 
   Future<Directory> getCacheDirectory(String? imageCacheFolderName) async {
+    final cacheRoot = PortablePaths.isEnabled
+        ? (await PortablePaths.cacheDirectory()).path
+        : (await getApplicationCacheDirectory()).path;
     final cacheImagesDirectory = path.join(
-      (await getApplicationCacheDirectory()).path,
+      cacheRoot,
       imageCacheFolderName ?? 'cacheimagecover',
     );
     return Directory(cacheImagesDirectory);
@@ -133,7 +144,7 @@ class StorageProvider {
         dPath.isEmpty ? "/storage/emulated/0/Mangayomi/" : "$dPath/",
       );
     } else {
-      final dir = await getApplicationDocumentsDirectory();
+      final dir = await _documentsDirectory();
       final p = dPath.isEmpty ? dir.path : dPath;
       // The documents dir in iOS is already named "Mangayomi".
       // Appending "Mangayomi" to the documents dir would create
@@ -191,7 +202,7 @@ class StorageProvider {
     // untouched — Documents is the conventional location there.
     final dir = Platform.isMacOS
         ? await getApplicationSupportDirectory()
-        : await getApplicationDocumentsDirectory();
+        : await _documentsDirectory();
     String dbDir;
     if (Platform.isAndroid) return dir;
     if (Platform.isIOS) {
@@ -215,7 +226,7 @@ class StorageProvider {
   /// path already exists.
   Future<void> _migrateLegacyMacosDatabase(String newDbDir) async {
     try {
-      final docs = await getApplicationDocumentsDirectory();
+      final docs = await _documentsDirectory();
       final legacyDir = Directory(
         path.join(docs.path, 'Mangayomi', 'databases'),
       );

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
+import 'package:mangayomi/utils/portable_paths.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -9,7 +10,9 @@ class WindowGeometry {
   static const _fileName = 'window_geometry.json';
 
   static Future<File> get _file async {
-    final dir = await getApplicationSupportDirectory();
+    final dir = PortablePaths.isEnabled
+        ? await PortablePaths.supportDirectory()
+        : await getApplicationSupportDirectory();
     return File('${dir.path}/$_fileName');
   }
 

@@ -40,6 +40,7 @@ import 'package:mangayomi/src/rust/frb_generated.dart';
 import 'package:mangayomi/utils/discord_rpc.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
+import 'package:mangayomi/utils/portable_paths.dart';
 import 'package:mangayomi/utils/url_protocol/api.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_provider.dart';
 import 'package:mangayomi/modules/library/providers/file_scanner.dart';
@@ -61,6 +62,11 @@ void main(List<String> args) async {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+      if (kDebugMode && PortablePaths.isEnabled) {
+        debugPrint(
+          '[portable] Using local data folder: ${PortablePaths.dataRoot}',
+        );
+      }
       if (Platform.isLinux && runWebViewTitleBarWidget(args)) return;
 
       // Cap the decoded image cache so a large library grid can't fill the
@@ -103,7 +109,9 @@ void main(List<String> args) async {
       if (!kIsWeb && defaultTargetPlatform == TargetPlatform.windows) {
         final availableVersion = await WebViewEnvironment.getAvailableVersion();
         if (availableVersion != null) {
-          final document = await getApplicationDocumentsDirectory();
+          final document = PortablePaths.isEnabled
+              ? await PortablePaths.documentsDirectory()
+              : await getApplicationDocumentsDirectory();
           webViewEnvironment = await WebViewEnvironment.create(
             settings: WebViewEnvironmentSettings(
               userDataFolder: p.join(document.path, 'flutter_inappwebview'),
@@ -173,8 +181,13 @@ class _StartupErrorApp extends StatelessWidget {
 Future<void> _postLaunchInit(StorageProvider storage) async {
   await AppLogger.init();
   unawaited(MDownloader.initializeIsolatePool(poolSize: 6));
-  final hivePath = isApple ? "databases" : p.join("Mangayomi", "databases");
-  await Hive.initFlutter(Platform.isAndroid ? "" : hivePath);
+  if (PortablePaths.isEnabled) {
+    final dbDir = await storage.getDatabaseDirectory();
+    await Hive.init(dbDir!.path);
+  } else {
+    final hivePath = isApple ? "databases" : p.join("Mangayomi", "databases");
+    await Hive.initFlutter(Platform.isAndroid ? "" : hivePath);
+  }
   Hive.registerAdapter(TrackSearchAdapter());
   if (isDesktop && !kDebugMode) {
     discordRpc = DiscordRPC(applicationId: "1395040506677039157");

@@ -1,0 +1,168 @@
+name: Windows Portable Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-portable:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          cache-on-failure: true
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --locked
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Read version
+        shell: pwsh
+        run: |
+          $version = (Get-Content pubspec.yaml | Select-String '^version:\s*').ToString().Split()[1].Split('+')[0]
+          echo "APP_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Package portable zip
+        shell: pwsh
+        run: |
+          $releaseDir = "build/windows/x64/runner/Release"
+          if (-not (Test-Path $releaseDir)) {
+            Write-Error "Release directory not found: $releaseDir"
+            exit 1
+          }
+
+          Set-Content -Path "$releaseDir/portable.marker" -Value "Mangayomi Windows portable build. All app data is stored in the userdata folder next to mangayomi.exe."
+
+          $zipName = "Mangayomi-v$env:APP_VERSION-windows-portable.zip"
+          $zipPath = "build/$zipName"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath $zipPath
+
+          echo "ZIP_PATH=$zipPath" >> $env:GITHUB_ENV
+          echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mangayomi-${{ env.APP_VERSION }}-windows-portable
+          path: ${{ env.ZIP_PATH }}
+          retention-days: 90
+
+  build-android-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          cache-on-failure: true
+
+      - name: Setup Java toolchain
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+        env:
+          JAVA_OPTS: "-Xmx4096m -XX:MaxMetaspaceSize=512m"
+
+      - name: Setup Gradle properties for CI
+        run: |
+          echo "org.gradle.jvmargs=-Xmx4096M -XX:MaxMetaspaceSize=512m -XX:+UseG1GC" >> android/gradle.properties
+          echo "org.gradle.parallel=true" >> android/gradle.properties
+          echo "org.gradle.daemon=false" >> android/gradle.properties
+
+      - name: Setup cmake
+        uses: jwlawson/actions-setup-cmake@v2
+        with:
+          cmake-version: "3.18.1"
+
+      - name: Setup ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --locked
+
+      - name: Setup Android signing
+        env:
+          SIGNING_KEY_STORE_BASE64: ${{ secrets.SIGNING_KEY_STORE_BASE64 }}
+          SIGNING_KEY_PROPERTIES: ${{ secrets.SIGNING_KEY_PROPERTIES }}
+        run: |
+          if [ -n "$SIGNING_KEY_STORE_BASE64" ] && [ -n "$SIGNING_KEY_PROPERTIES" ]; then
+            echo "$SIGNING_KEY_STORE_BASE64" | base64 -di > android/app/upload-keystore.jks
+            echo "$SIGNING_KEY_PROPERTIES" > android/key.properties
+          else
+            keytool -genkeypair -v \
+              -keystore android/app/ci-upload-keystore.jks \
+              -alias ci \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Mangayomi CI, OU=CI, O=Mangayomi, L=Unknown, ST=Unknown, C=US"
+            printf '%s\n' \
+              'storePassword=android' \
+              'keyPassword=android' \
+              'keyAlias=ci' \
+              'storeFile=ci-upload-keystore.jks' \
+              > android/key.properties
+          fi
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Read version
+        run: |
+          version=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Build Android arm64 APK
+        run: |
+          export GRADLE_OPTS="-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC"
+          flutter build apk --release --target-platform android-arm64 --verbose
+          cd build/app/outputs/flutter-apk
+          mv app-arm64-v8a-release.apk "Mangayomi-v${APP_VERSION}-android-arm64-v8a.apk"
+
+      - name: Upload Android arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mangayomi-${{ env.APP_VERSION }}-android-arm64-v8a
+          path: build/app/outputs/flutter-apk/Mangayomi-*-android-arm64-v8a.apk
+          retention-days: 90
