@@ -5,6 +5,7 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/library/providers/isar_providers.dart';
 import 'package:mangayomi/modules/library/providers/library_filter_provider.dart';
 import 'package:mangayomi/modules/library/providers/library_state_provider.dart';
+import 'package:mangayomi/modules/library/widgets/library_global_search_link.dart';
 import 'package:mangayomi/modules/library/widgets/library_gridview_widget.dart';
 import 'package:mangayomi/modules/library/widgets/library_listview_widget.dart';
 import 'package:mangayomi/modules/widgets/error_text.dart';
@@ -37,6 +38,7 @@ class LibraryBody extends ConsumerWidget {
   final bool downloadedOnly;
   final String searchQuery;
   final bool ignoreFiltersOnSearch;
+  final bool isSearch;
 
   const LibraryBody({
     super.key,
@@ -59,6 +61,7 @@ class LibraryBody extends ConsumerWidget {
     required this.downloadedOnly,
     required this.searchQuery,
     required this.ignoreFiltersOnSearch,
+    required this.isSearch,
   });
 
   @override
@@ -102,40 +105,55 @@ class LibraryBody extends ConsumerWidget {
           ),
         );
 
-        if (entries.isEmpty) {
-          return Center(child: Text(l10n.empty_library));
+        final entriesManga = reverse ? entries.reversed.toList() : entries;
+        final trimmedQuery = searchQuery.trim();
+        final showGlobalSearchLink = isSearch && trimmedQuery.isNotEmpty;
+
+        final results = entries.isEmpty
+            ? Center(child: Text(l10n.empty_library))
+            : RefreshIndicator(
+                onRefresh: () async {
+                  await updateLibrary(
+                    ref: ref,
+                    context: context,
+                    mangaList: data,
+                    itemType: itemType,
+                  );
+                },
+                child: displayType == DisplayType.list
+                    ? LibraryListViewWidget(
+                        entriesManga: entriesManga,
+                        continueReaderBtn: continueReaderBtn,
+                        downloadedChapter: downloadedChapter,
+                        language: language,
+                        mangaIdsList: mangaIdsList,
+                        localSource: localSource,
+                      )
+                    : LibraryGridViewWidget(
+                        entriesManga: entriesManga,
+                        isCoverOnlyGrid:
+                            !(displayType == DisplayType.compactGrid),
+                        isComfortableGrid:
+                            displayType == DisplayType.comfortableGrid,
+                        continueReaderBtn: continueReaderBtn,
+                        downloadedChapter: downloadedChapter,
+                        language: language,
+                        mangaIdsList: mangaIdsList,
+                        localSource: localSource,
+                        itemType: itemType,
+                      ),
+              );
+
+        if (!showGlobalSearchLink) {
+          return results;
         }
 
-        final entriesManga = reverse ? entries.reversed.toList() : entries;
-        return RefreshIndicator(
-          onRefresh: () async {
-            await updateLibrary(
-              ref: ref,
-              context: context,
-              mangaList: data,
-              itemType: itemType,
-            );
-          },
-          child: displayType == DisplayType.list
-              ? LibraryListViewWidget(
-                  entriesManga: entriesManga,
-                  continueReaderBtn: continueReaderBtn,
-                  downloadedChapter: downloadedChapter,
-                  language: language,
-                  mangaIdsList: mangaIdsList,
-                  localSource: localSource,
-                )
-              : LibraryGridViewWidget(
-                  entriesManga: entriesManga,
-                  isCoverOnlyGrid: !(displayType == DisplayType.compactGrid),
-                  isComfortableGrid: displayType == DisplayType.comfortableGrid,
-                  continueReaderBtn: continueReaderBtn,
-                  downloadedChapter: downloadedChapter,
-                  language: language,
-                  mangaIdsList: mangaIdsList,
-                  localSource: localSource,
-                  itemType: itemType,
-                ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LibraryGlobalSearchLink(query: trimmedQuery, itemType: itemType),
+            Expanded(child: results),
+          ],
         );
       },
       error: (error, _) => ErrorText(error),

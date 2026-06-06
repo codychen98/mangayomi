@@ -813,6 +813,11 @@ class AppLocalizationsId extends AppLocalizations {
   String get global_search => 'Pencarian global';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => 'Tingkat campuran warna';
 
   @override

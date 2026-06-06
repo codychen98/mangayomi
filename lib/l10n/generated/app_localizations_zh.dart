@@ -792,6 +792,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get global_search => '全球搜索';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => '颜色混合级别';
 
   @override

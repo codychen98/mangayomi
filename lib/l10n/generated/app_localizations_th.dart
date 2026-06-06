@@ -810,6 +810,11 @@ class AppLocalizationsTh extends AppLocalizations {
   String get global_search => 'ค้นหาจากทั้งหมด';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => 'Color blend level';
 
   @override

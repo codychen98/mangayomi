@@ -809,6 +809,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get global_search => 'वैश्विक खोज';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => 'रंग मिश्रण स्तर';
 
   @override

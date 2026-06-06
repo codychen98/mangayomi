@@ -814,6 +814,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get global_search => 'Búsqueda global';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => 'Nivel de mezcla de color';
 
   @override
@@ -3182,6 +3187,11 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get global_search => 'Búsqueda global';
+
+  @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
 
   @override
   String get color_blend_level => 'Nivel de mezcla de color';

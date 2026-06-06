@@ -1511,6 +1511,12 @@ abstract class AppLocalizations {
   /// **'Global search'**
   String get global_search;
 
+  /// Link to search the library query across all extensions.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for "{query}" globally'**
+  String search_globally(Object query);
+
   /// No description provided for @color_blend_level.
   ///
   /// In en, this message translates to:

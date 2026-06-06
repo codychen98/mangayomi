@@ -370,6 +370,13 @@
   "downloaded_chapter": "Downloaded chapter",
   "page": "Page {page}",
   "global_search": "Global search",
+  "search_globally": "Search for \"{query}\" globally",
+  "@search_globally": {
+    "description": "Link to search the library query across all extensions.",
+    "placeholders": {
+      "query": {}
+    }
+  },
   "color_blend_level": "Color blend level",
   "current": "Current {char}",
   "finished": "Finished {char}",

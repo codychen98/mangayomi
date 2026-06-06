@@ -825,6 +825,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get global_search => 'Глобальный поиск';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => 'Уровень смешивания цветов';
 
   @override

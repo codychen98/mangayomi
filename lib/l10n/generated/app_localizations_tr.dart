@@ -808,6 +808,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get global_search => 'Genel Arama';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => 'Renk Karışımı Seviyesi';
 
   @override

@@ -194,6 +194,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         downloadedOnly: downloadedOnly,
         searchQuery: searchQuery,
         ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
+        isSearch: _isSearch,
       );
     }
 

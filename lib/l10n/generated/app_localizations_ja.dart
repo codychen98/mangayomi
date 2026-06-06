@@ -803,6 +803,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get global_search => 'グローバル検索';
 
   @override
+  String search_globally(Object query) {
+    return 'Search for \"$query\" globally';
+  }
+
+  @override
   String get color_blend_level => 'カラーブレンドレベル';
 
   @override
