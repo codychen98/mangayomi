@@ -1977,3 +1977,107 @@ abstract class _$MangasSetIsReadState extends $Notifier<void> {
     );
   }
 }
+
+@ProviderFor(MangasBulkDownloadState)
+final mangasBulkDownloadStateProvider = MangasBulkDownloadStateFamily._();
+
+final class MangasBulkDownloadStateProvider
+    extends $NotifierProvider<MangasBulkDownloadState, void> {
+  MangasBulkDownloadStateProvider._({
+    required MangasBulkDownloadStateFamily super.from,
+    required ({Set<int> mangaIds}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'mangasBulkDownloadStateProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$mangasBulkDownloadStateHash();
+
+  @override
+  String toString() {
+    return r'mangasBulkDownloadStateProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  MangasBulkDownloadState create() => MangasBulkDownloadState();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(void value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<void>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is MangasBulkDownloadStateProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$mangasBulkDownloadStateHash() =>
+    r'f8a3b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9';
+
+final class MangasBulkDownloadStateFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          MangasBulkDownloadState,
+          void,
+          void,
+          void,
+          ({Set<int> mangaIds})
+        > {
+  MangasBulkDownloadStateFamily._()
+    : super(
+        retry: null,
+        name: r'mangasBulkDownloadStateProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  MangasBulkDownloadStateProvider call({required Set<int> mangaIds}) =>
+      MangasBulkDownloadStateProvider._(
+        argument: (mangaIds: mangaIds),
+        from: this,
+      );
+
+  @override
+  String toString() => r'mangasBulkDownloadStateProvider';
+}
+
+abstract class _$MangasBulkDownloadState extends $Notifier<void> {
+  late final _$args = ref.$arg as ({Set<int> mangaIds});
+  Set<int> get mangaIds => _$args.mangaIds;
+
+  void build({required Set<int> mangaIds});
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<void, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<void, void>,
+              void,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(
+      ref,
+      () => build(mangaIds: _$args.mangaIds),
+    );
+  }
+}

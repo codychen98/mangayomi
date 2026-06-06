@@ -4,8 +4,10 @@ import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
+import 'package:mangayomi/modules/manga/download/providers/download_provider.dart';
 import 'package:mangayomi/utils/extensions/chapter_extensions.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'library_state_provider.g.dart';
 
@@ -960,6 +962,49 @@ class MangasSetIsReadState extends _$MangasSetIsReadState {
       isar.chapters.putAllSync(allChapters);
       isar.mangas.putAllSync(allMangas);
     });
+
+    ref.read(isLongPressedStateProvider.notifier).update(false);
+    ref.read(mangasListStateProvider.notifier).clear();
+  }
+}
+
+@riverpod
+class MangasBulkDownloadState extends _$MangasBulkDownloadState {
+  @override
+  void build({required Set<int> mangaIds}) {}
+
+  void queue() {
+    var queuedCount = 0;
+    for (final mangaId in mangaIds) {
+      final manga = isar.mangas.getSync(mangaId);
+      if (manga == null) continue;
+      if (manga.isLocalArchive ?? false) continue;
+      if (getSource(
+            manga.lang!,
+            manga.source!,
+            manga.sourceId,
+            installedOnly: true,
+          ) ==
+          null) {
+        continue;
+      }
+
+      for (final chapter in manga.chapters.toList()) {
+        if (chapter.id == null) continue;
+        final entries = isar.downloads
+            .filter()
+            .idEqualTo(chapter.id)
+            .findAllSync();
+        if (entries.isEmpty || !entries.first.isDownload!) {
+          ref.read(addDownloadToQueueProvider(chapter: chapter));
+          queuedCount++;
+        }
+      }
+    }
+
+    if (queuedCount > 0) {
+      ref.read(processDownloadsProvider());
+    }
 
     ref.read(isLongPressedStateProvider.notifier).update(false);
     ref.read(mangasListStateProvider.notifier).clear();

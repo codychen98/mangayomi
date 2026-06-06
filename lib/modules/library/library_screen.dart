@@ -491,6 +491,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
               },
             ),
             BottomSelectButton(
+              icon: Icon(Icons.download_outlined, color: color),
+              onPressed: () {
+                ref
+                    .read(
+                      mangasBulkDownloadStateProvider(mangaIds: mangaIds)
+                          .notifier,
+                    )
+                    .queue();
+              },
+            ),
+            BottomSelectButton(
               icon: Icon(Icons.delete_outline_outlined, color: color),
               onPressed: () => showDeleteMangaDialog(
                 context: context,
