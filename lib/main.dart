@@ -183,7 +183,7 @@ Future<void> _postLaunchInit(StorageProvider storage) async {
   unawaited(MDownloader.initializeIsolatePool(poolSize: 6));
   if (PortablePaths.isEnabled) {
     final dbDir = await storage.getDatabaseDirectory();
-    await Hive.init(dbDir!.path);
+    Hive.init(dbDir!.path);
   } else {
     final hivePath = isApple ? "databases" : p.join("Mangayomi", "databases");
     await Hive.initFlutter(Platform.isAndroid ? "" : hivePath);
