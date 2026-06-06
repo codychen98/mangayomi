@@ -992,11 +992,8 @@ class MangasBulkDownloadState extends _$MangasBulkDownloadState {
 
       for (final chapter in manga.chapters.toList()) {
         if (chapter.id == null) continue;
-        final entries = isar.downloads
-            .filter()
-            .idEqualTo(chapter.id)
-            .findAllSync();
-        if (entries.isEmpty || !entries.first.isDownload!) {
+        final download = isar.downloads.getSync(chapter.id!);
+        if (download == null || !(download.isDownload ?? false)) {
           ref.read(addDownloadToQueueProvider(chapter: chapter));
           queuedCount++;
         }
