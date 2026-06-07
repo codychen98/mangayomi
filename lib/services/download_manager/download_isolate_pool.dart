@@ -17,6 +17,12 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 
 final downloadTaskCancellation = <String, bool>{};
 
+/// Abort a download when the server stops sending data but keeps the
+/// connection open (common CDN stall that previously froze progress forever).
+const _kDownloadIdleTimeout = Duration(seconds: 60);
+
+const _kMaxDownloadRetries = 3;
+
 /// Shared Isolate pool to optimize performance
 /// Instead of creating a new Isolate for each download,
 /// we use a limited pool of workers that process tasks in queue.
@@ -495,8 +501,18 @@ Future<void> _downloadFile(
     } else {
       // Streaming for videos (saves RAM)
       await _withRetry(() async {
+        final file = File(pageUrl.fileName!);
+        var resumeOffset = 0;
+        if (await file.exists()) {
+          resumeOffset = await file.length();
+        }
+
         var request = Request('GET', Uri.parse(pageUrl.url));
-        request.headers.addAll(pageUrl.headers ?? {});
+        final headers = Map<String, String>.from(pageUrl.headers ?? {});
+        if (resumeOffset > 0) {
+          headers['Range'] = 'bytes=$resumeOffset-';
+        }
+        request.headers.addAll(headers);
         StreamedResponse response = await client.send(request);
         // Accept any 2xx — including 206 Partial Content, which the server
         // returns when the source extension sends `Range: bytes=0-` on the
@@ -508,31 +524,43 @@ Future<void> _downloadFile(
             '(status ${response.statusCode})',
           );
         }
-        int total = response.contentLength ?? 0;
-        int received = 0;
 
-        final file = File(pageUrl.fileName!);
-        final sink = file.openWrite();
+        var received = resumeOffset;
+        var total = await _resolveStreamTotal(response, resumeOffset);
+
+        // Server ignored Range and sent the full file — restart from scratch.
+        if (resumeOffset > 0 && response.statusCode != 206) {
+          received = 0;
+          resumeOffset = 0;
+          total = response.contentLength ?? 0;
+        }
+
+        final sink = file.openWrite(
+          mode: resumeOffset > 0 ? FileMode.append : FileMode.write,
+        );
         try {
-          await for (var value in response.stream) {
-            sink.add(value);
-            received += value.length;
-            try {
-              replyPort.send(
-                DownloadProgress(
-                  (received / total * 100).toInt(),
-                  100,
-                  pageUrl: pageUrl,
-                  itemType,
-                ),
-              );
-            } catch (_) {}
-          }
+          await _consumeStreamWithIdleTimeout(
+            response.stream,
+            sink,
+            onChunk: (chunkLength) {
+              received += chunkLength;
+              try {
+                replyPort.send(
+                  DownloadProgress(
+                    total > 0 ? (received / total * 100).toInt() : 0,
+                    100,
+                    pageUrl: pageUrl,
+                    itemType,
+                  ),
+                );
+              } catch (_) {}
+            },
+          );
         } finally {
           await sink.flush();
           await sink.close();
         }
-      }, 3);
+      }, _kMaxDownloadRetries);
     }
   } catch (e) {
     throw DownloadPoolException(
@@ -601,46 +629,50 @@ Future<void> _downloadSegment(
   M3u8DownloadParams params,
   Client client,
 ) async {
+  final file = File(path.join(params.tempDir, '${ts.name}.ts'));
+
   try {
-    final file = File(path.join(params.tempDir, '${ts.name}.ts'));
-
-    // Streaming to save memory
-    var request = Request('GET', Uri.parse(ts.url));
-    if (params.headers != null) {
-      request.headers.addAll(params.headers!);
-    }
-    StreamedResponse response = await _withRetry(() => client.send(request), 3);
-
-    // Accept any 2xx (including 206 Partial Content) — see comment in
-    // _downloadFile.
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw DownloadPoolException(
-        'Failed to download segment: ${ts.name} (status ${response.statusCode})',
-      );
-    }
-
-    final sink = file.openWrite();
-    try {
-      await for (var chunk in response.stream) {
-        sink.add(chunk);
+    await _withRetry(() async {
+      if (await file.exists()) {
+        await file.delete();
       }
-    } finally {
-      await sink.flush();
-      await sink.close();
-    }
 
-    // Decrypt if necessary
-    if (params.key != null) {
-      final bytes = await file.readAsBytes();
-      final index = int.parse(ts.name.substringAfter("TS_"));
-      final decrypted = _aesDecrypt(
-        (params.mediaSequence ?? 1) + (index - 1),
-        bytes,
-        params.key!,
-        iv: params.iv,
-      );
-      await file.writeAsBytes(decrypted);
-    }
+      var request = Request('GET', Uri.parse(ts.url));
+      if (params.headers != null) {
+        request.headers.addAll(params.headers!);
+      }
+      final response = await client.send(request);
+
+      // Accept any 2xx (including 206 Partial Content) — see comment in
+      // _downloadFile.
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw DownloadPoolException(
+          'Failed to download segment: ${ts.name} '
+          '(status ${response.statusCode})',
+        );
+      }
+
+      final sink = file.openWrite();
+      try {
+        await _consumeStreamWithIdleTimeout(response.stream, sink);
+      } finally {
+        await sink.flush();
+        await sink.close();
+      }
+
+      // Decrypt if necessary
+      if (params.key != null) {
+        final bytes = await file.readAsBytes();
+        final index = int.parse(ts.name.substringAfter("TS_"));
+        final decrypted = _aesDecrypt(
+          (params.mediaSequence ?? 1) + (index - 1),
+          bytes,
+          params.key!,
+          iv: params.iv,
+        );
+        await file.writeAsBytes(decrypted);
+      }
+    }, _kMaxDownloadRetries);
   } catch (e) {
     throw DownloadPoolException('Failed to process segment: ${ts.name}', e);
   }
@@ -666,6 +698,43 @@ Uint8List _aesDecrypt(
     );
   } catch (e) {
     throw DownloadPoolException('Decryption failed', e);
+  }
+}
+
+Future<int> _resolveStreamTotal(
+  StreamedResponse response,
+  int resumeOffset,
+) async {
+  if (response.statusCode == 206) {
+    final contentRange = response.headers['content-range'];
+    if (contentRange != null) {
+      final totalPart = contentRange.split('/').last;
+      final parsed = int.tryParse(totalPart);
+      if (parsed != null) return parsed;
+    }
+    final remaining = response.contentLength ?? 0;
+    if (remaining > 0) return resumeOffset + remaining;
+  }
+  return response.contentLength ?? 0;
+}
+
+Future<void> _consumeStreamWithIdleTimeout(
+  Stream<List<int>> stream,
+  IOSink sink, {
+  void Function(int chunkLength)? onChunk,
+}) async {
+  await for (final chunk in stream.timeout(
+    _kDownloadIdleTimeout,
+    onTimeout: (EventSink<List<int>> timedOutSink) {
+      timedOutSink.close();
+      throw DownloadPoolException(
+        'Download stalled: no data received for '
+        '${_kDownloadIdleTimeout.inSeconds}s',
+      );
+    },
+  )) {
+    sink.add(chunk);
+    onChunk?.call(chunk.length);
   }
 }
 

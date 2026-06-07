@@ -29,6 +29,7 @@ import 'package:mangayomi/utils/chapter_recognition.dart';
 import 'package:mangayomi/utils/extensions/chapter_extensions.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/headers.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 import 'package:mangayomi/utils/reg_exp_matcher.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:path/path.dart' as p;
@@ -282,9 +283,15 @@ Future<void> downloadChapter(
             p.join(mangaMainDirectory!.path, "${chapter.name}.cbz"),
           ).exists() &&
           ref.read(saveAsCBZArchiveStateProvider);
-      bool mp4FileExist = await File(
-        p.join(mangaMainDirectory.path, "$chapterName.mp4"),
-      ).exists();
+      bool mp4FileExist = false;
+      if (itemType == ItemType.anime) {
+        final mp4File = File(
+          p.join(mangaMainDirectory.path, "$chapterName.mp4"),
+        );
+        final downloadRecord = isar.downloads.getSync(chapter.id!);
+        mp4FileExist =
+            mp4File.existsSync() && (downloadRecord?.isDownload ?? false);
+      }
       bool htmlFileExist = await File(
         p.join(mangaMainDirectory.path, "$chapterName.html"),
       ).exists();
@@ -339,10 +346,8 @@ Future<void> downloadChapter(
               );
             }
           } else if (itemType == ItemType.anime) {
-            final file = File(
-              p.join(mangaMainDirectory.path, "$chapterName.mp4"),
-            );
-            if (!file.existsSync()) {
+            final downloadRecord = isar.downloads.getSync(chapter.id!);
+            if (downloadRecord?.isDownload != true) {
               pages.add(
                 PageUrl(
                   page.url.trim(),
@@ -395,11 +400,25 @@ Future<void> downloadChapter(
         setProgress(progress);
       });
     }
+  } catch (e, st) {
+    AppLogger.log(
+      'Download failed for chapter ${chapter.id} (${chapter.name}): $e\n$st',
+      logLevel: LogLevel.error,
+    );
+    final download = isar.downloads.getSync(chapter.id!);
+    if (download != null) {
+      isar.writeTxnSync(() {
+        isar.downloads.putSync(
+          download
+            ..isStartDownload = true
+            ..isDownload = false,
+        );
+      });
+    }
+  } finally {
     if (callback != null) {
       callback();
     }
-    keepAlive.close();
-  } catch (_) {
     keepAlive.close();
   }
 }
@@ -443,7 +462,11 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
       return true;
     });
     keepAlive.close();
-  } catch (_) {
+  } catch (e, st) {
+    AppLogger.log(
+      'processDownloads failed: $e\n$st',
+      logLevel: LogLevel.error,
+    );
     keepAlive.close();
   }
 }
