@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
+import 'package:mangayomi/models/category.dart';
+import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/modules/browse/feed/providers/bulk_favorite_provider.dart';
 import 'package:mangayomi/modules/widgets/category_selection_dialog.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';

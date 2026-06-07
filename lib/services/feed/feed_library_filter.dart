@@ -1,5 +1,7 @@
+import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/main.dart';
+import 'package:mangayomi/models/manga.dart';
 
 Set<String> favoriteLinksForSource(int sourceId) {
   return isar.mangas

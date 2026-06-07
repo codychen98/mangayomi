@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/feed/providers/feed_state_provider.dart';
@@ -21,6 +22,7 @@ import 'package:mangayomi/services/get_source_baseurl.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/global_style.dart';
 import 'package:mangayomi/utils/item_type_localization.dart';
+import 'package:mangayomi/utils/super_precalculation_policy.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 class SourceFeedScreen extends ConsumerStatefulWidget {

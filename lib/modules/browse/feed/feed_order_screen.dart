@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/feed_saved_search.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/feed/providers/feed_state_provider.dart';
 import 'package:mangayomi/modules/browse/feed/widgets/feed_delete_dialog.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';

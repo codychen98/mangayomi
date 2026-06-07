@@ -1,3 +1,4 @@
+import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/eval/model/m_pages.dart';
 import 'package:mangayomi/main.dart';
@@ -7,6 +8,7 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/feed/feed_constants.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/services/feed/feed_library_filter.dart';
+import 'package:mangayomi/services/feed/saved_search_filters.dart';
 import 'package:mangayomi/services/feed/saved_search_repository.dart';
 import 'package:mangayomi/services/get_latest_updates.dart';
 import 'package:mangayomi/services/get_popular.dart';

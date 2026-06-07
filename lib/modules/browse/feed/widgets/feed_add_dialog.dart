@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/feed/widgets/feed_add_search_dialog.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';

@@ -6,6 +6,7 @@ import 'package:mangayomi/modules/browse/feed/providers/feed_provider.dart';
 import 'package:mangayomi/modules/browse/feed/providers/feed_state_provider.dart';
 import 'package:mangayomi/modules/browse/feed/widgets/feed_item_row.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/utils/super_precalculation_policy.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 class FeedScreen extends ConsumerWidget {

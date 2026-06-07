@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/m_manga.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
@@ -14,6 +15,7 @@ import 'package:mangayomi/services/feed/feed_constants.dart';
 import 'package:mangayomi/services/feed/feed_labels.dart';
 import 'package:mangayomi/services/feed/saved_search_repository.dart';
 import 'package:mangayomi/utils/language.dart';
+import 'package:mangayomi/utils/super_precalculation_policy.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 class FeedItemRow extends ConsumerWidget {

@@ -1,3 +1,4 @@
+import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/feed_saved_search.dart';
 import 'package:mangayomi/models/manga.dart';
