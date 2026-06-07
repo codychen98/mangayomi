@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mangayomi/main.dart';
-import 'package:mangayomi/models/category.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/download.dart';
 import 'package:mangayomi/models/manga.dart';
@@ -922,30 +921,35 @@ class SortLibraryCategoryState extends _$SortLibraryCategoryState {
     required ItemType itemType,
     required Settings settings,
   }) {
-    final category = isar.categorys.getSync(categoryId);
-    if (category?.sortIndex != null) {
-      return SortLibraryManga(
-        index: category!.sortIndex,
-        reverse: category.sortReverse ?? false,
-      );
+    final entry = settings.sortLibraryCategoryList
+        ?.where((element) => element.categoryId == categoryId)
+        .firstOrNull;
+    if (entry != null) {
+      return SortLibraryManga(index: entry.index, reverse: entry.reverse);
     }
     return _globalLibrarySort(settings, itemType);
   }
 
   void update(bool reverse, int index) {
-    final category = isar.categorys.getSync(categoryId);
-    if (category == null) return;
-
-    final nextReverse = state.index == index ? !reverse : reverse;
+    final value = SortLibraryCategory()
+      ..categoryId = categoryId
+      ..index = index
+      ..reverse = state.index == index ? !reverse : reverse;
+    final appSettings = isar.settings.getSync(227)!;
+    final sortLibraryCategoryList = <SortLibraryCategory>[
+      for (final entry
+          in appSettings.sortLibraryCategoryList ?? <SortLibraryCategory>[])
+        if (entry.categoryId != categoryId) entry,
+      value,
+    ];
     isar.writeTxnSync(() {
-      isar.categorys.putSync(
-        category
-          ..sortIndex = index
-          ..sortReverse = nextReverse
+      isar.settings.putSync(
+        appSettings
+          ..sortLibraryCategoryList = sortLibraryCategoryList
           ..updatedAt = DateTime.now().millisecondsSinceEpoch,
       );
     });
-    state = SortLibraryManga(index: index, reverse: nextReverse);
+    state = SortLibraryManga(index: value.index, reverse: value.reverse);
   }
 
   void set(int index) {

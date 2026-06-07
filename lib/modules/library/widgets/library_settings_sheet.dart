@@ -218,24 +218,7 @@ class _SortTab extends ConsumerWidget {
               settings: settings,
             ),
           );
-    final reverse = categoryId != null
-        ? ref
-              .read(
-                sortLibraryCategoryStateProvider(
-                  categoryId: categoryId!,
-                  itemType: itemType,
-                  settings: settings,
-                ).notifier,
-              )
-              .isReverse()
-        : ref
-              .read(
-                sortLibraryMangaStateProvider(
-                  itemType: itemType,
-                  settings: settings,
-                ).notifier,
-              )
-              .isReverse();
+    final reverse = sortState.reverse ?? false;
     return Column(
       children: [
         for (var i = 0; i < 8; i++)
