@@ -1195,6 +1195,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cancel_all_for_this_series => '为此系列取消所有';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => '登录';
 
   @override

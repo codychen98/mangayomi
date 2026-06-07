@@ -1230,6 +1230,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cancel_all_for_this_series => 'إلغاء الكل لهذه السلسلة';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'تسجيل الدخول';
 
   @override

@@ -1230,6 +1230,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cancel_all_for_this_series => 'Tout annuler pour cette serie';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'Connexion';
 
   @override

@@ -75,6 +75,12 @@ class DownloadQueueScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => _cancelAllDownloads(entries),
+                  child: Text(l10n.cancel_all_downloads),
+                ),
+              ],
             ),
             body: GroupedListView<Download, String>(
               elements: entries,
@@ -214,6 +220,15 @@ class DownloadQueueScreen extends ConsumerWidget {
         );
       },
     );
+  }
+
+  void _cancelAllDownloads(List<Download> entries) {
+    for (final entry in entries) {
+      final chapter = entry.chapter.value;
+      if (chapter != null && entry.id != null) {
+        chapter.cancelDownloads(entry.id!);
+      }
+    }
   }
 
   Size measureText(String text, TextStyle style) {

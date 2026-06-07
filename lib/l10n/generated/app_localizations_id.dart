@@ -1223,6 +1223,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get cancel_all_for_this_series => 'Batalkan semua untuk seri ini';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'Masuk';
 
   @override

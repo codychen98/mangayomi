@@ -2273,6 +2273,12 @@ abstract class AppLocalizations {
   /// **'Cancel all for this series'**
   String get cancel_all_for_this_series;
 
+  /// No description provided for @cancel_all_downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel all downloads'**
+  String get cancel_all_downloads;
+
   /// No description provided for @login.
   ///
   /// In en, this message translates to:

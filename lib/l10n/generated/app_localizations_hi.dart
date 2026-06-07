@@ -1219,6 +1219,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cancel_all_for_this_series => 'इस सीरीज़ के लिए सभी रद्द करें';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'लॉगिन';
 
   @override

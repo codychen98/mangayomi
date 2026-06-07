@@ -1220,6 +1220,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get cancel_all_for_this_series => 'Bu Seri İçin Tümünü İptal Et';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'Giriş Yap';
 
   @override

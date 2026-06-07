@@ -1228,6 +1228,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cancel_all_for_this_series => 'Cancelar todo para esta serie';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'Iniciar sesión';
 
   @override
@@ -3608,6 +3611,9 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get cancel_all_for_this_series => 'Cancelar todo para esta serie';
+
+  @override
+  String get cancel_all_downloads => 'Cancel all downloads';
 
   @override
   String get login => 'Iniciar sesión';

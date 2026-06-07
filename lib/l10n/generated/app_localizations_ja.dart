@@ -1208,6 +1208,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cancel_all_for_this_series => 'このシリーズのすべてをキャンセル';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'ログイン';
 
   @override

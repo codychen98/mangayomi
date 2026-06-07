@@ -1226,6 +1226,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get cancel_all_for_this_series => 'Cancelar tudo para esta série';
 
   @override
+  String get cancel_all_downloads => 'Cancel all downloads';
+
+  @override
   String get login => 'Entrar';
 
   @override
@@ -3600,6 +3603,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get cancel_all_for_this_series => 'Cancelar tudo para esta série';
+
+  @override
+  String get cancel_all_downloads => 'Cancel all downloads';
 
   @override
   String get login => 'Entrar';
