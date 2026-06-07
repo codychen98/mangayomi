@@ -131,7 +131,8 @@ dev_dependencies:
   freezed: ^3.0.0
   inno_bundle: ^0.9.0
   protoc_plugin: ^23.0.0
-  hive_generator: ^2.0.1
+  # hive_generator is incompatible with isar_community_generator (source_gen conflict).
+  # track_search.g.dart is committed and restored after CI codegen.
 
 flutter:
   uses-material-design: true
