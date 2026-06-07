@@ -75,12 +75,6 @@ class DownloadQueueScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => _cancelAllDownloads(entries),
-                  child: Text(l10n.cancel_all_downloads),
-                ),
-              ],
             ),
             body: GroupedListView<Download, String>(
               elements: entries,
@@ -181,6 +175,8 @@ class DownloadQueueScreen extends ConsumerWidget {
                                 );
                                 chapter?.cancelDownloads(downloadId!);
                               }
+                            } else if (value.toString() == 'CancelAllDownloads') {
+                              _cancelAllDownloads(entries);
                             }
                           },
                           itemBuilder: (context) => [
@@ -191,6 +187,10 @@ class DownloadQueueScreen extends ConsumerWidget {
                             PopupMenuItem(
                               value: 'CancelAll',
                               child: Text(l10n.cancel_all_for_this_series),
+                            ),
+                            PopupMenuItem(
+                              value: 'CancelAllDownloads',
+                              child: Text(l10n.cancel_all_downloads),
                             ),
                           ],
                         ),
