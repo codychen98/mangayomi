@@ -1840,6 +1840,23 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     );
   }
 
+  void _onPlayerBack(BuildContext context) {
+    final fullScreen = ref.read(fullscreenProvider);
+    if (isDesktop && fullScreen) {
+      setFullScreen(value: !fullScreen);
+      ref.read(fullscreenProvider.notifier).state = !fullScreen;
+      widget.desktopFullScreenPlayer.call(!fullScreen);
+    } else {
+      restoreSystemUI();
+    }
+    if (mounted) {
+      // Set variable to true, so the player uses the global
+      // "Use Fullscreen" setting again.
+      _firstTime = true;
+      Navigator.pop(context);
+    }
+  }
+
   Widget _topButtonBar(BuildContext context) {
     final fullScreen = ref.watch(fullscreenProvider);
     return Padding(
@@ -1850,21 +1867,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         children: [
           BackButton(
             color: Colors.white,
-            onPressed: () {
-              if (isDesktop && fullScreen) {
-                setFullScreen(value: !fullScreen);
-                ref.read(fullscreenProvider.notifier).state = !fullScreen;
-                widget.desktopFullScreenPlayer.call(!fullScreen);
-              } else {
-                restoreSystemUI();
-              }
-              if (mounted) {
-                // Set variable to true, so the player uses the global
-                // "Use Fullscreen" setting again.
-                _firstTime = true;
-                Navigator.pop(context);
-              }
-            },
+            onPressed: () => _onPlayerBack(context),
           ),
           Flexible(
             child: ListTile(
@@ -1987,6 +1990,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
                   },
                   defaultSkipIntroLength: skipIntroLength,
                   desktopFullScreenPlayer: widget.desktopFullScreenPlayer,
+                  onBack: () => _onPlayerBack(context),
                   chapterMarks: _chapterMarks,
                 )
               : MobileControllerWidget(

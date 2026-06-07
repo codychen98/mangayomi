@@ -25,6 +25,7 @@ class DesktopControllerWidget extends ConsumerStatefulWidget {
   final Widget seekToWidget;
   final int defaultSkipIntroLength;
   final void Function(bool) desktopFullScreenPlayer;
+  final VoidCallback onBack;
   final ValueNotifier<List<(String, int)>> chapterMarks;
   const DesktopControllerWidget({
     super.key,
@@ -38,6 +39,7 @@ class DesktopControllerWidget extends ConsumerStatefulWidget {
     required this.doubleSpeed,
     required this.defaultSkipIntroLength,
     required this.desktopFullScreenPlayer,
+    required this.onBack,
     required this.chapterMarks,
   });
 
@@ -220,9 +222,8 @@ class _DesktopControllerWidgetState
         const SingleActivator(LogicalKeyboardKey.keyF): () async {
           await _changeFullScreen(ref, widget.desktopFullScreenPlayer);
         },
-        const SingleActivator(LogicalKeyboardKey.escape): () async {
-          final desktopFullScreenPlayer = widget.desktopFullScreenPlayer;
-          await _changeFullScreen(ref, desktopFullScreenPlayer, value: false);
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          widget.onBack();
         },
         const SingleActivator(LogicalKeyboardKey.digit0, control: true): () {
           (widget.videoController.player.platform as NativePlayer).command([
