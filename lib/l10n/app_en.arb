@@ -863,5 +863,87 @@
     }
   },
   "tts_settings": "TTS Settings",
-  "tts_default": "Default"
+  "tts_default": "Default",
+  "feed": "Feed",
+  "feed_for_type": "{type} Feed",
+  "@feed_for_type": {
+    "placeholders": {
+      "type": {}
+    }
+  },
+  "feed_tab_empty": "No items in feed. Tap + to add sources.",
+  "source_feed_tab_empty": "No items in feed. Tap + to add rows.",
+  "too_many_in_feed": "Too many items in feed (max {max})",
+  "@too_many_in_feed": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "action_sort_feed": "Reorder feed",
+  "add_to_feed_for_type": "Add to {type} feed",
+  "@add_to_feed_for_type": {
+    "placeholders": {
+      "type": {}
+    }
+  },
+  "reorder_feed_for_type": "Reorder {type} feed",
+  "@reorder_feed_for_type": {
+    "placeholders": {
+      "type": {}
+    }
+  },
+  "reorder_source_feed": "Reorder {source} feed",
+  "@reorder_source_feed": {
+    "placeholders": {
+      "source": {}
+    }
+  },
+  "remove_from_feed": "Remove \"{title}\" from {source} feed?",
+  "@remove_from_feed": {
+    "placeholders": {
+      "title": {},
+      "source": {}
+    }
+  },
+  "hide_feed_tab": "Hide Feed tab",
+  "hide_feed_tab_subtitle": "Remove Feed sub-tabs from Browse",
+  "feed_tab_position": "Feed tab before Sources",
+  "feed_tab_position_subtitle": "Show Feed tab before Sources for each content type",
+  "hide_library_feed_items": "Hide library items in feed",
+  "hide_library_feed_items_subtitle": "Filter out items already in your library from feed rows",
+  "use_source_feed_navigation": "Use Source Feed navigation",
+  "use_source_feed_navigation_subtitle": "Open Source Feed screen when tapping a source (Latest button still opens source home)",
+  "save_search": "Save search",
+  "saved_search_name_hint": "My saved search",
+  "delete_saved_search": "Delete saved search",
+  "delete_saved_search_confirm": "Delete \"{name}\"?",
+  "@delete_saved_search_confirm": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "saved_search": "Saved search",
+  "add_to_feed": "Add to feed",
+  "saved_search_toast": "Saved \"{name}\"",
+  "@saved_search_toast": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "added_to_feed_toast": "Added \"{name}\" to feed",
+  "@added_to_feed_toast": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleted_saved_search_toast": "Deleted \"{name}\"",
+  "@deleted_saved_search_toast": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "loading_ellipsis": "Loading...",
+  "error_label": "Error"
 }

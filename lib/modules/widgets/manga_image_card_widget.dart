@@ -23,6 +23,9 @@ class MangaImageCardWidget extends ConsumerWidget {
   final bool isComfortableGrid;
   final MManga? getMangaDetail;
   final Manga? libraryManga;
+  final bool selectionMode;
+  final bool isSelected;
+  final VoidCallback? onSelectionToggle;
 
   const MangaImageCardWidget({
     required this.source,
@@ -31,12 +34,16 @@ class MangaImageCardWidget extends ConsumerWidget {
     required this.isComfortableGrid,
     required this.itemType,
     this.libraryManga,
+    this.selectionMode = false,
+    this.isSelected = false,
+    this.onSelectionToggle,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hasData = libraryManga != null;
     return CoverViewWidget(
+      isLongPressed: selectionMode ? isSelected : null,
       bottomTextWidget: BottomTextWidget(
         maxLines: 1,
         text: getMangaDetail!.name!,
@@ -63,9 +70,27 @@ class MangaImageCardWidget extends ConsumerWidget {
               ),
               cacheMaxAge: const Duration(days: 7),
             ),
-      onTap: () => _toMangaRdD(ref, context, false),
-      onLongPress: () => _toMangaRdD(ref, context, true),
-      onSecondaryTap: () => _toMangaRdD(ref, context, true),
+      onTap: () {
+        if (selectionMode && onSelectionToggle != null) {
+          onSelectionToggle!();
+          return;
+        }
+        _toMangaRdD(ref, context, false);
+      },
+      onLongPress: () {
+        if (selectionMode && onSelectionToggle != null) {
+          onSelectionToggle!();
+          return;
+        }
+        _toMangaRdD(ref, context, true);
+      },
+      onSecondaryTap: () {
+        if (selectionMode && onSelectionToggle != null) {
+          onSelectionToggle!();
+          return;
+        }
+        _toMangaRdD(ref, context, true);
+      },
       children: [
         Container(
           color: hasData && libraryManga!.favorite!

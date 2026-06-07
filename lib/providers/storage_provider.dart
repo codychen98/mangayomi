@@ -9,6 +9,8 @@ import 'package:mangayomi/models/changed.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/custom_button.dart';
 import 'package:mangayomi/models/download.dart';
+import 'package:mangayomi/models/feed_saved_search.dart';
+import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
@@ -306,6 +308,8 @@ class StorageProvider {
         SyncPreferenceSchema,
         SourcePreferenceSchema,
         SourcePreferenceStringValueSchema,
+        SavedSearchSchema,
+        FeedSavedSearchSchema,
       ],
       directory: dir!.path,
       name: "mangayomiDb",

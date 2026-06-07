@@ -182,6 +182,86 @@ class CheckForExtensionsUpdateState extends _$CheckForExtensionsUpdateState {
 }
 
 @riverpod
+class HideFeedTabState extends _$HideFeedTabState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.hideFeedTab ?? false;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..hideFeedTab = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
+class FeedTabInFrontState extends _$FeedTabInFrontState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.feedTabInFront ?? false;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..feedTabInFront = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
+class HideInLibraryFeedItemsState extends _$HideInLibraryFeedItemsState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.hideInLibraryFeedItems ?? false;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..hideInLibraryFeedItems = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
+class UseSourceFeedNavigationState extends _$UseSourceFeedNavigationState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.useSourceFeedNavigation ?? false;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..useSourceFeedNavigation = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
 Future<Repo?> getRepoInfos(Ref ref, {required String jsonUrl}) async {
   final http = MClient.init(reqcopyWith: {'useDartHttpClient': true});
 

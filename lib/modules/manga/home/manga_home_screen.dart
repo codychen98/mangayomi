@@ -11,7 +11,11 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/library/providers/library_state_provider.dart';
 import 'package:mangayomi/modules/manga/home/providers/state_provider.dart';
+import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/modules/manga/home/widget/filter_widget.dart';
+import 'package:mangayomi/modules/manga/home/widgets/saved_search_chips.dart';
+import 'package:mangayomi/modules/manga/home/widgets/saved_search_dialogs.dart';
+import 'package:mangayomi/services/feed/saved_search_filters.dart';
 import 'package:mangayomi/modules/widgets/listview_widget.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
@@ -36,11 +40,15 @@ class MangaHomeScreen extends ConsumerStatefulWidget {
   final bool isSearch;
   final bool isLatest;
   final String query;
+  final bool openWithFilter;
+  final List<dynamic>? initialFilters;
   const MangaHomeScreen({
     required this.source,
     this.query = "",
     this.isSearch = false,
     this.isLatest = false,
+    this.openWithFilter = false,
+    this.initialFilters,
     super.key,
   });
 
@@ -60,14 +68,20 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
   int _fullDataLength = 50;
   int _page = 1;
   bool _hasNextPage = true;
-  late int _selectedIndex = widget.isLatest
+  late int _selectedIndex = widget.openWithFilter
+      ? 2
+      : widget.isLatest
       ? 1
       : widget.isSearch
       ? 2
       : 0;
   late Source source = widget.source;
   late bool isLocal = source.name == "local" && source.lang == "";
-  late List<dynamic> filters = isLocal ? [] : getFilterList(source: source);
+  late List<dynamic> filters = widget.openWithFilter && widget.initialFilters != null
+      ? List<dynamic>.from(widget.initialFilters!)
+      : isLocal
+      ? []
+      : getFilterList(source: source);
   final List<MManga> _mangaList = [];
   late StreamSubscription<List<Manga>> _mangaStreamSub;
   Map<String, Manga> _libraryIndex = {};
@@ -183,11 +197,58 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
   late bool _isSearch = widget.isSearch;
   AsyncValue<MPages?>? _getManga;
   int _length = 0;
-  bool _isFiltering = false;
+  late bool _isFiltering = widget.openWithFilter &&
+      widget.initialFilters != null &&
+      widget.initialFilters!.isNotEmpty;
+  int? _activeSavedSearchId;
   late final supportsLatest = isLocal
       ? true
       : ref.watch(supportsLatestProvider(source: source));
   late final filterList = isLocal ? [] : getFilterList(source: source);
+
+  void _applySavedSearch(SavedSearch savedSearch) {
+    final restoredFilters = deserializeSavedSearchFilters(
+      savedSearch.filtersJson,
+    );
+    _mangaList.clear();
+    setState(() {
+      _activeSavedSearchId = savedSearch.id;
+      _selectedIndex = 2;
+      _isFiltering = restoredFilters.isNotEmpty;
+      _isSearch = (savedSearch.query ?? '').isNotEmpty;
+      _query = savedSearch.query ?? '';
+      _textEditingController.text = _query;
+      filters = restoredFilters.isNotEmpty ? restoredFilters : filterList;
+      _page = 1;
+      _isLoading = false;
+      _hasNextPage = true;
+    });
+    ref.invalidate(
+      searchProvider(
+        source: source,
+        query: _query,
+        page: 1,
+        filterList: filters,
+      ),
+    );
+  }
+
+  void _clearSavedSearchSelection() {
+    _mangaList.clear();
+    setState(() {
+      _activeSavedSearchId = null;
+      _selectedIndex = 0;
+      _isFiltering = false;
+      _isSearch = false;
+      _query = '';
+      _textEditingController.clear();
+      filters = filterList;
+      _page = 1;
+      _isLoading = false;
+      _hasNextPage = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_selectedIndex == 2 && (_isSearch && _query.isNotEmpty) ||
@@ -249,10 +310,11 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                     setState(() {
                       if (submit.isNotEmpty) {
                         _selectedIndex = 2;
-
                         _query = submit;
+                        _activeSavedSearchId = null;
                       } else {
                         _selectedIndex = 0;
+                        _activeSavedSearchId = null;
                       }
                       _page = 1;
                     });
@@ -371,7 +433,9 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
             ),
         ],
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(AppBar().preferredSize.height * 0.8),
+          preferredSize: Size.fromHeight(
+            (AppBar().preferredSize.height * 0.8) + (isLocal ? 0 : 40),
+          ),
           child: Column(
             children: [
               SizedBox(
@@ -417,6 +481,26 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                                             },
                                             child: Text(l10n.reset),
                                           ),
+                                          TextButton(
+                                            onPressed: () async {
+                                              final name =
+                                                  await showSaveSavedSearchDialog(
+                                                context: context,
+                                              );
+                                              if (name == null || !context.mounted) {
+                                                return;
+                                              }
+                                              await saveCurrentSearch(
+                                                context: context,
+                                                ref: ref,
+                                                source: source,
+                                                name: name,
+                                                query: _query,
+                                                filters: filters,
+                                              );
+                                            },
+                                            child: Text(l10n.save),
+                                          ),
                                           const Spacer(),
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
@@ -460,6 +544,7 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                               setState(() {
                                 _selectedIndex = 2;
                                 _isFiltering = true;
+                                _activeSavedSearchId = null;
                                 _page = 1;
                                 _isLoading = false;
                               });
@@ -480,6 +565,7 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                             _selectedIndex = index;
                             _isFiltering = false;
                             _isSearch = false;
+                            _activeSavedSearchId = null;
                             _query = "";
                             _textEditingController.clear();
                             _page = 1;
@@ -491,6 +577,13 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                   },
                 ),
               ),
+              if (!isLocal)
+                SavedSearchChips(
+                  source: source,
+                  selectedSavedSearchId: _activeSavedSearchId,
+                  onTap: _applySavedSearch,
+                  onSelectionCleared: _clearSavedSearchSelection,
+                ),
               Container(
                 color: context.primaryColor,
                 height: 0.3,

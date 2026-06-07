@@ -34,4 +34,8 @@ extension ItemTypeLocalization on ItemType {
         return l10n.novel_extensions;
     }
   }
+
+  String localizedFeed(AppLocalizations l10n) {
+    return l10n.feed_for_type(localized(l10n));
+  }
 }

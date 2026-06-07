@@ -27,6 +27,12 @@ class BrowseSScreen extends ConsumerWidget {
       onlyIncludePinnedSourceStateProvider,
     );
     final showNSFW = ref.watch(showNSFWStateProvider);
+    final hideFeedTab = ref.watch(hideFeedTabStateProvider);
+    final feedTabInFront = ref.watch(feedTabInFrontStateProvider);
+    final hideInLibraryFeedItems = ref.watch(hideInLibraryFeedItemsStateProvider);
+    final useSourceFeedNavigation = ref.watch(
+      useSourceFeedNavigationStateProvider,
+    );
     final checkForExtensionUpdates = ref.watch(
       checkForExtensionsUpdateStateProvider,
     );
@@ -195,6 +201,91 @@ class BrowseSScreen extends ConsumerWidget {
                             .set(value);
                       },
                     ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 30),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15),
+                    child: Row(
+                      children: [
+                        Text(
+                          l10n.feed,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: context.primaryColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SwitchListTile(
+                    value: hideFeedTab,
+                    title: Text(l10n.hide_feed_tab),
+                    subtitle: Text(
+                      l10n.hide_feed_tab_subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.secondaryColor,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      ref.read(hideFeedTabStateProvider.notifier).set(value);
+                    },
+                  ),
+                  SwitchListTile(
+                    value: feedTabInFront,
+                    title: Text(l10n.feed_tab_position),
+                    subtitle: Text(
+                      l10n.feed_tab_position_subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.secondaryColor,
+                      ),
+                    ),
+                    onChanged: hideFeedTab
+                        ? null
+                        : (value) {
+                            ref
+                                .read(feedTabInFrontStateProvider.notifier)
+                                .set(value);
+                          },
+                  ),
+                  SwitchListTile(
+                    value: hideInLibraryFeedItems,
+                    title: Text(l10n.hide_library_feed_items),
+                    subtitle: Text(
+                      l10n.hide_library_feed_items_subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.secondaryColor,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      ref
+                          .read(hideInLibraryFeedItemsStateProvider.notifier)
+                          .set(value);
+                    },
+                  ),
+                  SwitchListTile(
+                    value: useSourceFeedNavigation,
+                    title: Text(l10n.use_source_feed_navigation),
+                    subtitle: Text(
+                      l10n.use_source_feed_navigation_subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.secondaryColor,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      ref
+                          .read(useSourceFeedNavigationStateProvider.notifier)
+                          .set(value);
+                    },
+                  ),
                 ],
               ),
             ),

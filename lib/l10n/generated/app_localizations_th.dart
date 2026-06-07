@@ -101,13 +101,13 @@ class AppLocalizationsTh extends AppLocalizations {
   String get latest_episode => 'ตอนล่าสุด';
 
   @override
-  String get date_added => 'วันที่เพิ่ม';
-
-  @override
   String get latest_chapter_fetched => 'Latest chapter fetched';
 
   @override
   String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
+  String get date_added => 'วันที่เพิ่ม';
 
   @override
   String get display => 'แสดงผล';
@@ -2355,4 +2355,113 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get tts_default => 'Default';
+  @override
+  String get feed => 'Feed';
+
+  @override
+  String feed_for_type(String type) {
+    return '$type Feed';
+  }
+
+  @override
+  String get feed_tab_empty => 'No items in feed. Tap + to add sources.';
+
+  @override
+  String get source_feed_tab_empty => 'No items in feed. Tap + to add rows.';
+
+  @override
+  String too_many_in_feed(int max) {
+    return 'Too many items in feed (max $max)';
+  }
+
+  @override
+  String get action_sort_feed => 'Reorder feed';
+
+  @override
+  String add_to_feed_for_type(String type) {
+    return 'Add to $type feed';
+  }
+
+  @override
+  String reorder_feed_for_type(String type) {
+    return 'Reorder $type feed';
+  }
+
+  @override
+  String reorder_source_feed(String source) {
+    return 'Reorder $source feed';
+  }
+
+  @override
+  String remove_from_feed(String title, String source) {
+    return 'Remove "$title" from $source feed?';
+  }
+
+  @override
+  String get hide_feed_tab => 'Hide Feed tab';
+
+  @override
+  String get hide_feed_tab_subtitle => 'Remove Feed sub-tabs from Browse';
+
+  @override
+  String get feed_tab_position => 'Feed tab before Sources';
+
+  @override
+  String get feed_tab_position_subtitle =>
+      'Show Feed tab before Sources for each content type';
+
+  @override
+  String get hide_library_feed_items => 'Hide library items in feed';
+
+  @override
+  String get hide_library_feed_items_subtitle =>
+      'Filter out items already in your library from feed rows';
+
+  @override
+  String get use_source_feed_navigation => 'Use Source Feed navigation';
+
+  @override
+  String get use_source_feed_navigation_subtitle =>
+      'Open Source Feed screen when tapping a source (Latest button still opens source home)';
+
+  @override
+  String get save_search => 'Save search';
+
+  @override
+  String get saved_search_name_hint => 'My saved search';
+
+  @override
+  String get delete_saved_search => 'Delete saved search';
+
+  @override
+  String delete_saved_search_confirm(String name) {
+    return 'Delete "$name"?';
+  }
+
+  @override
+  String get saved_search => 'Saved search';
+
+  @override
+  String get add_to_feed => 'Add to feed';
+
+  @override
+  String saved_search_toast(String name) {
+    return 'Saved "$name"';
+  }
+
+  @override
+  String added_to_feed_toast(String name) {
+    return 'Added "$name" to feed';
+  }
+
+  @override
+  String deleted_saved_search_toast(String name) {
+    return 'Deleted "$name"';
+  }
+
+  @override
+  String get loading_ellipsis => 'Loading...';
+
+  @override
+  String get error_label => 'Error';
 }

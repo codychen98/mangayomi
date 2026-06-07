@@ -12,6 +12,8 @@ import 'package:mangayomi/models/custom_button.dart';
 import 'package:mangayomi/models/download.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/feed_saved_search.dart';
+import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/track.dart';
@@ -107,6 +109,20 @@ Future<void> doBackUp(
           .map((e) => e.toJson())
           .toList();
       datas.addAll({"settings": res});
+      final savedSearches = isar.savedSearchs
+          .filter()
+          .idIsNotNull()
+          .findAllSync()
+          .map((e) => e.toJson())
+          .toList();
+      datas.addAll({"savedSearches": savedSearches});
+      final feedSavedSearches = isar.feedSavedSearchs
+          .filter()
+          .idIsNotNull()
+          .findAllSync()
+          .map((e) => e.toJson())
+          .toList();
+      datas.addAll({"feedSavedSearches": feedSavedSearches});
     }
     if (list.contains(7)) {
       final res = isar.sourcePreferences

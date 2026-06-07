@@ -42,6 +42,9 @@ import 'package:mangayomi/modules/more/settings/track/manage_trackers/manage_tra
 import 'package:mangayomi/modules/more/settings/track/manage_trackers/tracking_detail.dart';
 import 'package:mangayomi/modules/webview/webview.dart';
 import 'package:mangayomi/modules/browse/browse_screen.dart';
+import 'package:mangayomi/modules/browse/feed/feed_order_screen.dart';
+import 'package:mangayomi/modules/browse/source_feed/source_feed_order_screen.dart';
+import 'package:mangayomi/modules/browse/source_feed/source_feed_screen.dart';
 import 'package:mangayomi/modules/browse/extension/extension_lang.dart';
 import 'package:mangayomi/modules/browse/global_search/global_search_screen.dart';
 import 'package:mangayomi/modules/main_view/main_screen.dart';
@@ -192,6 +195,18 @@ class RouterNotifier extends ChangeNotifier {
     _genericRoute<ItemType>(
       name: "sourceFilter",
       builder: (itemType) => SourcesFilterScreen(itemType: itemType),
+    ),
+    _genericRoute<ItemType>(
+      name: "feedOrder",
+      builder: (itemType) => FeedOrderScreen(itemType: itemType),
+    ),
+    _genericRoute<Source>(
+      name: "sourceFeed",
+      builder: (source) => SourceFeedScreen(source: source),
+    ),
+    _genericRoute<Source>(
+      name: "sourceFeedOrder",
+      builder: (source) => SourceFeedOrderScreen(source: source),
     ),
     _genericRoute(name: "downloadQueue", child: const DownloadQueueScreen()),
     _genericRoute<Map<String, dynamic>>(

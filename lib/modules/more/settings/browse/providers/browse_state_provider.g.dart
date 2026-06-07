@@ -373,6 +373,216 @@ abstract class _$CheckForExtensionsUpdateState extends $Notifier<bool> {
   }
 }
 
+@ProviderFor(HideFeedTabState)
+final hideFeedTabStateProvider = HideFeedTabStateProvider._();
+
+final class HideFeedTabStateProvider
+    extends $NotifierProvider<HideFeedTabState, bool> {
+  HideFeedTabStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'hideFeedTabStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$hideFeedTabStateHash();
+
+  @$internal
+  @override
+  HideFeedTabState create() => HideFeedTabState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$hideFeedTabStateHash() =>
+    r'a1b2c3d4e5f6789012345678hidefeedtab0001';
+
+abstract class _$HideFeedTabState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(FeedTabInFrontState)
+final feedTabInFrontStateProvider = FeedTabInFrontStateProvider._();
+
+final class FeedTabInFrontStateProvider
+    extends $NotifierProvider<FeedTabInFrontState, bool> {
+  FeedTabInFrontStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'feedTabInFrontStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$feedTabInFrontStateHash();
+
+  @$internal
+  @override
+  FeedTabInFrontState create() => FeedTabInFrontState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$feedTabInFrontStateHash() =>
+    r'b2c3d4e5f6789012345678feedtabfront002';
+
+abstract class _$FeedTabInFrontState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(HideInLibraryFeedItemsState)
+final hideInLibraryFeedItemsStateProvider =
+    HideInLibraryFeedItemsStateProvider._();
+
+final class HideInLibraryFeedItemsStateProvider
+    extends $NotifierProvider<HideInLibraryFeedItemsState, bool> {
+  HideInLibraryFeedItemsStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'hideInLibraryFeedItemsStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$hideInLibraryFeedItemsStateHash();
+
+  @$internal
+  @override
+  HideInLibraryFeedItemsState create() => HideInLibraryFeedItemsState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$hideInLibraryFeedItemsStateHash() =>
+    r'c3d4e5f6789012345678hidelibrary003';
+
+abstract class _$HideInLibraryFeedItemsState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(UseSourceFeedNavigationState)
+final useSourceFeedNavigationStateProvider =
+    UseSourceFeedNavigationStateProvider._();
+
+final class UseSourceFeedNavigationStateProvider
+    extends $NotifierProvider<UseSourceFeedNavigationState, bool> {
+  UseSourceFeedNavigationStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'useSourceFeedNavigationStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$useSourceFeedNavigationStateHash();
+
+  @$internal
+  @override
+  UseSourceFeedNavigationState create() => UseSourceFeedNavigationState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$useSourceFeedNavigationStateHash() =>
+    r'd4e5f6789012345678usesourcefeed004';
+
+abstract class _$UseSourceFeedNavigationState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(getRepoInfos)
 final getRepoInfosProvider = GetRepoInfosFamily._();
 

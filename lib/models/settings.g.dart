@@ -919,6 +919,26 @@ const SettingsSchema = CollectionSchema(
       name: r'webtoonSidePadding',
       type: IsarType.long,
     ),
+    r'feedTabInFront': PropertySchema(
+      id: 170,
+      name: r'feedTabInFront',
+      type: IsarType.bool,
+    ),
+    r'hideFeedTab': PropertySchema(
+      id: 171,
+      name: r'hideFeedTab',
+      type: IsarType.bool,
+    ),
+    r'hideInLibraryFeedItems': PropertySchema(
+      id: 172,
+      name: r'hideInLibraryFeedItems',
+      type: IsarType.bool,
+    ),
+    r'useSourceFeedNavigation': PropertySchema(
+      id: 173,
+      name: r'useSourceFeedNavigation',
+      type: IsarType.bool,
+    ),
   },
 
   estimateSize: _settingsEstimateSize,
@@ -1718,6 +1738,10 @@ void _settingsSerialize(
   writer.writeString(offsets[167], object.userAgent);
   writer.writeLong(offsets[168], object.volumeBoostCap);
   writer.writeLong(offsets[169], object.webtoonSidePadding);
+  writer.writeBool(offsets[170], object.feedTabInFront);
+  writer.writeBool(offsets[171], object.hideFeedTab);
+  writer.writeBool(offsets[172], object.hideInLibraryFeedItems);
+  writer.writeBool(offsets[173], object.useSourceFeedNavigation);
 }
 
 Settings _settingsDeserialize(
@@ -2015,6 +2039,10 @@ Settings _settingsDeserialize(
     userAgent: reader.readStringOrNull(offsets[167]),
     volumeBoostCap: reader.readLongOrNull(offsets[168]),
     webtoonSidePadding: reader.readLongOrNull(offsets[169]),
+    feedTabInFront: reader.readBoolOrNull(offsets[170]),
+    hideFeedTab: reader.readBoolOrNull(offsets[171]),
+    hideInLibraryFeedItems: reader.readBoolOrNull(offsets[172]),
+    useSourceFeedNavigation: reader.readBoolOrNull(offsets[173]),
   );
   object.chapterFilterBookmarkedList = reader
       .readObjectList<ChapterFilterBookmarked>(
@@ -2564,6 +2592,14 @@ P _settingsDeserializeProp<P>(
       return (reader.readLongOrNull(offset)) as P;
     case 169:
       return (reader.readLongOrNull(offset)) as P;
+    case 170:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 171:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 172:
+      return (reader.readBoolOrNull(offset)) as P;
+    case 173:
+      return (reader.readBoolOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }

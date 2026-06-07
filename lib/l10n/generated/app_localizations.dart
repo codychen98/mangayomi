@@ -287,12 +287,6 @@ abstract class AppLocalizations {
   /// **'Latest episode'**
   String get latest_episode;
 
-  /// No description provided for @date_added.
-  ///
-  /// In en, this message translates to:
-  /// **'Date added'**
-  String get date_added;
-
   /// No description provided for @latest_chapter_fetched.
   ///
   /// In en, this message translates to:
@@ -304,6 +298,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Latest episode fetched'**
   String get latest_episode_fetched;
+
+  /// No description provided for @date_added.
+  ///
+  /// In en, this message translates to:
+  /// **'Date added'**
+  String get date_added;
 
   /// No description provided for @display.
   ///
@@ -1526,7 +1526,7 @@ abstract class AppLocalizations {
   /// Link to search the library query across all extensions.
   ///
   /// In en, this message translates to:
-  /// **'Search for "{query}" globally'**
+  /// **'Search for \"{query}\" globally'**
   String search_globally(Object query);
 
   /// No description provided for @color_blend_level.
@@ -4366,6 +4366,179 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Default'**
   String get tts_default;
+  /// No description provided for @feed.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed'**
+  String get feed;
+
+  /// No description provided for @feed_for_type.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} Feed'**
+  String feed_for_type(String type);
+
+  /// No description provided for @feed_tab_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in feed. Tap + to add sources.'**
+  String get feed_tab_empty;
+
+  /// No description provided for @source_feed_tab_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'No items in feed. Tap + to add rows.'**
+  String get source_feed_tab_empty;
+
+  /// No description provided for @too_many_in_feed.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many items in feed (max {max})'**
+  String too_many_in_feed(int max);
+
+  /// No description provided for @action_sort_feed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder feed'**
+  String get action_sort_feed;
+
+  /// No description provided for @add_to_feed_for_type.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to {type} feed'**
+  String add_to_feed_for_type(String type);
+
+  /// No description provided for @reorder_feed_for_type.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder {type} feed'**
+  String reorder_feed_for_type(String type);
+
+  /// No description provided for @reorder_source_feed.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder {source} feed'**
+  String reorder_source_feed(String source);
+
+  /// No description provided for @remove_from_feed.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove "{title}" from {source} feed?'**
+  String remove_from_feed(String title, String source);
+
+  /// No description provided for @hide_feed_tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Feed tab'**
+  String get hide_feed_tab;
+
+  /// No description provided for @hide_feed_tab_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Feed sub-tabs from Browse'**
+  String get hide_feed_tab_subtitle;
+
+  /// No description provided for @feed_tab_position.
+  ///
+  /// In en, this message translates to:
+  /// **'Feed tab before Sources'**
+  String get feed_tab_position;
+
+  /// No description provided for @feed_tab_position_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Feed tab before Sources for each content type'**
+  String get feed_tab_position_subtitle;
+
+  /// No description provided for @hide_library_feed_items.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide library items in feed'**
+  String get hide_library_feed_items;
+
+  /// No description provided for @hide_library_feed_items_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter out items already in your library from feed rows'**
+  String get hide_library_feed_items_subtitle;
+
+  /// No description provided for @use_source_feed_navigation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Source Feed navigation'**
+  String get use_source_feed_navigation;
+
+  /// No description provided for @use_source_feed_navigation_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Source Feed screen when tapping a source (Latest button still opens source home)'**
+  String get use_source_feed_navigation_subtitle;
+
+  /// No description provided for @save_search.
+  ///
+  /// In en, this message translates to:
+  /// **'Save search'**
+  String get save_search;
+
+  /// No description provided for @saved_search_name_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'My saved search'**
+  String get saved_search_name_hint;
+
+  /// No description provided for @delete_saved_search.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete saved search'**
+  String get delete_saved_search;
+
+  /// No description provided for @delete_saved_search_confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete "{name}"?'**
+  String delete_saved_search_confirm(String name);
+
+  /// No description provided for @saved_search.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved search'**
+  String get saved_search;
+
+  /// No description provided for @add_to_feed.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to feed'**
+  String get add_to_feed;
+
+  /// No description provided for @saved_search_toast.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved "{name}"'**
+  String saved_search_toast(String name);
+
+  /// No description provided for @added_to_feed_toast.
+  ///
+  /// In en, this message translates to:
+  /// **'Added "{name}" to feed'**
+  String added_to_feed_toast(String name);
+
+  /// No description provided for @deleted_saved_search_toast.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted "{name}"'**
+  String deleted_saved_search_toast(String name);
+
+  /// No description provided for @loading_ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading...'**
+  String get loading_ellipsis;
+
+  /// No description provided for @error_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get error_label;
 }
 
 class _AppLocalizationsDelegate

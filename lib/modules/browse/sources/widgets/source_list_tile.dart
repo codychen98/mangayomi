@@ -5,6 +5,7 @@ import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/source.dart';
+import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
@@ -45,7 +46,12 @@ class SourceListTile extends StatelessWidget {
               }
             });
           }
-          context.push('/mangaHome', extra: (source, false));
+          final useSourceFeed = ref.read(useSourceFeedNavigationStateProvider);
+          if (useSourceFeed && !isLocal) {
+            context.push('/sourceFeed', extra: source);
+          } else {
+            context.push('/mangaHome', extra: (source, false));
+          }
         },
         leading: Container(
           height: 37,

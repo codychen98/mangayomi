@@ -362,6 +362,14 @@ class Settings {
 
   String? ttsVoice;
 
+  bool? hideFeedTab;
+
+  bool? feedTabInFront;
+
+  bool? hideInLibraryFeedItems;
+
+  bool? useSourceFeedNavigation;
+
   Settings({
     this.id = 227,
     this.updatedAt = 0,
@@ -528,6 +536,10 @@ class Settings {
     this.ttsPitch = 1.0,
     this.ttsLanguage,
     this.ttsVoice,
+    this.hideFeedTab = false,
+    this.feedTabInFront = false,
+    this.hideInLibraryFeedItems = false,
+    this.useSourceFeedNavigation = false,
   });
 
   Settings.fromJson(Map<String, dynamic> json) {
@@ -812,6 +824,10 @@ class Settings {
     ttsPitch = json['ttsPitch']?.toDouble();
     ttsLanguage = json['ttsLanguage'];
     ttsVoice = json['ttsVoice'];
+    hideFeedTab = json['hideFeedTab'];
+    feedTabInFront = json['feedTabInFront'];
+    hideInLibraryFeedItems = json['hideInLibraryFeedItems'];
+    useSourceFeedNavigation = json['useSourceFeedNavigation'];
   }
 
   Map<String, dynamic> toJson() => {
@@ -1002,6 +1018,10 @@ class Settings {
     'ttsPitch': ttsPitch,
     'ttsLanguage': ttsLanguage,
     'ttsVoice': ttsVoice,
+    'hideFeedTab': hideFeedTab,
+    'feedTabInFront': feedTabInFront,
+    'hideInLibraryFeedItems': hideInLibraryFeedItems,
+    'useSourceFeedNavigation': useSourceFeedNavigation,
   };
 }
 

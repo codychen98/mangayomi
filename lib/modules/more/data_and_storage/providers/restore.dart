@@ -11,6 +11,8 @@ import 'package:mangayomi/models/category.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/custom_button.dart';
 import 'package:mangayomi/models/download.dart';
+import 'package:mangayomi/models/feed_saved_search.dart';
+import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
@@ -158,6 +160,12 @@ void restoreBackup(Ref ref, Map<String, dynamic> backup, {bool full = true}) {
       final customButtons = (backup["customButtons"] as List?)
           ?.map((e) => CustomButton.fromJson(e))
           .toList();
+      final savedSearches = (backup["savedSearches"] as List?)
+          ?.map((e) => SavedSearch.fromJson(e))
+          .toList();
+      final feedSavedSearches = (backup["feedSavedSearches"] as List?)
+          ?.map((e) => FeedSavedSearch.fromJson(e))
+          .toList();
 
       isar.writeTxnSync(() {
         isar.mangas.clearSync();
@@ -251,6 +259,14 @@ void restoreBackup(Ref ref, Map<String, dynamic> backup, {bool full = true}) {
           isar.customButtons.clearSync();
           if (customButtons != null) {
             isar.customButtons.putAllSync(customButtons);
+          }
+          isar.savedSearchs.clearSync();
+          if (savedSearches != null) {
+            isar.savedSearchs.putAllSync(savedSearches);
+          }
+          isar.feedSavedSearchs.clearSync();
+          if (feedSavedSearches != null) {
+            isar.feedSavedSearchs.putAllSync(feedSavedSearches);
           }
           _invalidateCommonState(ref);
         }

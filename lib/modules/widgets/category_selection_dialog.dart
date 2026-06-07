@@ -19,6 +19,8 @@ void showCategorySelectionDialog({
   required ItemType itemType,
   Manga? singleManga,
   List<Manga>? bulkMangas,
+  bool setFavoriteOnBulk = false,
+  VoidCallback? onBulkApplied,
 }) {
   assert(
     (singleManga != null) ^ (bulkMangas != null),
@@ -281,10 +283,17 @@ void showCategorySelectionDialog({
                           onPressed: () {
                             isar.writeTxnSync(() {
                               if (isBulk) {
+                                final dateNow =
+                                    DateTime.now().millisecondsSinceEpoch;
                                 for (var manga in bulkMangas) {
+                                  if (setFavoriteOnBulk &&
+                                      !(manga.favorite ?? false)) {
+                                    manga.favorite = true;
+                                    manga.dateAdded =
+                                        manga.dateAdded ?? dateNow;
+                                  }
                                   manga.categories = categoryIds;
-                                  manga.updatedAt =
-                                      DateTime.now().millisecondsSinceEpoch;
+                                  manga.updatedAt = dateNow;
                                   isar.mangas.putSync(manga);
                                 }
                               } else {
@@ -305,6 +314,7 @@ void showCategorySelectionDialog({
                                 ref
                                     .read(isLongPressedStateProvider.notifier)
                                     .update(false);
+                                onBulkApplied?.call();
                               }
                             });
                             if (context.mounted) Navigator.pop(context);

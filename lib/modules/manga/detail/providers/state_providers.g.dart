@@ -883,7 +883,7 @@ final class ChapterSetDownloadStateProvider
 }
 
 String _$chapterSetDownloadStateHash() =>
-    r'cb89abd653c018b762eb405634c7f8ca0ee8e99b';
+    r'e953917fca1c720a77ef91f9745420e51f836ed9';
 
 final class ChapterSetDownloadStateFamily extends $Family
     with

@@ -1759,7 +1759,7 @@ final class SortLibraryMangaStateProvider
 }
 
 String _$sortLibraryMangaStateHash() =>
-    r'9cf913f9ad66fa19fad1d8b86afdcf52d990c5ee';
+    r'35674a265f9519d33ec9ffc2c013ea995529784a';
 
 final class SortLibraryMangaStateFamily extends $Family
     with
@@ -1871,7 +1871,7 @@ final class SortLibraryCategoryStateProvider
 }
 
 String _$sortLibraryCategoryStateHash() =>
-    r'a1b2c3d4e5f6789012345678abcdef9012345678';
+    r'c4ddbbde1fb428a0713416927bff678c6ad91ea8';
 
 final class SortLibraryCategoryStateFamily extends $Family
     with
@@ -1905,8 +1905,8 @@ final class SortLibraryCategoryStateFamily extends $Family
 }
 
 abstract class _$SortLibraryCategoryState extends $Notifier<SortLibraryManga> {
-  late final _$args = ref.$arg
-      as ({int categoryId, ItemType itemType, Settings settings});
+  late final _$args =
+      ref.$arg as ({int categoryId, ItemType itemType, Settings settings});
   int get categoryId => _$args.categoryId;
   ItemType get itemType => _$args.itemType;
   Settings get settings => _$args.settings;
@@ -2105,7 +2105,7 @@ final class MangasBulkDownloadStateProvider
     extends $NotifierProvider<MangasBulkDownloadState, void> {
   MangasBulkDownloadStateProvider._({
     required MangasBulkDownloadStateFamily super.from,
-    required ({Set<int> mangaIds}) super.argument,
+    required Set<int> super.argument,
   }) : super(
          retry: null,
          name: r'mangasBulkDownloadStateProvider',
@@ -2121,7 +2121,7 @@ final class MangasBulkDownloadStateProvider
   String toString() {
     return r'mangasBulkDownloadStateProvider'
         ''
-        '$argument';
+        '($argument)';
   }
 
   @$internal
@@ -2138,7 +2138,8 @@ final class MangasBulkDownloadStateProvider
 
   @override
   bool operator ==(Object other) {
-    return other is MangasBulkDownloadStateProvider && other.argument == argument;
+    return other is MangasBulkDownloadStateProvider &&
+        other.argument == argument;
   }
 
   @override
@@ -2148,7 +2149,7 @@ final class MangasBulkDownloadStateProvider
 }
 
 String _$mangasBulkDownloadStateHash() =>
-    r'f8a3b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9';
+    r'c7bbe5beef05d9a3103ecffa0f50d1062f616a94';
 
 final class MangasBulkDownloadStateFamily extends $Family
     with
@@ -2157,7 +2158,7 @@ final class MangasBulkDownloadStateFamily extends $Family
           void,
           void,
           void,
-          ({Set<int> mangaIds})
+          Set<int>
         > {
   MangasBulkDownloadStateFamily._()
     : super(
@@ -2169,18 +2170,15 @@ final class MangasBulkDownloadStateFamily extends $Family
       );
 
   MangasBulkDownloadStateProvider call({required Set<int> mangaIds}) =>
-      MangasBulkDownloadStateProvider._(
-        argument: (mangaIds: mangaIds),
-        from: this,
-      );
+      MangasBulkDownloadStateProvider._(argument: mangaIds, from: this);
 
   @override
   String toString() => r'mangasBulkDownloadStateProvider';
 }
 
 abstract class _$MangasBulkDownloadState extends $Notifier<void> {
-  late final _$args = ref.$arg as ({Set<int> mangaIds});
-  Set<int> get mangaIds => _$args.mangaIds;
+  late final _$args = ref.$arg as Set<int>;
+  Set<int> get mangaIds => _$args;
 
   void build({required Set<int> mangaIds});
   @$mustCallSuper
@@ -2195,9 +2193,6 @@ abstract class _$MangasBulkDownloadState extends $Notifier<void> {
               Object?,
               Object?
             >;
-    element.handleCreate(
-      ref,
-      () => build(mangaIds: _$args.mangaIds),
-    );
+    element.handleCreate(ref, () => build(mangaIds: _$args));
   }
 }
