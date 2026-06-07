@@ -222,6 +222,13 @@ class _DesktopControllerWidgetState
         const SingleActivator(LogicalKeyboardKey.keyF): () async {
           await _changeFullScreen(ref, widget.desktopFullScreenPlayer);
         },
+        const SingleActivator(LogicalKeyboardKey.f11): () async {
+          await _changeFullScreen(
+            ref,
+            widget.desktopFullScreenPlayer,
+            value: true,
+          );
+        },
         const SingleActivator(LogicalKeyboardKey.escape): () {
           widget.onBack();
         },
