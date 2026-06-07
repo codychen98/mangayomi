@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mangayomi/main.dart';
+import 'package:mangayomi/models/category.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/download.dart';
 import 'package:mangayomi/models/manga.dart';

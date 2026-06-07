@@ -218,28 +218,52 @@ class _SortTab extends ConsumerWidget {
               settings: settings,
             ),
           );
-    final sortNotifier = categoryId != null
-        ? ref.read(
-            sortLibraryCategoryStateProvider(
-              categoryId: categoryId!,
-              itemType: itemType,
-              settings: settings,
-            ).notifier,
-          )
-        : ref.read(
-            sortLibraryMangaStateProvider(
-              itemType: itemType,
-              settings: settings,
-            ).notifier,
-          );
-    final reverse = sortNotifier.isReverse();
+    final reverse = categoryId != null
+        ? ref
+              .read(
+                sortLibraryCategoryStateProvider(
+                  categoryId: categoryId!,
+                  itemType: itemType,
+                  settings: settings,
+                ).notifier,
+              )
+              .isReverse()
+        : ref
+              .read(
+                sortLibraryMangaStateProvider(
+                  itemType: itemType,
+                  settings: settings,
+                ).notifier,
+              )
+              .isReverse();
     return Column(
       children: [
         for (var i = 0; i < 8; i++)
           ListTileChapterSort(
             label: _getSortNameByIndex(i, context, itemType),
             reverse: reverse,
-            onTap: () => sortNotifier.set(i),
+            onTap: () {
+              if (categoryId != null) {
+                ref
+                    .read(
+                      sortLibraryCategoryStateProvider(
+                        categoryId: categoryId!,
+                        itemType: itemType,
+                        settings: settings,
+                      ).notifier,
+                    )
+                    .set(i);
+              } else {
+                ref
+                    .read(
+                      sortLibraryMangaStateProvider(
+                        itemType: itemType,
+                        settings: settings,
+                      ).notifier,
+                    )
+                    .set(i);
+              }
+            },
             showLeading: sortState.index == i,
           ),
       ],
