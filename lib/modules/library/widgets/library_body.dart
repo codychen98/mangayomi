@@ -28,7 +28,6 @@ class LibraryBody extends ConsumerWidget {
   final int bookmarkedFilterType;
   final int completedFilterType;
   final int trackingFilterType;
-  final bool reverse;
   final bool downloadedChapter;
   final bool continueReaderBtn;
   final bool localSource;
@@ -51,7 +50,6 @@ class LibraryBody extends ConsumerWidget {
     required this.bookmarkedFilterType,
     required this.completedFilterType,
     required this.trackingFilterType,
-    required this.reverse,
     required this.downloadedChapter,
     required this.continueReaderBtn,
     required this.localSource,
@@ -67,11 +65,22 @@ class LibraryBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = l10nLocalizations(context)!;
-    final sortType = ref
-        .watch(
-          sortLibraryMangaStateProvider(itemType: itemType, settings: settings),
-        )
-        .index;
+    final sortState = categoryId != null
+        ? ref.watch(
+            sortLibraryCategoryStateProvider(
+              categoryId: categoryId!,
+              itemType: itemType,
+              settings: settings,
+            ),
+          )
+        : ref.watch(
+            sortLibraryMangaStateProvider(
+              itemType: itemType,
+              settings: settings,
+            ),
+          );
+    final sortType = sortState.index;
+    final reverse = sortState.reverse ?? false;
     final mangaIdsList = ref.watch(mangasListStateProvider);
 
     // Choose the right data stream based on whether this is a category tab
@@ -201,11 +210,14 @@ class CategoryBadge extends ConsumerWidget {
     final mangas = ref.watch(
       getAllMangaStreamProvider(categoryId: categoryId, itemType: itemType),
     );
-    final sortType = ref
-        .watch(
-          sortLibraryMangaStateProvider(itemType: itemType, settings: settings),
-        )
-        .index;
+    final sortState = ref.watch(
+      sortLibraryCategoryStateProvider(
+        categoryId: categoryId,
+        itemType: itemType,
+        settings: settings,
+      ),
+    );
+    final sortType = sortState.index;
 
     return mangas.when(
       data: (data) {

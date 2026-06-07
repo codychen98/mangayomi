@@ -1819,6 +1819,126 @@ abstract class _$SortLibraryMangaState extends $Notifier<SortLibraryManga> {
   }
 }
 
+@ProviderFor(SortLibraryCategoryState)
+final sortLibraryCategoryStateProvider = SortLibraryCategoryStateFamily._();
+
+final class SortLibraryCategoryStateProvider
+    extends $NotifierProvider<SortLibraryCategoryState, SortLibraryManga> {
+  SortLibraryCategoryStateProvider._({
+    required SortLibraryCategoryStateFamily super.from,
+    required ({int categoryId, ItemType itemType, Settings settings})
+    super.argument,
+  }) : super(
+         retry: null,
+         name: r'sortLibraryCategoryStateProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$sortLibraryCategoryStateHash();
+
+  @override
+  String toString() {
+    return r'sortLibraryCategoryStateProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  SortLibraryCategoryState create() => SortLibraryCategoryState();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SortLibraryManga value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SortLibraryManga>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SortLibraryCategoryStateProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$sortLibraryCategoryStateHash() =>
+    r'a1b2c3d4e5f6789012345678abcdef9012345678';
+
+final class SortLibraryCategoryStateFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          SortLibraryCategoryState,
+          SortLibraryManga,
+          SortLibraryManga,
+          SortLibraryManga,
+          ({int categoryId, ItemType itemType, Settings settings})
+        > {
+  SortLibraryCategoryStateFamily._()
+    : super(
+        retry: null,
+        name: r'sortLibraryCategoryStateProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  SortLibraryCategoryStateProvider call({
+    required int categoryId,
+    required ItemType itemType,
+    required Settings settings,
+  }) => SortLibraryCategoryStateProvider._(
+    argument: (categoryId: categoryId, itemType: itemType, settings: settings),
+    from: this,
+  );
+
+  @override
+  String toString() => r'sortLibraryCategoryStateProvider';
+}
+
+abstract class _$SortLibraryCategoryState extends $Notifier<SortLibraryManga> {
+  late final _$args = ref.$arg
+      as ({int categoryId, ItemType itemType, Settings settings});
+  int get categoryId => _$args.categoryId;
+  ItemType get itemType => _$args.itemType;
+  Settings get settings => _$args.settings;
+
+  SortLibraryManga build({
+    required int categoryId,
+    required ItemType itemType,
+    required Settings settings,
+  });
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<SortLibraryManga, SortLibraryManga>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<SortLibraryManga, SortLibraryManga>,
+              SortLibraryManga,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(
+      ref,
+      () => build(
+        categoryId: _$args.categoryId,
+        itemType: _$args.itemType,
+        settings: _$args.settings,
+      ),
+    );
+  }
+}
+
 @ProviderFor(MangasListState)
 final mangasListStateProvider = MangasListStateProvider._();
 

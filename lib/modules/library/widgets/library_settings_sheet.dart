@@ -17,6 +17,7 @@ void showLibrarySettingsSheet({
   required Settings settings,
   required ItemType itemType,
   required List<Manga> entries,
+  int? categoryId,
 }) {
   final l10n = l10nLocalizations(context)!;
   customDraggableTabBar(
@@ -27,7 +28,11 @@ void showLibrarySettingsSheet({
     ],
     children: [
       _FilterTab(itemType: itemType, settings: settings, entries: entries),
-      _SortTab(itemType: itemType, settings: settings),
+      _SortTab(
+        itemType: itemType,
+        settings: settings,
+        categoryId: categoryId,
+      ),
       _DisplayTab(itemType: itemType, settings: settings),
     ],
     context: context,
@@ -189,39 +194,53 @@ class _FilterTab extends ConsumerWidget {
 class _SortTab extends ConsumerWidget {
   final ItemType itemType;
   final Settings settings;
+  final int? categoryId;
 
-  const _SortTab({required this.itemType, required this.settings});
+  const _SortTab({
+    required this.itemType,
+    required this.settings,
+    required this.categoryId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reverse = ref
-        .read(
-          sortLibraryMangaStateProvider(
-            itemType: itemType,
-            settings: settings,
-          ).notifier,
-        )
-        .isReverse();
-    final reverseChapter = ref.watch(
-      sortLibraryMangaStateProvider(itemType: itemType, settings: settings),
-    );
+    final sortState = categoryId != null
+        ? ref.watch(
+            sortLibraryCategoryStateProvider(
+              categoryId: categoryId!,
+              itemType: itemType,
+              settings: settings,
+            ),
+          )
+        : ref.watch(
+            sortLibraryMangaStateProvider(
+              itemType: itemType,
+              settings: settings,
+            ),
+          );
+    final sortNotifier = categoryId != null
+        ? ref.read(
+            sortLibraryCategoryStateProvider(
+              categoryId: categoryId!,
+              itemType: itemType,
+              settings: settings,
+            ).notifier,
+          )
+        : ref.read(
+            sortLibraryMangaStateProvider(
+              itemType: itemType,
+              settings: settings,
+            ).notifier,
+          );
+    final reverse = sortNotifier.isReverse();
     return Column(
       children: [
-        for (var i = 0; i < 7; i++)
+        for (var i = 0; i < 8; i++)
           ListTileChapterSort(
             label: _getSortNameByIndex(i, context, itemType),
             reverse: reverse,
-            onTap: () {
-              ref
-                  .read(
-                    sortLibraryMangaStateProvider(
-                      itemType: itemType,
-                      settings: settings,
-                    ).notifier,
-                  )
-                  .set(i);
-            },
-            showLeading: reverseChapter.index == i,
+            onTap: () => sortNotifier.set(i),
+            showLeading: sortState.index == i,
           ),
       ],
     );
@@ -237,7 +256,10 @@ String _getSortNameByIndex(int index, BuildContext context, ItemType itemType) {
     3 => itemType != ItemType.anime ? l10n.unread_count : l10n.unwatched_count,
     4 => itemType != ItemType.anime ? l10n.total_chapters : l10n.total_episodes,
     5 => itemType != ItemType.anime ? l10n.latest_chapter : l10n.latest_episode,
-    _ => l10n.date_added,
+    6 => l10n.date_added,
+    _ => itemType != ItemType.anime
+        ? l10n.latest_chapter_fetched
+        : l10n.latest_episode_fetched,
   };
 }
 

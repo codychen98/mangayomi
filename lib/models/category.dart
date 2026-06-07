@@ -14,6 +14,8 @@ class Category {
   @enumerated
   late ItemType forItemType;
   int? updatedAt;
+  int? sortIndex;
+  bool? sortReverse;
 
   Category({
     this.id = Isar.autoIncrement,
@@ -23,6 +25,8 @@ class Category {
     this.hide,
     this.shouldUpdate,
     this.updatedAt = 0,
+    this.sortIndex,
+    this.sortReverse,
   });
 
   Category.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,8 @@ class Category {
     hide = json['hide'];
     shouldUpdate = json['shouldUpdate'];
     updatedAt = json['updatedAt'];
+    sortIndex = json['sortIndex'];
+    sortReverse = json['sortReverse'];
   }
 
   Category.fromJsonV1(Map<String, dynamic> json) {
@@ -53,5 +59,7 @@ class Category {
     'hide': hide,
     'shouldUpdate': shouldUpdate,
     'updatedAt': updatedAt ?? 0,
+    'sortIndex': sortIndex,
+    'sortReverse': sortReverse,
   };
 }

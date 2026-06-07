@@ -105,6 +105,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get date_added => 'Fecha añadida';
 
   @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
   String get display => 'Mostrar';
 
   @override
@@ -2478,6 +2484,12 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get date_added => 'Fecha añadida';
+
+  @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
 
   @override
   String get display => 'Mostrar';

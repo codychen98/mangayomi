@@ -103,6 +103,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get date_added => '追加日';
 
   @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
   String get display => '表示';
 
   @override

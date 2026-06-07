@@ -105,6 +105,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get date_added => 'Data de adição';
 
   @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
   String get display => 'Exibir';
 
   @override
@@ -2473,6 +2479,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get date_added => 'Data adicionada';
+
+  @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
 
   @override
   String get display => 'Exibir';

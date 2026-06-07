@@ -105,6 +105,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get date_added => 'Hinzugefügt am';
 
   @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
   String get display => 'Anzeige';
 
   @override

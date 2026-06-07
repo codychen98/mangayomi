@@ -902,6 +902,60 @@ class SortLibraryMangaState extends _$SortLibraryMangaState {
   }
 }
 
+SortLibraryManga _globalLibrarySort(Settings settings, ItemType itemType) {
+  switch (itemType) {
+    case ItemType.manga:
+      return settings.sortLibraryManga ?? SortLibraryManga();
+    case ItemType.anime:
+      return settings.sortLibraryAnime ?? SortLibraryManga();
+    default:
+      return settings.sortLibraryNovel ?? SortLibraryManga();
+  }
+}
+
+@riverpod
+class SortLibraryCategoryState extends _$SortLibraryCategoryState {
+  @override
+  SortLibraryManga build({
+    required int categoryId,
+    required ItemType itemType,
+    required Settings settings,
+  }) {
+    final category = isar.categorys.getSync(categoryId);
+    if (category?.sortIndex != null) {
+      return SortLibraryManga(
+        index: category!.sortIndex,
+        reverse: category.sortReverse ?? false,
+      );
+    }
+    return _globalLibrarySort(settings, itemType);
+  }
+
+  void update(bool reverse, int index) {
+    final category = isar.categorys.getSync(categoryId);
+    if (category == null) return;
+
+    final nextReverse = state.index == index ? !reverse : reverse;
+    isar.writeTxnSync(() {
+      isar.categorys.putSync(
+        category
+          ..sortIndex = index
+          ..sortReverse = nextReverse
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      );
+    });
+    state = SortLibraryManga(index: index, reverse: nextReverse);
+  }
+
+  void set(int index) {
+    update(isReverse(), index);
+  }
+
+  bool isReverse() {
+    return state.reverse ?? false;
+  }
+}
+
 @riverpod
 class MangasListState extends _$MangasListState {
   @override

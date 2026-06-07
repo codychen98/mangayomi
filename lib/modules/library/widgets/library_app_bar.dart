@@ -164,6 +164,7 @@ class LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
               settings: settings,
               itemType: itemType,
               entries: entries,
+              categoryId: categoryId,
             );
           },
           icon: Icon(

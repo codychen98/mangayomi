@@ -35,6 +35,8 @@
   "unwatched_count": "Unwatched count",
   "latest_chapter": "Latest chapter",
   "latest_episode": "Latest episode",
+  "latest_chapter_fetched": "Latest chapter fetched",
+  "latest_episode_fetched": "Latest episode fetched",
   "date_added": "Date added",
   "display": "Display",
   "display_mode": "Display mode",

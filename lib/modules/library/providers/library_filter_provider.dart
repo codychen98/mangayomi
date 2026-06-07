@@ -137,12 +137,20 @@ List<Manga> filteredLibraryManga(
         );
       case 6:
         return a.dateAdded?.compareTo(b.dateAdded ?? 0) ?? 0;
+      case 7:
+        return _latestEntryFetchTime(a).compareTo(_latestEntryFetchTime(b));
       default:
         return 0;
     }
   });
 
   return mangas;
+}
+
+int _latestEntryFetchTime(Manga manga) {
+  return manga.chapters
+      .map((chapter) => chapter.updatedAt ?? 0)
+      .fold(0, (latest, value) => value > latest ? value : latest);
 }
 
 bool _matchesSearchQuery(Manga manga, String query) {

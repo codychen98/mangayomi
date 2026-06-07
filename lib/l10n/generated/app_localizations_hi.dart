@@ -105,6 +105,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get date_added => 'जोड़ा गया तारीख';
 
   @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
   String get display => 'प्रदर्शन';
 
   @override

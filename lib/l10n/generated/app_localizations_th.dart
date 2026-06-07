@@ -104,6 +104,12 @@ class AppLocalizationsTh extends AppLocalizations {
   String get date_added => 'วันที่เพิ่ม';
 
   @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
   String get display => 'แสดงผล';
 
   @override

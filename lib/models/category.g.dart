@@ -37,6 +37,16 @@ const CategorySchema = CollectionSchema(
       name: r'updatedAt',
       type: IsarType.long,
     ),
+    r'sortIndex': PropertySchema(
+      id: 7,
+      name: r'sortIndex',
+      type: IsarType.long,
+    ),
+    r'sortReverse': PropertySchema(
+      id: 8,
+      name: r'sortReverse',
+      type: IsarType.bool,
+    ),
   },
 
   estimateSize: _categoryEstimateSize,
@@ -82,6 +92,8 @@ void _categorySerialize(
   writer.writeLong(offsets[4], object.pos);
   writer.writeBool(offsets[5], object.shouldUpdate);
   writer.writeLong(offsets[6], object.updatedAt);
+  writer.writeLong(offsets[7], object.sortIndex);
+  writer.writeBool(offsets[8], object.sortReverse);
 }
 
 Category _categoryDeserialize(
@@ -100,6 +112,8 @@ Category _categoryDeserialize(
     pos: reader.readLongOrNull(offsets[4]),
     shouldUpdate: reader.readBoolOrNull(offsets[5]),
     updatedAt: reader.readLongOrNull(offsets[6]),
+    sortIndex: reader.readLongOrNull(offsets[7]),
+    sortReverse: reader.readBoolOrNull(offsets[8]),
   );
   object.forManga = reader.readBoolOrNull(offsets[1]);
   return object;
@@ -128,6 +142,10 @@ P _categoryDeserializeProp<P>(
       return (reader.readBoolOrNull(offset)) as P;
     case 6:
       return (reader.readLongOrNull(offset)) as P;
+    case 7:
+      return (reader.readLongOrNull(offset)) as P;
+    case 8:
+      return (reader.readBoolOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }

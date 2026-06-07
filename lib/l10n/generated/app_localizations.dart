@@ -293,6 +293,18 @@ abstract class AppLocalizations {
   /// **'Date added'**
   String get date_added;
 
+  /// No description provided for @latest_chapter_fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest chapter fetched'**
+  String get latest_chapter_fetched;
+
+  /// No description provided for @latest_episode_fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest episode fetched'**
+  String get latest_episode_fetched;
+
   /// No description provided for @display.
   ///
   /// In en, this message translates to:

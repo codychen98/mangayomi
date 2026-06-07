@@ -103,6 +103,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get date_added => '添加日期';
 
   @override
+  String get latest_chapter_fetched => 'Latest chapter fetched';
+
+  @override
+  String get latest_episode_fetched => 'Latest episode fetched';
+
+  @override
   String get display => '显示';
 
   @override
