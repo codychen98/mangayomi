@@ -999,9 +999,9 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
-      resolved-ref: a2b673f292e68ed51e721d33b7b9ac350b6c5a19
-      url: "https://github.com/kodjodevf/m_extension_server.git"
+      ref: "2aa20fc"
+      resolved-ref: 2aa20fc1ea4d94d80eca4d8026c96270a83d0bc7
+      url: "https://github.com/codychen98/m_extension_server.git"
     source: git
     version: "0.0.2"
   marquee:

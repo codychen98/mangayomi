@@ -105,7 +105,8 @@ dependencies:
   wakelock_plus: ^1.4.0
   m_extension_server:
     git:
-      url: https://github.com/kodjodevf/m_extension_server.git
+      url: https://github.com/codychen98/m_extension_server.git
+      ref: 2aa20fc
   flutter_tts: ^4.2.5
 
 dependency_overrides:
