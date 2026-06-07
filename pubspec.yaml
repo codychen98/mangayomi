@@ -131,8 +131,7 @@ dev_dependencies:
   freezed: ^3.0.0
   inno_bundle: ^0.9.0
   protoc_plugin: ^23.0.0
-  # hive_generator:
-  #   path: plugins/hive_generator
+  hive_generator: ^2.0.1
 
 flutter:
   uses-material-design: true
