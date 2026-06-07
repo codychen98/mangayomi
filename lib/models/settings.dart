@@ -37,8 +37,6 @@ class Settings {
 
   List<SortChapter>? sortChapterList;
 
-  List<SortLibraryCategory>? sortLibraryCategoryList;
-
   List<ChapterFilterDownloaded>? chapterFilterDownloadedList;
 
   List<ChapterFilterUnread>? chapterFilterUnreadList;
@@ -379,7 +377,6 @@ class Settings {
     this.libraryShowContinueReadingButton = false,
     this.sortLibraryManga,
     this.sortChapterList,
-    this.sortLibraryCategoryList,
     this.chapterFilterDownloadedList,
     this.flexColorSchemeBlendLevel = 10.0,
     this.dateFormat = "M/d/y",
@@ -646,11 +643,6 @@ class Settings {
           .map((e) => SortChapter.fromJson(e))
           .toList();
     }
-    if (json['sortLibraryCategoryList'] != null) {
-      sortLibraryCategoryList = (json['sortLibraryCategoryList'] as List)
-          .map((e) => SortLibraryCategory.fromJson(e))
-          .toList();
-    }
     sortLibraryAnime = json['sortLibraryAnime'] != null
         ? SortLibraryManga.fromJson(json['sortLibraryAnime'])
         : null;
@@ -896,9 +888,6 @@ class Settings {
     'scaleType': scaleType.index,
     'showPagesNumber': showPagesNumber,
     'sortChapterList': sortChapterList?.map((v) => v.toJson()).toList(),
-    'sortLibraryCategoryList': sortLibraryCategoryList
-        ?.map((v) => v.toJson())
-        .toList(),
     'autoScrollPages': autoScrollPages?.map((v) => v.toJson()).toList(),
     'sortLibraryAnime': sortLibraryAnime?.toJson(),
     'sortLibraryManga': sortLibraryManga?.toJson(),
@@ -1087,25 +1076,6 @@ class SortChapter {
   Map<String, dynamic> toJson() => {
     'index': index,
     'mangaId': mangaId,
-    'reverse': reverse,
-  };
-}
-
-@embedded
-class SortLibraryCategory {
-  int? categoryId;
-  bool? reverse;
-  int? index;
-  SortLibraryCategory({this.categoryId, this.reverse = false, this.index = 0});
-  SortLibraryCategory.fromJson(Map<String, dynamic> json) {
-    index = json['index'];
-    categoryId = json['categoryId'];
-    reverse = json['reverse'];
-  }
-
-  Map<String, dynamic> toJson() => {
-    'index': index,
-    'categoryId': categoryId,
     'reverse': reverse,
   };
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mangayomi/main.dart';
+import 'package:mangayomi/modules/library/providers/library_category_sort_storage.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/download.dart';
 import 'package:mangayomi/models/manga.dart';
@@ -921,35 +922,19 @@ class SortLibraryCategoryState extends _$SortLibraryCategoryState {
     required ItemType itemType,
     required Settings settings,
   }) {
-    final entry = settings.sortLibraryCategoryList
-        ?.where((element) => element.categoryId == categoryId)
-        .firstOrNull;
-    if (entry != null) {
-      return SortLibraryManga(index: entry.index, reverse: entry.reverse);
-    }
-    return _globalLibrarySort(settings, itemType);
+    return readCategorySort(categoryId: categoryId, itemType: itemType) ??
+        _globalLibrarySort(settings, itemType);
   }
 
-  void update(bool reverse, int index) {
-    final value = SortLibraryCategory()
-      ..categoryId = categoryId
-      ..index = index
-      ..reverse = state.index == index ? !reverse : reverse;
-    final appSettings = isar.settings.getSync(227)!;
-    final sortLibraryCategoryList = <SortLibraryCategory>[
-      for (final entry
-          in appSettings.sortLibraryCategoryList ?? <SortLibraryCategory>[])
-        if (entry.categoryId != categoryId) entry,
-      value,
-    ];
-    isar.writeTxnSync(() {
-      isar.settings.putSync(
-        appSettings
-          ..sortLibraryCategoryList = sortLibraryCategoryList
-          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
-      );
-    });
-    state = SortLibraryManga(index: value.index, reverse: value.reverse);
+  Future<void> update(bool reverse, int index) async {
+    final nextReverse = state.index == index ? !reverse : reverse;
+    await writeCategorySort(
+      categoryId: categoryId,
+      itemType: itemType,
+      index: index,
+      reverse: nextReverse,
+    );
+    state = SortLibraryManga(index: index, reverse: nextReverse);
   }
 
   void set(int index) {

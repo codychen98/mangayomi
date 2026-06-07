@@ -25,6 +25,7 @@ import 'package:mangayomi/models/track_search.dart';
 import 'package:mangayomi/modules/manga/detail/providers/track_state_providers.dart';
 import 'package:mangayomi/modules/manga/reader/providers/crop_borders_provider.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/storage_usage.dart';
+import 'package:mangayomi/modules/library/providers/library_category_sort_storage.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/general/providers/general_state_provider.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
@@ -189,6 +190,7 @@ Future<void> _postLaunchInit(StorageProvider storage) async {
     await Hive.initFlutter(Platform.isAndroid ? "" : hivePath);
   }
   Hive.registerAdapter(TrackSearchAdapter());
+  await openLibraryCategorySortBox();
   if (isDesktop && !kDebugMode) {
     discordRpc = DiscordRPC(applicationId: "1395040506677039157");
     await discordRpc?.initialize();
