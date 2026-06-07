@@ -41,6 +41,11 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Run code generation
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
+
       - name: Read version
         shell: pwsh
         run: |
@@ -147,6 +152,11 @@ jobs:
 
       - name: Flutter pub get
         run: flutter pub get
+
+      - name: Run code generation
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          flutter gen-l10n
 
       - name: Read version
         run: |

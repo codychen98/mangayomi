@@ -72,10 +72,13 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 GoRouter router(Ref ref) {
   final router = RouterNotifier();
   final hiddenItems = ref.read(hideItemsStateProvider);
-  final initLocation = ref
+  final visibleRoutes = ref
       .watch(navigationOrderStateProvider)
       .where((e) => !hiddenItems.contains(e))
-      .first;
+      .toList();
+  final initLocation = visibleRoutes.isNotEmpty
+      ? visibleRoutes.first
+      : '/MangaLibrary';
 
   return GoRouter(
     observers: [BotToastNavigatorObserver()],

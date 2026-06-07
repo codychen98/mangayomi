@@ -75,29 +75,34 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
     });
   }
 
-  void _syncTabController(int length) {
-    if (_tabBarController == null) {
-      _tabBarController = TabController(length: length, vsync: this);
-      _tabBarController!.addListener(_onTabChanged);
-      return;
-    }
-    if (_tabBarController!.length == length) {
-      return;
-    }
-    final previousIndex = _tabBarController!.index;
-    _tabBarController!.removeListener(_onTabChanged);
-    _tabBarController!.dispose();
+  int _pendingTabLength = 0;
+
+  void _replaceTabController(int length) {
+    if (length <= 0) return;
+    final previousIndex = _tabBarController?.index ?? 0;
+    _tabBarController?.removeListener(_onTabChanged);
+    _tabBarController?.dispose();
     _tabBarController = TabController(
       length: length,
       vsync: this,
-      initialIndex: previousIndex.clamp(0, length > 0 ? length - 1 : 0),
-    );
-    _tabBarController!.addListener(_onTabChanged);
+      initialIndex: previousIndex.clamp(0, length - 1),
+    )..addListener(_onTabChanged);
+    _pendingTabLength = length;
   }
 
-  @override
-  void initState() {
-    super.initState();
+  void _scheduleTabControllerSync(int length) {
+    if (length <= 0) return;
+    if (_tabBarController?.length == length) {
+      _pendingTabLength = length;
+      return;
+    }
+    if (_pendingTabLength == length) return;
+    _pendingTabLength = length;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _pendingTabLength != length) return;
+      _replaceTabController(length);
+      setState(() {});
+    });
   }
 
   Future<void> _chekPermission() async {
@@ -121,12 +126,24 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
       hideFeedTab: hideFeedTab,
       feedTabInFront: feedTabInFront,
     );
-    _syncTabController(tabList.length);
 
-    if (tabList.isEmpty || _tabBarController == null) {
-      return SizedBox.shrink();
+    if (tabList.isEmpty) {
+      return const SizedBox.shrink();
     }
-    final currentTab = tabList[_tabBarController!.index];
+
+    if (_tabBarController == null) {
+      _replaceTabController(tabList.length);
+    } else {
+      _scheduleTabControllerSync(tabList.length);
+    }
+
+    final controller = _tabBarController;
+    if (controller == null || controller.length != tabList.length) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final currentTab = tabList[controller.index];
     final isExtensionTab = currentTab.kind == BrowseTabKind.extensions;
     final isFeedTab = currentTab.kind == BrowseTabKind.feed;
     final feedBulkScope = isFeedTab
@@ -143,10 +160,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
         : ref.watch(feedBulkFavoriteRunningProvider(feedBulkScope));
 
     final l10n = l10nLocalizations(context)!;
-    return DefaultTabController(
-      animationDuration: Duration.zero,
-      length: tabList.length,
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -298,7 +312,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
           bottom: TabBar(
             indicatorSize: TabBarIndicatorSize.label,
             isScrollable: true,
-            controller: _tabBarController,
+            controller: controller,
             tabs: tabList.map((tab) {
               final type = tab.type;
               final isExt = tab.kind == BrowseTabKind.extensions;
@@ -328,7 +342,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
             ? null
             : FeedBulkBottomBar(scope: feedBulkScope),
         body: TabBarView(
-          controller: _tabBarController,
+          controller: controller,
           children: tabList.map((tab) {
             if (tab.kind == BrowseTabKind.feed) {
               return FeedScreen(
@@ -340,7 +354,7 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
               return SourcesScreen(
                 itemType: tab.type,
                 tabs: tabList,
-                tabIndex: (index) => _tabBarController!.animateTo(index),
+                tabIndex: (index) => controller.animateTo(index),
               );
             }
             return ExtensionScreen(
@@ -349,7 +363,6 @@ class _BrowseScreenState extends ConsumerState<BrowseScreen>
             );
           }).toList(),
         ),
-      ),
     );
   }
 }
