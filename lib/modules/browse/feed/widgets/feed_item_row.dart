@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,12 +10,15 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/feed/providers/feed_provider.dart';
 import 'package:mangayomi/modules/browse/feed/providers/bulk_favorite_provider.dart';
 import 'package:mangayomi/modules/browse/feed/widgets/feed_delete_dialog.dart';
+import 'package:mangayomi/modules/manga/home/manga_home_screen.dart';
 import 'package:mangayomi/modules/widgets/manga_image_card_widget.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/feed/feed_constants.dart';
 import 'package:mangayomi/services/feed/feed_labels.dart';
+import 'package:mangayomi/services/feed/saved_search_filters.dart';
 import 'package:mangayomi/services/feed/saved_search_repository.dart';
 import 'package:mangayomi/utils/language.dart';
+import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/utils/super_precalculation_policy.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
@@ -116,9 +120,40 @@ class FeedItemRow extends ConsumerWidget {
       if (!context.mounted) return;
       if (isFeedPopularSavedSearch(savedSearch)) {
         context.push('/mangaHome', extra: (row.source, false));
-      } else {
-        context.push('/mangaHome', extra: (row.source, false));
+        return;
       }
+      if (savedSearch == null) {
+        context.push('/mangaHome', extra: (row.source, false));
+        return;
+      }
+
+      final filters = deserializeSavedSearchFilters(savedSearch.filtersJson);
+      final query = savedSearch.query ?? '';
+      final hasFilters = filters.isNotEmpty;
+      final hasQuery = query.isNotEmpty;
+
+      Navigator.push(
+        context,
+        isApple
+            ? CupertinoPageRoute(
+                builder: (_) => MangaHomeScreen(
+                  source: row.source,
+                  openWithFilter: hasFilters,
+                  initialFilters: hasFilters ? filters : null,
+                  query: query,
+                  isSearch: hasQuery,
+                ),
+              )
+            : MaterialPageRoute(
+                builder: (_) => MangaHomeScreen(
+                  source: row.source,
+                  openWithFilter: hasFilters,
+                  initialFilters: hasFilters ? filters : null,
+                  query: query,
+                  isSearch: hasQuery,
+                ),
+              ),
+      );
     });
   }
 }
