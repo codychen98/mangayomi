@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:mangayomi/main.dart';
+import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/more/settings/browse/extension_server/extension_server_utils.dart';
 import 'package:mangayomi/utils/portable_paths.dart';
 import 'package:path/path.dart' as p;
