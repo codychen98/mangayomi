@@ -6,6 +6,7 @@ import 'package:m_extension_server/m_extension_server.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
+import 'package:mangayomi/services/extension_server_bootstrap.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
 
 class MExtensionServerPlatform {
@@ -29,6 +30,9 @@ class MExtensionServerPlatform {
     try {
       final isRunning = await check();
       if (!isRunning) {
+        if (isDesktop) {
+          await ensurePortableExtensionServerConfigured();
+        }
         final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
         final port = server.port;
         await server.close();
