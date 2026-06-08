@@ -999,8 +999,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "eadbd3d"
-      resolved-ref: eadbd3df5ae214571ec67f777e78f43b6be9895a
+      ref: "c0292f1"
+      resolved-ref: c0292f15a140d1e3bd96d41a33430584bd3f6a29
       url: "https://github.com/codychen98/m_extension_server.git"
     source: git
     version: "0.0.2"

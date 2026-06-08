@@ -106,7 +106,7 @@ dependencies:
   m_extension_server:
     git:
       url: https://github.com/codychen98/m_extension_server.git
-      ref: eadbd3d
+      ref: c0292f1
   flutter_tts: ^4.2.5
 
 dependency_overrides:
