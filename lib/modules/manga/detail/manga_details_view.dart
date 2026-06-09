@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
-import 'package:mangayomi/models/category.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/custom_floating_action_btn.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/modules/widgets/category_selection_dialog.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/utils/default_library_category_utils.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/constant.dart';
 import 'package:mangayomi/modules/manga/detail/manga_detail_view.dart';
@@ -184,52 +184,32 @@ class _MangaDetailsViewState extends ConsumerState<MangaDetailsView> {
                   ),
                 ),
               )
-            : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                  elevation: 0,
-                ),
-                onPressed: () {
-                  final model = widget.manga;
-                  final checkCategoryList = isar.categorys
-                      .filter()
-                      .idIsNotNull()
-                      .and()
-                      .forItemTypeEqualTo(model.itemType)
-                      .isNotEmptySync();
-                  if (checkCategoryList) {
-                    showCategorySelectionDialog(
-                      context: context,
-                      ref: ref,
-                      itemType: model.itemType,
-                      singleManga: model,
-                    );
-                  } else {
-                    isar.writeTxnSync(() {
-                      model.favorite = true;
-                      model.dateAdded = DateTime.now().millisecondsSinceEpoch;
-                      model.updatedAt = DateTime.now().millisecondsSinceEpoch;
-                      isar.mangas.putSync(model);
-                    });
-                  }
-                },
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.favorite_border_rounded,
-                      size: 20,
-                      color: context.secondaryColor,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      l10n.add_to_library,
-                      style: TextStyle(
+            : GestureDetector(
+                onLongPress: () => _handleAddToLibraryLongPress(ref, widget.manga),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                    elevation: 0,
+                  ),
+                  onPressed: () => _handleAddToLibraryTap(ref, widget.manga),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.favorite_border_rounded,
+                        size: 20,
                         color: context.secondaryColor,
-                        fontSize: 11,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.add_to_library,
+                        style: TextStyle(
+                          color: context.secondaryColor,
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
         manga: widget.manga,
@@ -241,5 +221,39 @@ class _MangaDetailsViewState extends ConsumerState<MangaDetailsView> {
         itemType: widget.manga.itemType,
       ),
     );
+  }
+
+  void _handleAddToLibraryTap(WidgetRef ref, Manga model) {
+    final defaultCategoryId = resolveDefaultLibraryCategoryId(model.itemType);
+    if (defaultCategoryId != null) {
+      addMangaToLibrary(
+        model,
+        categoryIdsForDefaultLibraryCategory(defaultCategoryId),
+      );
+      return;
+    }
+    if (hasLibraryCategories(model.itemType)) {
+      showCategorySelectionDialog(
+        context: context,
+        ref: ref,
+        itemType: model.itemType,
+        singleManga: model,
+      );
+      return;
+    }
+    addMangaToLibrary(model, []);
+  }
+
+  void _handleAddToLibraryLongPress(WidgetRef ref, Manga model) {
+    if (hasLibraryCategories(model.itemType)) {
+      showCategorySelectionDialog(
+        context: context,
+        ref: ref,
+        itemType: model.itemType,
+        singleManga: model,
+      );
+      return;
+    }
+    addMangaToLibrary(model, []);
   }
 }

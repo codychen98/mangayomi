@@ -535,7 +535,23 @@ class AppLocalizationsAs extends AppLocalizations {
     return 'আপুনি $name শ্ৰেণী মচিব বিচাৰে নে?';
   }
 
+  
   @override
+  String get default_for_add_to_library => 'Default for Add to library';
+
+  @override
+  String get default_for_add_to_library_hint =>
+      'Tap Add to library uses this category. Long press to choose another.';
+
+  @override
+  String get set_default_for_add_to_library =>
+      'Set as default for Add to library';
+
+  @override
+  String get unset_default_for_add_to_library =>
+      'Remove as default for Add to library';
+
+@override
   String get rename_category => 'শ্ৰেণীৰ নাম সলনি কৰক';
 
   @override

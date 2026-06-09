@@ -546,7 +546,23 @@ class AppLocalizationsAr extends AppLocalizations {
     return 'هل ترغب في حذف الفئة $name؟';
   }
 
+  
   @override
+  String get default_for_add_to_library => 'Default for Add to library';
+
+  @override
+  String get default_for_add_to_library_hint =>
+      'Tap Add to library uses this category. Long press to choose another.';
+
+  @override
+  String get set_default_for_add_to_library =>
+      'Set as default for Add to library';
+
+  @override
+  String get unset_default_for_add_to_library =>
+      'Remove as default for Add to library';
+
+@override
   String get rename_category => 'إعادة تسمية الفئة';
 
   @override

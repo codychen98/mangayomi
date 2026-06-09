@@ -977,6 +977,30 @@ abstract class AppLocalizations {
   /// **'Do you wish to delete the category {name}?'**
   String delete_category_msg(Object name);
 
+  /// No description provided for @default_for_add_to_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Default for Add to library'**
+  String get default_for_add_to_library;
+
+  /// No description provided for @default_for_add_to_library_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Add to library uses this category. Long press to choose another.'**
+  String get default_for_add_to_library_hint;
+
+  /// No description provided for @set_default_for_add_to_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Set as default for Add to library'**
+  String get set_default_for_add_to_library;
+
+  /// No description provided for @unset_default_for_add_to_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove as default for Add to library'**
+  String get unset_default_for_add_to_library;
+
   /// No description provided for @rename_category.
   ///
   /// In en, this message translates to:

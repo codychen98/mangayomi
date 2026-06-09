@@ -12,8 +12,10 @@ import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_pr
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/utils/default_library_category_utils.dart';
 import 'package:mangayomi/utils/item_type_filters.dart';
 import 'package:mangayomi/utils/item_type_localization.dart';
+import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 class CategoriesScreen extends ConsumerStatefulWidget {
@@ -173,23 +175,52 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab>
           }
           data.sort((a, b) => (a.pos ?? 0).compareTo(b.pos ?? 0));
           _entries = data;
+          final defaultCategoryId = resolveDefaultLibraryCategoryId(
+            widget.itemType,
+          );
 
           return SuperListView.builder(
-            itemCount: _entries.length,
+            itemCount: _entries.length + 2,
             padding: const EdgeInsets.only(bottom: 100),
             itemBuilder: (context, index) {
-              final category = _entries[index];
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text(
+                    l10n.default_for_add_to_library_hint,
+                    style: TextStyle(
+                      color: Theme.of(context).hintColor,
+                      fontSize: 13,
+                    ),
+                  ),
+                );
+              }
+              if (index == 1) {
+                return _buildDefaultCategoryOption(
+                  context: context,
+                  l10n: l10n,
+                  defaultCategoryId: defaultCategoryId,
+                );
+              }
 
-              Widget itemWidget = _buildCategoryCard(context, category, index);
+              final category = _entries[index - 2];
+              final cardIndex = index - 2;
+
+              Widget itemWidget = _buildCategoryCard(
+                context,
+                category,
+                cardIndex,
+                defaultCategoryId: defaultCategoryId,
+              );
 
               if (isDesktop &&
                   _animatingFromIndex != null &&
                   _animatingToIndex != null) {
-                if (index == _animatingFromIndex ||
-                    index == _animatingToIndex) {
+                if (cardIndex == _animatingFromIndex ||
+                    cardIndex == _animatingToIndex) {
                   final isMovingDown =
                       _animatingFromIndex! < _animatingToIndex!;
-                  final offset = index == _animatingFromIndex
+                  final offset = cardIndex == _animatingFromIndex
                       ? (isMovingDown ? 1.0 : -1.0)
                       : (isMovingDown ? -1.0 : 1.0);
 
@@ -325,16 +356,83 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab>
     );
   }
 
+  Widget _buildDefaultCategoryOption({
+    required BuildContext context,
+    required AppLocalizations l10n,
+    required int? defaultCategoryId,
+  }) {
+    final isDefault =
+        defaultCategoryId == uncategorizedDefaultLibraryCategoryId;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Card(
+        color: isDefault
+            ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
+            : null,
+        child: ListTile(
+          leading: const Icon(Icons.inbox_outlined),
+          title: Text(l10n.default0),
+          subtitle: Text(l10n.default_for_add_to_library),
+          trailing: IconButton(
+            tooltip: isDefault
+                ? l10n.unset_default_for_add_to_library
+                : l10n.set_default_for_add_to_library,
+            icon: Icon(
+              isDefault ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: isDefault ? Theme.of(context).colorScheme.primary : null,
+            ),
+            onPressed: () {
+              setDefaultLibraryCategory(
+                widget.itemType,
+                isDefault ? null : uncategorizedDefaultLibraryCategoryId,
+              );
+              setState(() {});
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultCategoryStar({
+    required BuildContext context,
+    required AppLocalizations l10n,
+    required Category category,
+    required int? defaultCategoryId,
+  }) {
+    final isDefault = defaultCategoryId == category.id;
+    return IconButton(
+      tooltip: isDefault
+          ? l10n.unset_default_for_add_to_library
+          : l10n.set_default_for_add_to_library,
+      icon: Icon(
+        isDefault ? Icons.star_rounded : Icons.star_outline_rounded,
+        color: isDefault ? Theme.of(context).colorScheme.primary : null,
+      ),
+      onPressed: () {
+        setDefaultLibraryCategory(
+          widget.itemType,
+          isDefault ? null : category.id,
+        );
+        setState(() {});
+      },
+    );
+  }
+
   Widget _buildCategoryCard(
     BuildContext context,
     Category category,
-    int index,
-  ) {
+    int index, {
+    required int? defaultCategoryId,
+  }) {
     final l10n = l10nLocalizations(context)!;
     return Padding(
       key: Key('category_${category.id}'),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Card(
+        color: defaultCategoryId == category.id
+            ? Theme.of(context).primaryColor.withValues(alpha: 0.08)
+            : null,
         child: Column(
           children: [
             ElevatedButton(
@@ -393,6 +491,12 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab>
                 ),
                 Row(
                   children: [
+                    _buildDefaultCategoryStar(
+                      context: context,
+                      l10n: l10n,
+                      category: category,
+                      defaultCategoryId: defaultCategoryId,
+                    ),
                     IconButton(
                       onPressed: () {
                         _renameCategory(category);
@@ -507,6 +611,8 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab>
       // Delete category
       await isar.categorys.delete(category.id!);
     });
+
+    clearDefaultLibraryCategoryIfDeleted(category.id!, widget.itemType);
 
     await ref
         .read(synchingProvider(syncId: 1).notifier)
