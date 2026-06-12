@@ -3,6 +3,7 @@ import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/manga/reader/mixins/chapter_reader_settings_mixin.dart';
 import 'package:mangayomi/modules/manga/reader/mixins/chapter_controller_mixin.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'novel_reader_controller_provider.g.dart';
 
@@ -41,6 +42,9 @@ class NovelReaderController extends _$NovelReaderController
         ch.updatedAt = DateTime.now().millisecondsSinceEpoch;
         isar.chapters.putSync(ch);
       });
+      if (isRead) {
+        maybeTriggerSync(ref, SyncTriggerEvent.chapterSeen);
+      }
     }
   }
 }

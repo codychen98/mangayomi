@@ -31,6 +31,7 @@ import 'package:mangayomi/services/get_chapter_pages.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/modules/manga/reader/image_view_paged.dart';
 import 'package:mangayomi/modules/manga/reader/providers/reader_controller_provider.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/circular_progress_indicator_animate_rotate.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/transition_view_paged.dart';
 import 'package:mangayomi/modules/more/settings/reader/reader_screen.dart';
@@ -1102,6 +1103,7 @@ class _MangaChapterPageGalleryState
     _proactivePreload();
 
     _readerController.setHistoryUpdate();
+    maybeTriggerSync(ref, SyncTriggerEvent.chapterOpen);
     // Use post-frame callback instead of Future.delayed(1ms) timing hack
     await Future(() {});
     final fullScreenReader = ref.watch(fullScreenReaderStateProvider);

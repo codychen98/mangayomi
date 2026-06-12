@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
+import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/utils/date.dart';
@@ -265,6 +267,14 @@ class SyncScreen extends ConsumerWidget {
                               .setSyncSettings(value);
                         }
                       : null,
+                ),
+                ListTile(
+                  enabled: syncPreference.syncOn,
+                  onTap: syncPreference.syncOn
+                      ? () => context.push('/syncTriggers')
+                      : null,
+                  title: Text(l10n.sync_triggers),
+                  trailing: const Icon(Icons.chevron_right),
                 ),
                 if (!isWebDav)
                   Padding(

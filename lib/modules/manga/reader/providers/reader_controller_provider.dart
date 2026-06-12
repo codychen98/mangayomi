@@ -10,6 +10,7 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/downloads/providers/downloads_state_provider.dart';
 import 'package:mangayomi/utils/extensions/chapter_extensions.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'reader_controller_provider.g.dart';
 
@@ -250,6 +251,7 @@ class ReaderController extends _$ReaderController
         if (ref.read(deleteDownloadAfterReadingStateProvider)) {
           chapter.deleteDownloadedFiles();
         }
+        maybeTriggerSync(ref, SyncTriggerEvent.chapterSeen);
       }
     }
   }

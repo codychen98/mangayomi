@@ -157,6 +157,34 @@ class Synching extends _$Synching {
     ref.invalidateSelf();
   }
 
+  void setSyncOnChapterSeen(bool value) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..syncOnChapterSeen = value);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setSyncOnChapterOpen(bool value) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..syncOnChapterOpen = value);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setSyncOnAppStart(bool value) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..syncOnAppStart = value);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setSyncOnAppResume(bool value) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..syncOnAppResume = value);
+    });
+    ref.invalidateSelf();
+  }
+
   List<ChangedPart> getAllChangedParts() {
     return isar.changedParts.filter().idIsNotNull().findAllSync();
   }

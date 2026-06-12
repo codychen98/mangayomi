@@ -37,6 +37,7 @@ import 'package:mangayomi/modules/more/categories/categories_screen.dart';
 import 'package:mangayomi/modules/more/settings/downloads/downloads_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_screen.dart';
 import 'package:mangayomi/modules/more/settings/sync/sync.dart';
+import 'package:mangayomi/modules/more/settings/sync/sync_triggers.dart';
 import 'package:mangayomi/modules/more/settings/track/track.dart';
 import 'package:mangayomi/modules/more/settings/track/manage_trackers/manage_trackers.dart';
 import 'package:mangayomi/modules/more/settings/track/manage_trackers/tracking_detail.dart';
@@ -195,6 +196,7 @@ class RouterNotifier extends ChangeNotifier {
     _genericRoute(name: "about", child: const AboutScreen()),
     _genericRoute(name: "track", child: const TrackScreen()),
     _genericRoute(name: "sync", child: const SyncScreen()),
+    _genericRoute(name: "syncTriggers", child: const SyncTriggersScreen()),
     _genericRoute<ItemType>(
       name: "sourceFilter",
       builder: (itemType) => SourcesFilterScreen(itemType: itemType),

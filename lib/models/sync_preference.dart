@@ -42,6 +42,14 @@ class SyncPreference {
 
   String? lastSyncEtag;
 
+  bool syncOnChapterSeen = false;
+
+  bool syncOnChapterOpen = false;
+
+  bool syncOnAppStart = false;
+
+  bool syncOnAppResume = false;
+
   SyncPreference({
     this.syncId,
     this.email,
@@ -58,6 +66,10 @@ class SyncPreference {
     this.webDavPassword,
     this.webDavFolder = 'mangayomi',
     this.lastSyncEtag,
+    this.syncOnChapterSeen = false,
+    this.syncOnChapterOpen = false,
+    this.syncOnAppStart = false,
+    this.syncOnAppResume = false,
   });
 
   SyncPreference.fromJson(Map<String, dynamic> json) {
@@ -79,6 +91,10 @@ class SyncPreference {
     webDavPassword = json['webDavPassword'];
     webDavFolder = json['webDavFolder'] ?? 'mangayomi';
     lastSyncEtag = json['lastSyncEtag'];
+    syncOnChapterSeen = json['syncOnChapterSeen'] ?? false;
+    syncOnChapterOpen = json['syncOnChapterOpen'] ?? false;
+    syncOnAppStart = json['syncOnAppStart'] ?? false;
+    syncOnAppResume = json['syncOnAppResume'] ?? false;
   }
 
   Map<String, dynamic> toJson() => {
@@ -100,5 +116,9 @@ class SyncPreference {
     'webDavPassword': webDavPassword,
     'webDavFolder': webDavFolder,
     'lastSyncEtag': lastSyncEtag,
+    'syncOnChapterSeen': syncOnChapterSeen,
+    'syncOnChapterOpen': syncOnChapterOpen,
+    'syncOnAppStart': syncOnAppStart,
+    'syncOnAppResume': syncOnAppResume,
   };
 }

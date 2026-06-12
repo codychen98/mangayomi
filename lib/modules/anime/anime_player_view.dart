@@ -21,6 +21,7 @@ import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/video.dart' as vid;
 import 'package:mangayomi/modules/anime/providers/anime_player_controller_provider.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/modules/anime/widgets/aniskip_countdown_btn.dart';
 import 'package:mangayomi/modules/anime/widgets/desktop.dart';
 import 'package:mangayomi/modules/anime/widgets/play_or_pause_button.dart';
@@ -876,6 +877,11 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     });
     _initCustomButton();
     discordRpc?.showChapterDetails(ref, widget.episode);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        maybeTriggerSync(ref, SyncTriggerEvent.chapterOpen);
+      }
+    });
     _currentPosition.addListener(_updateRpcTimestamp);
     _subDelayController.addListener(_onSubDelayChanged);
     _subSpeedController.addListener(_onSubSpeedChanged);

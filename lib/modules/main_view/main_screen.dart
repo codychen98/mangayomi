@@ -24,6 +24,7 @@ import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/services/fetch_sources_list.dart';
 import 'package:mangayomi/services/sync/sync_coordinator.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
@@ -39,7 +40,8 @@ class MainScreen extends ConsumerStatefulWidget {
   ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends ConsumerState<MainScreen> {
+class _MainScreenState extends ConsumerState<MainScreen>
+    with WidgetsBindingObserver {
   Timer? _backupTimer;
   Timer? _syncTimer;
 
@@ -80,6 +82,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _navigationOrder = ref.read(navigationOrderStateProvider);
     _autoSyncFrequency = ref
@@ -96,10 +99,18 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         context.go(_defaultLocation);
         _initializeTimers();
         _initializeProviders();
+        maybeTriggerSync(ref, SyncTriggerEvent.appStart);
       }
     });
 
     discordRpc?.connect(ref);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      maybeTriggerSync(ref, SyncTriggerEvent.appResume);
+    }
   }
 
   void _initializeTimers() {
@@ -159,6 +170,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _backupTimer?.cancel();
     _syncTimer?.cancel();
     discordRpc?.disconnect();

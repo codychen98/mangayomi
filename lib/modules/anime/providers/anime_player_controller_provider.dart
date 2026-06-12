@@ -10,6 +10,7 @@ import 'package:mangayomi/modules/more/settings/player/providers/player_state_pr
 import 'package:mangayomi/services/aniskip.dart';
 import 'package:mangayomi/utils/chapter_recognition.dart';
 import 'package:mangayomi/utils/riverpod.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'anime_player_controller_provider.g.dart';
 
@@ -89,6 +90,7 @@ class AnimeStreamController extends _$AnimeStreamController
       });
       if (isWatch) {
         episode.updateTrackChapterRead(ref);
+        maybeTriggerSync(ref, SyncTriggerEvent.chapterSeen);
       }
     }
   }

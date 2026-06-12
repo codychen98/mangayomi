@@ -3563,6 +3563,36 @@ abstract class AppLocalizations {
   /// **'Leave blank to keep current password'**
   String get webdav_password_keep_hint;
 
+  /// No description provided for @sync_triggers.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync triggers'**
+  String get sync_triggers;
+
+  /// No description provided for @sync_on_chapter_seen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync on chapter read'**
+  String get sync_on_chapter_seen;
+
+  /// No description provided for @sync_on_chapter_open.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync on chapter open'**
+  String get sync_on_chapter_open;
+
+  /// No description provided for @sync_on_app_start.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync on app start'**
+  String get sync_on_app_start;
+
+  /// No description provided for @sync_on_app_resume.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync on app resume'**
+  String get sync_on_app_resume;
+
   /// No description provided for @enable_mpv.
   ///
   /// In en, this message translates to:

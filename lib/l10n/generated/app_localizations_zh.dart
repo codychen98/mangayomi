@@ -1870,6 +1870,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
+  String get sync_triggers => 'Sync triggers';
+
+  @override
+  String get sync_on_chapter_seen => 'Sync on chapter read';
+
+  @override
+  String get sync_on_chapter_open => 'Sync on chapter open';
+
+  @override
+  String get sync_on_app_start => 'Sync on app start';
+
+  @override
+  String get sync_on_app_resume => 'Sync on app resume';
+
+  @override
   String get enable_mpv => '启用 mpv 着色器/脚本';
 
   @override

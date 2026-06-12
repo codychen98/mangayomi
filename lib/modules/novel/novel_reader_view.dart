@@ -17,6 +17,7 @@ import 'package:mangayomi/modules/manga/reader/widgets/auto_scroll_button.dart';
 import 'package:mangayomi/modules/manga/reader/widgets/reader_app_bar.dart';
 import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/novel/novel_reader_controller_provider.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/modules/novel/tts/novel_tts_service.dart';
 import 'package:mangayomi/modules/novel/tts/tts_player_bar.dart';
 import 'package:mangayomi/modules/novel/tts/tts_settings_tab.dart';
@@ -147,6 +148,11 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     });
     if (!isDesktop) SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     discordRpc?.showChapterDetails(ref, chapter);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        maybeTriggerSync(ref, SyncTriggerEvent.chapterOpen);
+      }
+    });
 
     _ttsIndexSub = NovelTtsService.instance.paragraphIndexStream.listen((i) {
       _ttsProgress.value = (paragraph: i, wordStart: -1, wordEnd: -1);

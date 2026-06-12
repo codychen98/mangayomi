@@ -91,6 +91,26 @@ const SyncPreferenceSchema = CollectionSchema(
       name: r'webDavUsername',
       type: IsarType.string,
     ),
+    r'syncOnChapterSeen': PropertySchema(
+      id: 17,
+      name: r'syncOnChapterSeen',
+      type: IsarType.bool,
+    ),
+    r'syncOnChapterOpen': PropertySchema(
+      id: 18,
+      name: r'syncOnChapterOpen',
+      type: IsarType.bool,
+    ),
+    r'syncOnAppStart': PropertySchema(
+      id: 19,
+      name: r'syncOnAppStart',
+      type: IsarType.bool,
+    ),
+    r'syncOnAppResume': PropertySchema(
+      id: 20,
+      name: r'syncOnAppResume',
+      type: IsarType.bool,
+    ),
   },
 
   estimateSize: _syncPreferenceEstimateSize,
@@ -183,6 +203,10 @@ void _syncPreferenceSerialize(
   writer.writeString(offsets[14], object.webDavPassword);
   writer.writeString(offsets[15], object.webDavUrl);
   writer.writeString(offsets[16], object.webDavUsername);
+  writer.writeBool(offsets[17], object.syncOnChapterSeen);
+  writer.writeBool(offsets[18], object.syncOnChapterOpen);
+  writer.writeBool(offsets[19], object.syncOnAppStart);
+  writer.writeBool(offsets[20], object.syncOnAppResume);
 }
 
 SyncPreference _syncPreferenceDeserialize(
@@ -215,6 +239,10 @@ SyncPreference _syncPreferenceDeserialize(
   object.syncHistories = reader.readBool(offsets[8]);
   object.syncSettings = reader.readBool(offsets[11]);
   object.syncUpdates = reader.readBool(offsets[12]);
+  object.syncOnChapterSeen = reader.readBoolOrNull(offsets[17]) ?? false;
+  object.syncOnChapterOpen = reader.readBoolOrNull(offsets[18]) ?? false;
+  object.syncOnAppStart = reader.readBoolOrNull(offsets[19]) ?? false;
+  object.syncOnAppResume = reader.readBoolOrNull(offsets[20]) ?? false;
   return object;
 }
 
@@ -263,6 +291,14 @@ P _syncPreferenceDeserializeProp<P>(
       return (reader.readStringOrNull(offset)) as P;
     case 16:
       return (reader.readStringOrNull(offset)) as P;
+    case 17:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 18:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 19:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 20:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
