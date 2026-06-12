@@ -80,6 +80,9 @@ void main() {
       final requests = <String>[];
       final mock = MockClient((request) async {
         requests.add('${request.method} ${request.url.path}');
+        if (request.method == 'PROPFIND') {
+          return http.Response('', 404);
+        }
         if (request.method == 'MKCOL') {
           final path = request.url.path;
           if (path.endsWith('/mangayomi')) {
@@ -96,9 +99,62 @@ void main() {
       await client.ensureFolderExists();
 
       expect(requests, [
-        'MKCOL /dav/mangayomi',
-        'MKCOL /dav/mangayomi/nested',
+        'PROPFIND /dav/mangayomi/',
+        'MKCOL /dav/mangayomi/',
+        'PROPFIND /dav/mangayomi/nested/',
+        'MKCOL /dav/mangayomi/nested/',
       ]);
+    });
+
+    test('skips MKCOL when folder already exists', () async {
+      final requests = <String>[];
+      final mock = MockClient((request) async {
+        requests.add('${request.method} ${request.url.path}');
+        if (request.method == 'PROPFIND') {
+          return http.Response('', 207);
+        }
+        return http.Response('', 500);
+      });
+
+      final client = WebDavClient(
+        url: 'https://webdav.pcloud.com',
+        username: 'user',
+        password: 'pass',
+        folder: '(Reinstall)/BACKUP/Mangayomi',
+        httpClient: mock,
+      );
+      await client.ensureFolderExists();
+
+      expect(requests, [
+        'PROPFIND /(Reinstall)/',
+        'PROPFIND /(Reinstall)/BACKUP/',
+        'PROPFIND /(Reinstall)/BACKUP/Mangayomi/',
+      ]);
+      expect(requests.where((r) => r.startsWith('MKCOL')), isEmpty);
+    });
+
+    test('treats MKCOL failure as success when folder exists afterward', () async {
+      var mangayomiChecks = 0;
+      final mock = MockClient((request) async {
+        if (request.method == 'PROPFIND') {
+          final path = request.url.path;
+          if (path.endsWith('/mangayomi/') && mangayomiChecks == 0) {
+            mangayomiChecks++;
+            return http.Response('', 404);
+          }
+          if (path.endsWith('/mangayomi/')) {
+            return http.Response('', 207);
+          }
+          return http.Response('', 404);
+        }
+        if (request.method == 'MKCOL') {
+          return http.Response('', 403);
+        }
+        return http.Response('', 500);
+      });
+
+      final client = _clientFor(mock, folder: 'mangayomi');
+      await client.ensureFolderExists();
     });
   });
 

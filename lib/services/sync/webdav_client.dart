@@ -134,24 +134,76 @@ class WebDavClient {
     for (final part in _folderSegments) {
       accumulated.add(part);
       final folderUri = _uriForPathSegments(accumulated);
-      final created = await _createSingleFolder(folderUri);
-      if (!created) {
-        throw WebDavException('Failed to create folder: $folderUri');
+      if (await _folderExists(folderUri)) {
+        continue;
+      }
+
+      final result = await _createSingleFolder(folderUri);
+      if (!result.success) {
+        if (await _folderExists(folderUri)) {
+          continue;
+        }
+        throw WebDavException(
+          'Failed to create folder: $folderUri (${result.statusCode})',
+          statusCode: result.statusCode,
+        );
       }
     }
   }
 
-  Future<bool> _createSingleFolder(Uri folderUri) async {
-    final request = http.Request('MKCOL', folderUri)
+  Uri _collectionUri(Uri uri) {
+    final path = uri.path.endsWith('/') ? uri.path : '${uri.path}/';
+    return uri.replace(path: path);
+  }
+
+  /// Some providers (e.g. pCloud) reject MKCOL on paths that already exist.
+  Future<bool> _folderExists(Uri folderUri) async {
+    final uri = _collectionUri(folderUri);
+    final propfind = http.Request('PROPFIND', uri)
+      ..headers['Authorization'] = _authorizationHeader
+      ..headers['Depth'] = '0'
+      ..headers['Content-Length'] = '0';
+
+    final response = await _http.send(propfind);
+    await response.stream.drain<void>();
+
+    if (response.statusCode == 207 || response.statusCode == 200) {
+      return true;
+    }
+    if (response.statusCode == 404) {
+      return false;
+    }
+
+    final head = http.Request('HEAD', uri)
+      ..headers['Authorization'] = _authorizationHeader;
+    final headResponse = await _http.send(head);
+    await headResponse.stream.drain<void>();
+    return headResponse.statusCode >= 200 && headResponse.statusCode < 300;
+  }
+
+  bool _isMkcolSuccess(int statusCode) {
+    return statusCode >= 200 && statusCode < 300 ||
+        statusCode == 301 ||
+        statusCode == 302 ||
+        statusCode == 307 ||
+        statusCode == 308 ||
+        statusCode == 405 ||
+        statusCode == 409;
+  }
+
+  Future<({bool success, int statusCode})> _createSingleFolder(
+    Uri folderUri,
+  ) async {
+    final uri = _collectionUri(folderUri);
+    final request = http.Request('MKCOL', uri)
       ..headers['Authorization'] = _authorizationHeader
       ..headers['Content-Length'] = '0';
 
     final response = await _http.send(request);
     await response.stream.drain<void>();
 
-    return response.statusCode >= 200 && response.statusCode < 300 ||
-        response.statusCode == 405 ||
-        response.statusCode == 409;
+    final statusCode = response.statusCode;
+    return (success: _isMkcolSuccess(statusCode), statusCode: statusCode);
   }
 
   /// Downloads the remote sync file. Supports conditional GET via [ifNoneMatch].
