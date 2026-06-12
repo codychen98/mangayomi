@@ -251,7 +251,7 @@ class ReaderController extends _$ReaderController
         if (ref.read(deleteDownloadAfterReadingStateProvider)) {
           chapter.deleteDownloadedFiles();
         }
-        maybeTriggerSync(ref, SyncTriggerEvent.chapterSeen);
+        maybeTriggerSync(ref.read, SyncTriggerEvent.chapterSeen);
       }
     }
   }

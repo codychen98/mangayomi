@@ -150,7 +150,7 @@ class _NovelWebViewState extends ConsumerState<NovelWebView>
     discordRpc?.showChapterDetails(ref, chapter);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        maybeTriggerSync(ref, SyncTriggerEvent.chapterOpen);
+        maybeTriggerSync(ref.read, SyncTriggerEvent.chapterOpen);
       }
     });
 

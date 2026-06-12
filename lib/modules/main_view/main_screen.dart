@@ -99,7 +99,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
         context.go(_defaultLocation);
         _initializeTimers();
         _initializeProviders();
-        maybeTriggerSync(ref, SyncTriggerEvent.appStart);
+        maybeTriggerSync(ref.read, SyncTriggerEvent.appStart);
       }
     });
 
@@ -109,7 +109,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      maybeTriggerSync(ref, SyncTriggerEvent.appResume);
+      maybeTriggerSync(ref.read, SyncTriggerEvent.appResume);
     }
   }
 

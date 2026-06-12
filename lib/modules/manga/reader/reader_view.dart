@@ -1103,7 +1103,7 @@ class _MangaChapterPageGalleryState
     _proactivePreload();
 
     _readerController.setHistoryUpdate();
-    maybeTriggerSync(ref, SyncTriggerEvent.chapterOpen);
+    maybeTriggerSync(ref.read, SyncTriggerEvent.chapterOpen);
     // Use post-frame callback instead of Future.delayed(1ms) timing hack
     await Future(() {});
     final fullScreenReader = ref.watch(fullScreenReaderStateProvider);

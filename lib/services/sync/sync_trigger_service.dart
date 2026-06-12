@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/riverpod.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
@@ -14,6 +14,8 @@ enum SyncTriggerEvent {
 }
 
 const syncTriggerDebounce = Duration(seconds: 30);
+
+typedef SyncTriggerRead = T Function<T>(ProviderListenable<T> provider);
 
 DateTime? _lastTriggerSyncAt;
 
@@ -41,8 +43,8 @@ bool isSyncTriggerDebounced(
   return now.difference(last) < debounce;
 }
 
-Future<void> maybeTriggerSync(Ref ref, SyncTriggerEvent event) async {
-  final prefs = ref.read(synchingProvider(syncId: 1));
+Future<void> maybeTriggerSync(SyncTriggerRead read, SyncTriggerEvent event) async {
+  final prefs = read(synchingProvider(syncId: 1));
   if (!isSyncTriggerEnabled(prefs, event)) {
     return;
   }
@@ -51,9 +53,7 @@ Future<void> maybeTriggerSync(Ref ref, SyncTriggerEvent event) async {
     return;
   }
   _lastTriggerSyncAt = now;
-  final locale = ref.read(l10nLocaleStateProvider);
+  final locale = read(l10nLocaleStateProvider);
   final l10n = lookupAppLocalizations(locale);
-  await ref
-      .read(syncCoordinatorProvider(syncId: 1).notifier)
-      .startSync(l10n, true);
+  await read(syncCoordinatorProvider(syncId: 1).notifier).startSync(l10n, true);
 }

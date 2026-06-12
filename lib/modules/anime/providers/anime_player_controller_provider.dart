@@ -90,7 +90,7 @@ class AnimeStreamController extends _$AnimeStreamController
       });
       if (isWatch) {
         episode.updateTrackChapterRead(ref);
-        maybeTriggerSync(ref, SyncTriggerEvent.chapterSeen);
+        maybeTriggerSync(ref.read, SyncTriggerEvent.chapterSeen);
       }
     }
   }

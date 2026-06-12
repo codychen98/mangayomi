@@ -879,7 +879,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     discordRpc?.showChapterDetails(ref, widget.episode);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        maybeTriggerSync(ref, SyncTriggerEvent.chapterOpen);
+        maybeTriggerSync(ref.read, SyncTriggerEvent.chapterOpen);
       }
     });
     _currentPosition.addListener(_updateRpcTimestamp);

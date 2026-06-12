@@ -43,7 +43,7 @@ class NovelReaderController extends _$NovelReaderController
         isar.chapters.putSync(ch);
       });
       if (isRead) {
-        maybeTriggerSync(ref, SyncTriggerEvent.chapterSeen);
+        maybeTriggerSync(ref.read, SyncTriggerEvent.chapterSeen);
       }
     }
   }
