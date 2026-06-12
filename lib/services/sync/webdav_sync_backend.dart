@@ -128,17 +128,17 @@ class WebDavSyncBackend implements SyncBackend {
         return;
       }
 
-      final localSnapshot = buildLocalSnapshot(prefs);
-
       if (uploadOnly) {
-        await _uploadOnly(
+        await _pushWithConflictRecovery(
+          ref: ref,
           l10n: l10n,
           client: client,
           syncNotifier: syncNotifier,
           prefs: prefs,
           syncId: syncId,
-          localSnapshot: localSnapshot,
+          uploadLocalOnly: true,
           silent: silent,
+          applyRemote: false,
         );
         return;
       }
@@ -150,7 +150,6 @@ class WebDavSyncBackend implements SyncBackend {
         syncNotifier: syncNotifier,
         prefs: prefs,
         syncId: syncId,
-        localSnapshot: localSnapshot,
         silent: silent,
       );
     } on WebDavException catch (error) {
@@ -169,47 +168,70 @@ class WebDavSyncBackend implements SyncBackend {
     required Synching syncNotifier,
     required SyncPreference prefs,
     required int syncId,
-    required SyncSnapshot localSnapshot,
     required bool silent,
   }) async {
-    for (var attempt = 0; attempt < 2; attempt++) {
-      final currentPrefs = attempt == 0
-          ? prefs
-          : ref.read(synchingProvider(syncId: syncId));
+    await _pushWithConflictRecovery(
+      ref: ref,
+      l10n: l10n,
+      client: client,
+      syncNotifier: syncNotifier,
+      prefs: prefs,
+      syncId: syncId,
+      uploadLocalOnly: false,
+      silent: silent,
+      applyRemote: true,
+    );
+  }
+
+  /// Pull, merge, and push with escalating recovery for broken WebDAV etag support.
+  Future<void> _pushWithConflictRecovery({
+    required Ref ref,
+    required AppLocalizations l10n,
+    required WebDavClient client,
+    required Synching syncNotifier,
+    required SyncPreference prefs,
+    required int syncId,
+    required bool uploadLocalOnly,
+    required bool silent,
+    required bool applyRemote,
+  }) async {
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final currentPrefs = ref.read(synchingProvider(syncId: syncId));
+      final localSnapshot = buildLocalSnapshot(currentPrefs);
+      final useConditionalPull = attempt == 0;
+      final useConditionalPush = attempt < 2;
+
       final pullResult = await client.pull(
-        ifNoneMatch: attempt == 0 ? currentPrefs.lastSyncEtag : null,
+        ifNoneMatch: useConditionalPull ? currentPrefs.lastSyncEtag : null,
       );
-      final mergedSnapshot = resolveSnapshotForBidirectionalSync(
-        local: localSnapshot,
-        pullResult: pullResult,
-      );
-      final ifMatch = ifMatchEtagForPush(
-        pullResult: pullResult,
-        prefs: currentPrefs,
-      );
-      final mergedBody = encodeSyncSnapshot(mergedSnapshot);
+      final pushSnapshot = uploadLocalOnly
+          ? localSnapshot
+          : resolveSnapshotForBidirectionalSync(
+              local: localSnapshot,
+              pullResult: pullResult,
+            );
+      final ifMatch = useConditionalPush
+          ? ifMatchEtagForPush(pullResult: pullResult)
+          : null;
+      final body = encodeSyncSnapshot(pushSnapshot);
       if (attempt == 0) {
-        _maybeShowLargeSyncToast(l10n, mergedBody.length, silent);
+        _maybeShowLargeSyncToast(l10n, body.length, silent);
       }
 
       final pushResult = await client.push(
-        mergedBody,
+        body,
         ifMatch: ifMatch,
       );
       if (pushResult.conflict) {
-        if (attempt == 0) {
-          continue;
-        }
-        _showError(l10n, l10n.webdav_sync_conflict);
-        return;
+        continue;
       }
       if (!pushResult.success) {
         _showError(l10n, l10n.sync_failed);
         return;
       }
 
-      if (shouldApplyRemoteSnapshot(pullResult)) {
-        await applySyncSnapshotToDatabase(mergedSnapshot, ref);
+      if (applyRemote && shouldApplyRemoteSnapshot(pullResult)) {
+        await applySyncSnapshotToDatabase(pushSnapshot, ref);
       }
       _storeEtag(
         syncNotifier,
@@ -223,43 +245,8 @@ class WebDavSyncBackend implements SyncBackend {
       }
       return;
     }
-  }
 
-  Future<void> _uploadOnly({
-    required AppLocalizations l10n,
-    required WebDavClient client,
-    required Synching syncNotifier,
-    required SyncPreference prefs,
-    required int syncId,
-    required SyncSnapshot localSnapshot,
-    required bool silent,
-  }) async {
-    final pullResult = await client.pull(ifNoneMatch: prefs.lastSyncEtag);
-    final ifMatch = pullResult.notFound
-        ? null
-        : ifMatchEtagForPush(pullResult: pullResult, prefs: prefs);
-    final localBody = encodeSyncSnapshot(localSnapshot);
-    _maybeShowLargeSyncToast(l10n, localBody.length, silent);
-
-    final pushResult = await client.push(
-      localBody,
-      ifMatch: ifMatch,
-    );
-    if (pushResult.conflict) {
-      _showError(l10n, l10n.webdav_sync_conflict);
-      return;
-    }
-    if (!pushResult.success) {
-      _showError(l10n, l10n.sync_failed);
-      return;
-    }
-
-    _storeEtag(syncNotifier, pushResult.newEtag ?? pullResult.etag ?? prefs.lastSyncEtag);
-    _updateSyncTimestamps(syncNotifier, prefs);
-
-    if (!silent) {
-      botToast(l10n.sync_finished, second: 2);
-    }
+    _showError(l10n, l10n.webdav_sync_conflict);
   }
 
   Future<void> _downloadOnly({
@@ -360,15 +347,14 @@ SyncSnapshot resolveSnapshotForBidirectionalSync({
   return mergeSyncSnapshots(local, remote);
 }
 
-/// ETag to send with PUT for optimistic locking.
+/// ETag to send with PUT for optimistic locking (from the current pull only).
 String? ifMatchEtagForPush({
   required WebDavPullResult pullResult,
-  required SyncPreference prefs,
 }) {
   if (pullResult.notFound) {
     return null;
   }
-  return pullResult.etag ?? prefs.lastSyncEtag;
+  return pullResult.etag;
 }
 
 Uint8List encodeSyncSnapshot(SyncSnapshot snapshot) {

@@ -93,6 +93,15 @@ class WebDavClient {
     return raw.replaceAll('"', '').trim();
   }
 
+  /// RFC 7232 requires quoted entity-tags in If-Match / If-None-Match headers.
+  static String? formatEtagHeader(String? raw) {
+    final normalized = normalizeEtag(raw);
+    if (normalized == null || normalized.isEmpty) {
+      return null;
+    }
+    return '"$normalized"';
+  }
+
   /// Returns an error message when settings are invalid; `null` when valid.
   String? validateSettings() {
     if (!_baseUri.hasScheme ||
@@ -216,8 +225,8 @@ class WebDavClient {
     final headers = <String, String>{
       'Authorization': _authorizationHeader,
     };
-    final normalizedEtag = normalizeEtag(ifNoneMatch);
-    if (normalizedEtag != null && normalizedEtag.isNotEmpty) {
+    final normalizedEtag = formatEtagHeader(ifNoneMatch);
+    if (normalizedEtag != null) {
       headers['If-None-Match'] = normalizedEtag;
     }
 
@@ -230,7 +239,7 @@ class WebDavClient {
       case 304:
         return WebDavPullResult(
           notModified: true,
-          etag: normalizedEtag,
+          etag: normalizeEtag(ifNoneMatch),
         );
       case 404:
         return const WebDavPullResult(notFound: true);
@@ -262,8 +271,8 @@ class WebDavClient {
       'Authorization': _authorizationHeader,
       'Content-Type': 'application/json; charset=utf-8',
     };
-    final normalizedEtag = normalizeEtag(ifMatch);
-    if (normalizedEtag != null && normalizedEtag.isNotEmpty) {
+    final normalizedEtag = formatEtagHeader(ifMatch);
+    if (normalizedEtag != null) {
       headers['If-Match'] = normalizedEtag;
     }
 

@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mangayomi/l10n/generated/app_localizations_en.dart';
 import 'package:mangayomi/models/manga.dart';
-import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
 import 'package:mangayomi/services/sync/webdav_client.dart';
 import 'package:mangayomi/services/sync/webdav_sync_backend.dart';
@@ -200,41 +199,32 @@ void main() {
 
   group('ifMatchEtagForPush', () {
     test('returns null for first sync', () {
-      final prefs = SyncPreference();
-
       expect(
         ifMatchEtagForPush(
           pullResult: const WebDavPullResult(notFound: true),
-          prefs: prefs,
         ),
         isNull,
       );
     });
 
-    test('prefers pull etag over stored etag', () {
-      final prefs = SyncPreference(lastSyncEtag: 'stored');
-
+    test('uses etag from current pull only', () {
       expect(
         ifMatchEtagForPush(
           pullResult: const WebDavPullResult(
             notModified: true,
             etag: 'from-pull',
           ),
-          prefs: prefs,
         ),
         'from-pull',
       );
     });
 
-    test('falls back to stored etag when pull has none', () {
-      final prefs = SyncPreference(lastSyncEtag: 'stored');
-
+    test('returns null when pull has no etag', () {
       expect(
         ifMatchEtagForPush(
           pullResult: const WebDavPullResult(notModified: true),
-          prefs: prefs,
         ),
-        'stored',
+        isNull,
       );
     });
   });

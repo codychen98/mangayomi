@@ -171,7 +171,7 @@ void main() {
 
     test('returns notModified on 304 and preserves etag', () async {
       final mock = MockClient((request) async {
-        expect(request.headers['if-none-match'], 'etag-1');
+        expect(request.headers['if-none-match'], '"etag-1"');
         return http.Response('', 304);
       });
       final client = _clientFor(mock);
@@ -206,7 +206,7 @@ void main() {
   group('WebDavClient.push', () {
     test('returns conflict on 412', () async {
       final mock = MockClient((request) async {
-        expect(request.headers['if-match'], 'stale-etag');
+        expect(request.headers['if-match'], '"stale-etag"');
         return http.Response('', 412);
       });
       final client = _clientFor(mock);
@@ -243,6 +243,15 @@ void main() {
       expect(WebDavClient.normalizeEtag(' "abc" '), 'abc');
       expect(WebDavClient.normalizeEtag(''), isNull);
       expect(WebDavClient.normalizeEtag(null), isNull);
+    });
+  });
+
+  group('WebDavClient.formatEtagHeader', () {
+    test('wraps normalized etag in quotes', () {
+      expect(WebDavClient.formatEtagHeader('abc'), '"abc"');
+      expect(WebDavClient.formatEtagHeader(' "abc" '), '"abc"');
+      expect(WebDavClient.formatEtagHeader(null), isNull);
+      expect(WebDavClient.formatEtagHeader(''), isNull);
     });
   });
 }
