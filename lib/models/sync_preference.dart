@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:mangayomi/services/sync/sync_service_type.dart';
 part 'sync_preference.g.dart';
 
 @collection
@@ -28,6 +29,19 @@ class SyncPreference {
 
   bool syncSettings = false;
 
+  @enumerated
+  SyncServiceType syncServiceType = SyncServiceType.mangayomiServer;
+
+  String? webDavUrl;
+
+  String? webDavUsername;
+
+  String? webDavPassword;
+
+  String webDavFolder = 'mangayomi';
+
+  String? lastSyncEtag;
+
   SyncPreference({
     this.syncId,
     this.email,
@@ -38,6 +52,12 @@ class SyncPreference {
     this.server,
     this.syncOn = false,
     this.autoSyncFrequency = 0,
+    this.syncServiceType = SyncServiceType.mangayomiServer,
+    this.webDavUrl,
+    this.webDavUsername,
+    this.webDavPassword,
+    this.webDavFolder = 'mangayomi',
+    this.lastSyncEtag,
   });
 
   SyncPreference.fromJson(Map<String, dynamic> json) {
@@ -53,6 +73,12 @@ class SyncPreference {
     syncHistories = json['syncHistories'] ?? false;
     syncUpdates = json['syncUpdates'] ?? false;
     syncSettings = json['syncSettings'] ?? false;
+    syncServiceType = SyncServiceType.values[json['syncServiceType'] ?? 0];
+    webDavUrl = json['webDavUrl'];
+    webDavUsername = json['webDavUsername'];
+    webDavPassword = json['webDavPassword'];
+    webDavFolder = json['webDavFolder'] ?? 'mangayomi';
+    lastSyncEtag = json['lastSyncEtag'];
   }
 
   Map<String, dynamic> toJson() => {
@@ -62,10 +88,17 @@ class SyncPreference {
     'lastSyncManga': lastSyncManga,
     'lastSyncHistory': lastSyncHistory,
     'lastSyncUpdate': lastSyncUpdate,
+    'server': server,
     'syncOn': syncOn,
     'autoSyncFrequency': autoSyncFrequency,
     'syncHistories': syncHistories,
     'syncUpdates': syncUpdates,
     'syncSettings': syncSettings,
+    'syncServiceType': syncServiceType.index,
+    'webDavUrl': webDavUrl,
+    'webDavUsername': webDavUsername,
+    'webDavPassword': webDavPassword,
+    'webDavFolder': webDavFolder,
+    'lastSyncEtag': lastSyncEtag,
   };
 }

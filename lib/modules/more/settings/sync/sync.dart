@@ -8,7 +8,9 @@ import 'package:mangayomi/utils/date.dart';
 import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/modules/more/settings/sync/widgets/sync_listile.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
-import 'package:mangayomi/services/sync_server.dart';
+import 'package:mangayomi/services/sync/sync_backend.dart';
+import 'package:mangayomi/services/sync/sync_coordinator.dart';
+import 'package:mangayomi/services/sync/sync_service_type.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -43,7 +45,9 @@ class SyncScreen extends ConsumerWidget {
             SyncPreference syncPreference = snapshot.data?.isNotEmpty ?? false
                 ? snapshot.data?.first ?? SyncPreference()
                 : SyncPreference();
-            final bool isLogged = syncPreference.authToken?.isNotEmpty ?? false;
+            final bool isLogged = isSyncConfigured(syncPreference);
+            final bool isWebDav =
+                syncPreference.syncServiceType == SyncServiceType.webDav;
             return Column(
               children: [
                 SwitchListTile(
@@ -59,6 +63,67 @@ class SyncScreen extends ConsumerWidget {
                           .setAutoSyncFrequency(0);
                     }
                   },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.sync_service,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SegmentedButton<SyncServiceType>(
+                        emptySelectionAllowed: false,
+                        showSelectedIcon: false,
+                        style: TextButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                        ),
+                        segments: [
+                          ButtonSegment(
+                            value: SyncServiceType.mangayomiServer,
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              child: Text(l10n.sync_service_mangayomi_server),
+                            ),
+                          ),
+                          ButtonSegment(
+                            value: SyncServiceType.webDav,
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              child: Text(l10n.sync_service_webdav),
+                            ),
+                          ),
+                        ],
+                        selected: {syncPreference.syncServiceType},
+                        onSelectionChanged: syncPreference.syncOn
+                            ? (selection) {
+                                if (selection.isEmpty) {
+                                  return;
+                                }
+                                ref
+                                    .read(synchingProvider(syncId: 1).notifier)
+                                    .setSyncServiceType(selection.first);
+                              }
+                            : null,
+                      ),
+                    ],
+                  ),
                 ),
                 ListTile(
                   enabled: syncPreference.syncOn,
@@ -189,34 +254,35 @@ class SyncScreen extends ConsumerWidget {
                         }
                       : null,
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 15,
-                    right: 15,
-                    bottom: 10,
-                    top: 10,
+                if (!isWebDav)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 15,
+                      right: 15,
+                      bottom: 10,
+                      top: 10,
+                    ),
+                    child: Row(
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            if (!await launchUrl(
+                              Uri.parse(serverUrl),
+                              mode: LaunchMode.externalApplication,
+                            )) {
+                              AppLogger.log(
+                                'Could not launch $serverUrl',
+                                logLevel: LogLevel.error,
+                              );
+                              botToast('Could not launch $serverUrl');
+                            }
+                          },
+                          label: Text(l10n.get_sync_server),
+                          icon: const Icon(Icons.download_outlined),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          if (!await launchUrl(
-                            Uri.parse(serverUrl),
-                            mode: LaunchMode.externalApplication,
-                          )) {
-                            AppLogger.log(
-                              'Could not launch $serverUrl',
-                              logLevel: LogLevel.error,
-                            );
-                            botToast('Could not launch $serverUrl');
-                          }
-                        },
-                        label: Text(l10n.get_sync_server),
-                        icon: const Icon(Icons.download_outlined),
-                      ),
-                    ],
-                  ),
-                ),
                 Padding(
                   padding: const EdgeInsets.only(
                     left: 15,
@@ -239,7 +305,11 @@ class SyncScreen extends ConsumerWidget {
                 SyncListile(
                   enabled: syncPreference.syncOn,
                   onTap: () async {
-                    _showDialogLogin(context, ref, syncPreference);
+                    if (isWebDav) {
+                      _showDialogWebDav(context, ref, syncPreference);
+                    } else {
+                      _showDialogLogin(context, ref, syncPreference);
+                    }
                   },
                   id: 1,
                   preference: syncPreference,
@@ -256,7 +326,9 @@ class SyncScreen extends ConsumerWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            l10n.syncing_subtitle,
+                            isWebDav
+                                ? l10n.webdav_sync_subtitle
+                                : l10n.syncing_subtitle,
                             softWrap: true,
                             style: TextStyle(
                               fontSize: 11,
@@ -320,7 +392,9 @@ class SyncScreen extends ConsumerWidget {
                               : () {
                                   ref
                                       .read(
-                                        syncServerProvider(syncId: 1).notifier,
+                                        syncCoordinatorProvider(
+                                          syncId: 1,
+                                        ).notifier,
                                       )
                                       .startSync(l10n, false);
                                 },
@@ -406,7 +480,7 @@ class SyncScreen extends ConsumerWidget {
                 ElevatedButton(
                   onPressed: () {
                     ref
-                        .read(syncServerProvider(syncId: 1).notifier)
+                        .read(syncCoordinatorProvider(syncId: 1).notifier)
                         .startSync(
                           context.l10n,
                           false,
@@ -566,9 +640,16 @@ class SyncScreen extends ConsumerWidget {
                                 });
                                 final res = await ref
                                     .read(
-                                      syncServerProvider(syncId: 1).notifier,
+                                      syncCoordinatorProvider(
+                                        syncId: 1,
+                                      ).notifier,
                                     )
-                                    .login(l10n, server, email, password);
+                                    .authenticate(
+                                      l10n,
+                                      server,
+                                      email,
+                                      password,
+                                    );
                                 if (!res.$1) {
                                   setState(() {
                                     isLoading = false;
@@ -587,6 +668,218 @@ class SyncScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showDialogWebDav(
+    BuildContext context,
+    WidgetRef ref,
+    SyncPreference syncPreference,
+  ) {
+    final urlController = TextEditingController(text: syncPreference.webDavUrl);
+    final usernameController = TextEditingController(
+      text: syncPreference.webDavUsername,
+    );
+    final passwordController = TextEditingController();
+    final folderController = TextEditingController(
+      text: syncPreference.webDavFolder,
+    );
+    String url = syncPreference.webDavUrl ?? '';
+    String username = syncPreference.webDavUsername ?? '';
+    String password = '';
+    String folder = syncPreference.webDavFolder;
+    String errorMessage = '';
+    bool isLoading = false;
+    bool obscureText = true;
+    final l10n = l10nLocalizations(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text(
+              l10n.login_into(l10n.sync_service_webdav),
+              style: const TextStyle(fontSize: 30),
+            ),
+            content: SizedBox(
+              height: 480,
+              width: MediaQuery.of(context).size.width,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      l10n.webdav_url_summary,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.secondaryColor,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: TextFormField(
+                        controller: urlController,
+                        autofocus: true,
+                        onChanged: (value) => setState(() {
+                          url = value;
+                        }),
+                        decoration: InputDecoration(
+                          labelText: l10n.webdav_url,
+                          hintText: 'https://',
+                          filled: false,
+                          contentPadding: const EdgeInsets.all(12),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(width: 0.4),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
+                            borderSide: const BorderSide(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: TextFormField(
+                        controller: usernameController,
+                        onChanged: (value) => setState(() {
+                          username = value;
+                        }),
+                        decoration: InputDecoration(
+                          labelText: l10n.webdav_username,
+                          filled: false,
+                          contentPadding: const EdgeInsets.all(12),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(width: 0.4),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
+                            borderSide: const BorderSide(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: TextFormField(
+                        controller: passwordController,
+                        obscureText: obscureText,
+                        onChanged: (value) => setState(() {
+                          password = value;
+                        }),
+                        decoration: InputDecoration(
+                          labelText: l10n.webdav_password,
+                          suffixIcon: IconButton(
+                            onPressed: () => setState(() {
+                              obscureText = !obscureText;
+                            }),
+                            icon: Icon(
+                              obscureText
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                          ),
+                          filled: false,
+                          contentPadding: const EdgeInsets.all(12),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(width: 0.4),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
+                            borderSide: const BorderSide(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: TextFormField(
+                        controller: folderController,
+                        onChanged: (value) => setState(() {
+                          folder = value;
+                        }),
+                        decoration: InputDecoration(
+                          labelText: l10n.webdav_folder,
+                          filled: false,
+                          contentPadding: const EdgeInsets.all(12),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(width: 0.4),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(5),
+                            borderSide: const BorderSide(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Text(errorMessage, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: context.width(1),
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                setState(() {
+                                  isLoading = true;
+                                });
+                                final res = await ref
+                                    .read(
+                                      syncCoordinatorProvider(
+                                        syncId: 1,
+                                      ).notifier,
+                                    )
+                                    .authenticate(
+                                      l10n,
+                                      url,
+                                      username,
+                                      password,
+                                      folder: folder,
+                                    );
+                                if (!res.$1) {
+                                  setState(() {
+                                    isLoading = false;
+                                    errorMessage = res.$2;
+                                  });
+                                } else if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                              },
+                        child: isLoading
+                            ? const CircularProgressIndicator()
+                            : Text(l10n.login),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );

@@ -3473,6 +3473,84 @@ abstract class AppLocalizations {
   /// **'Sync settings'**
   String get sync_enable_settings;
 
+  /// No description provided for @sync_service.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync service'**
+  String get sync_service;
+
+  /// No description provided for @sync_service_mangayomi_server.
+  ///
+  /// In en, this message translates to:
+  /// **'Mangayomi Server'**
+  String get sync_service_mangayomi_server;
+
+  /// No description provided for @sync_service_webdav.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV'**
+  String get sync_service_webdav;
+
+  /// No description provided for @webdav_url.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV server URL'**
+  String get webdav_url;
+
+  /// No description provided for @webdav_url_summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Base URL of your WebDAV server (e.g. https://cloud.example.com/remote.php/dav/files/username/)'**
+  String get webdav_url_summary;
+
+  /// No description provided for @webdav_username.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get webdav_username;
+
+  /// No description provided for @webdav_password.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get webdav_password;
+
+  /// No description provided for @webdav_folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote folder'**
+  String get webdav_folder;
+
+  /// No description provided for @webdav_sync_conflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync conflict — please retry'**
+  String get webdav_sync_conflict;
+
+  /// No description provided for @webdav_not_configured.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV is not configured'**
+  String get webdav_not_configured;
+
+  /// No description provided for @webdav_invalid_credentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid username or password'**
+  String get webdav_invalid_credentials;
+
+  /// No description provided for @webdav_sync_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync your library across devices via WebDAV (Nextcloud, Synology, etc.). Data is stored as mangayomi/mangayomi-sync.json on your server.'**
+  String get webdav_sync_subtitle;
+
+  /// No description provided for @webdav_sync_large.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing large library...'**
+  String get webdav_sync_large;
+
   /// No description provided for @enable_mpv.
   ///
   /// In en, this message translates to:

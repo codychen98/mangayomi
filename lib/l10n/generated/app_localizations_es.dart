@@ -1893,6 +1893,47 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sync_enable_settings => 'Sincronizar configuración';
 
   @override
+  String get sync_service => 'Sync service';
+
+  @override
+  String get sync_service_mangayomi_server => 'Mangayomi Server';
+
+  @override
+  String get sync_service_webdav => 'WebDAV';
+
+  @override
+  String get webdav_url => 'WebDAV server URL';
+
+  @override
+  String get webdav_url_summary =>
+      'Base URL of your WebDAV server (e.g. https://cloud.example.com/remote.php/dav/files/username/)';
+
+  @override
+  String get webdav_username => 'Username';
+
+  @override
+  String get webdav_password => 'Password';
+
+  @override
+  String get webdav_folder => 'Remote folder';
+
+  @override
+  String get webdav_sync_conflict => 'Sync conflict — please retry';
+
+  @override
+  String get webdav_not_configured => 'WebDAV is not configured';
+
+  @override
+  String get webdav_invalid_credentials => 'Invalid username or password';
+
+  @override
+  String get webdav_sync_subtitle =>
+      'Sync your library across devices via WebDAV (Nextcloud, Synology, etc.). Data is stored as mangayomi/mangayomi-sync.json on your server.';
+
+  @override
+  String get webdav_sync_large => 'Syncing large library...';
+
+  @override
   String get enable_mpv => 'Activar shaders / scripts de mpv';
 
   @override
@@ -4367,6 +4408,47 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get sync_enable_settings => 'Sincronizar configuración';
+
+  @override
+  String get sync_service => 'Sync service';
+
+  @override
+  String get sync_service_mangayomi_server => 'Mangayomi Server';
+
+  @override
+  String get sync_service_webdav => 'WebDAV';
+
+  @override
+  String get webdav_url => 'WebDAV server URL';
+
+  @override
+  String get webdav_url_summary =>
+      'Base URL of your WebDAV server (e.g. https://cloud.example.com/remote.php/dav/files/username/)';
+
+  @override
+  String get webdav_username => 'Username';
+
+  @override
+  String get webdav_password => 'Password';
+
+  @override
+  String get webdav_folder => 'Remote folder';
+
+  @override
+  String get webdav_sync_conflict => 'Sync conflict — please retry';
+
+  @override
+  String get webdav_not_configured => 'WebDAV is not configured';
+
+  @override
+  String get webdav_invalid_credentials => 'Invalid username or password';
+
+  @override
+  String get webdav_sync_subtitle =>
+      'Sync your library across devices via WebDAV (Nextcloud, Synology, etc.). Data is stored as mangayomi/mangayomi-sync.json on your server.';
+
+  @override
+  String get webdav_sync_large => 'Syncing large library...';
 
   @override
   String get enable_mpv => 'Activar shaders / scripts de mpv';

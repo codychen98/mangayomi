@@ -4,7 +4,7 @@ import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/changed.dart';
 import 'package:mangayomi/models/sync_preference.dart';
-import 'package:mangayomi/services/sync_server.dart';
+import 'package:mangayomi/services/sync/sync_service_type.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'sync_providers.g.dart';
 
@@ -26,15 +26,23 @@ class Synching extends _$Synching {
       );
     });
     ref.invalidateSelf();
-    ref.invalidate(syncServerProvider(syncId: syncId!));
   }
 
   void logout() {
     isar.writeTxnSync(() {
-      isar.syncPreferences.putSync(state..authToken = null);
+      if (state.syncServiceType == SyncServiceType.webDav) {
+        isar.syncPreferences.putSync(
+          state
+            ..webDavUrl = null
+            ..webDavUsername = null
+            ..webDavPassword = null
+            ..lastSyncEtag = null,
+        );
+      } else {
+        isar.syncPreferences.putSync(state..authToken = null);
+      }
     });
     ref.invalidateSelf();
-    ref.invalidate(syncServerProvider(syncId: syncId!));
   }
 
   void setLastSyncManga(int timestamp) {
@@ -91,6 +99,60 @@ class Synching extends _$Synching {
   void setSyncSettings(bool value) {
     isar.writeTxnSync(() {
       isar.syncPreferences.putSync(state..syncSettings = value);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setSyncServiceType(SyncServiceType value) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..syncServiceType = value);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setWebDavUrl(String? url) {
+    final trimmed = url?.trim();
+    final urlChanged = state.webDavUrl != trimmed;
+    isar.writeTxnSync(() {
+      final next = state..webDavUrl = trimmed;
+      if (urlChanged) {
+        next.lastSyncEtag = null;
+      }
+      isar.syncPreferences.putSync(next);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setWebDavUsername(String? username) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..webDavUsername = username);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setWebDavPassword(String? password) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..webDavPassword = password);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setWebDavFolder(String folder) {
+    final trimmed = folder.trim();
+    final folderChanged = state.webDavFolder != trimmed;
+    isar.writeTxnSync(() {
+      final next = state..webDavFolder = trimmed;
+      if (folderChanged) {
+        next.lastSyncEtag = null;
+      }
+      isar.syncPreferences.putSync(next);
+    });
+    ref.invalidateSelf();
+  }
+
+  void setLastSyncEtag(String? etag) {
+    isar.writeTxnSync(() {
+      isar.syncPreferences.putSync(state..lastSyncEtag = etag);
     });
     ref.invalidateSelf();
   }

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/sync/sync_backend.dart';
+import 'package:mangayomi/services/sync/sync_service_type.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 
 class SyncListile extends ConsumerWidget {
@@ -22,8 +24,10 @@ class SyncListile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bool isLogged = preference.authToken?.isNotEmpty ?? false;
     final l10n = l10nLocalizations(context)!;
+    final bool isLogged = isSyncConfigured(preference);
+    final bool isWebDav = preference.syncServiceType == SyncServiceType.webDav;
+    final serviceName = isWebDav ? l10n.sync_service_webdav : l10n.sync_server;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: ListTile(
@@ -35,7 +39,11 @@ class SyncListile extends ConsumerWidget {
           ),
           width: 60,
           height: 70,
-          child: const Icon(Icons.dns_outlined, size: 30, color: Colors.grey),
+          child: Icon(
+            isWebDav ? Icons.cloud_outlined : Icons.dns_outlined,
+            size: 30,
+            color: Colors.grey,
+          ),
         ),
         trailing: (isLogged
             ? const Icon(Icons.check, size: 30, color: Colors.green)
@@ -47,7 +55,7 @@ class SyncListile extends ConsumerWidget {
                   context: context,
                   builder: (context) {
                     return AlertDialog(
-                      title: Text(l10n.log_out_from(l10n.sync_server)),
+                      title: Text(l10n.log_out_from(serviceName)),
                       actions: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -99,7 +107,7 @@ class SyncListile extends ConsumerWidget {
               }
             : onTap,
         title: Text(
-          text ?? l10n.sync_server,
+          text ?? serviceName,
           style: TextStyle(fontSize: text != null ? 13 : null),
         ),
       ),

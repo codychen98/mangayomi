@@ -23,7 +23,7 @@ import 'package:mangayomi/modules/more/data_and_storage/providers/auto_backup.da
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/services/fetch_sources_list.dart';
-import 'package:mangayomi/services/sync_server.dart';
+import 'package:mangayomi/services/sync/sync_coordinator.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
@@ -147,7 +147,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     }
     try {
       final l10n = l10nLocalizations(context)!;
-      ref.read(syncServerProvider(syncId: 1).notifier).startSync(l10n, true);
+      ref.read(syncCoordinatorProvider(syncId: 1).notifier).startSync(l10n, true);
     } catch (e) {
       botToast(
         "Failed to sync! Maybe the sync server is down. "

@@ -28,37 +28,68 @@ const SyncPreferenceSchema = CollectionSchema(
       type: IsarType.long,
     ),
     r'email': PropertySchema(id: 2, name: r'email', type: IsarType.string),
-    r'lastSyncHistory': PropertySchema(
+    r'lastSyncEtag': PropertySchema(
       id: 3,
+      name: r'lastSyncEtag',
+      type: IsarType.string,
+    ),
+    r'lastSyncHistory': PropertySchema(
+      id: 4,
       name: r'lastSyncHistory',
       type: IsarType.long,
     ),
     r'lastSyncManga': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'lastSyncManga',
       type: IsarType.long,
     ),
     r'lastSyncUpdate': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'lastSyncUpdate',
       type: IsarType.long,
     ),
-    r'server': PropertySchema(id: 6, name: r'server', type: IsarType.string),
+    r'server': PropertySchema(id: 7, name: r'server', type: IsarType.string),
     r'syncHistories': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'syncHistories',
       type: IsarType.bool,
     ),
-    r'syncOn': PropertySchema(id: 8, name: r'syncOn', type: IsarType.bool),
+    r'syncOn': PropertySchema(id: 9, name: r'syncOn', type: IsarType.bool),
+    r'syncServiceType': PropertySchema(
+      id: 10,
+      name: r'syncServiceType',
+      type: IsarType.byte,
+      enumMap: _SyncPreferencesyncServiceTypeEnumValueMap,
+    ),
     r'syncSettings': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'syncSettings',
       type: IsarType.bool,
     ),
     r'syncUpdates': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'syncUpdates',
       type: IsarType.bool,
+    ),
+    r'webDavFolder': PropertySchema(
+      id: 13,
+      name: r'webDavFolder',
+      type: IsarType.string,
+    ),
+    r'webDavPassword': PropertySchema(
+      id: 14,
+      name: r'webDavPassword',
+      type: IsarType.string,
+    ),
+    r'webDavUrl': PropertySchema(
+      id: 15,
+      name: r'webDavUrl',
+      type: IsarType.string,
+    ),
+    r'webDavUsername': PropertySchema(
+      id: 16,
+      name: r'webDavUsername',
+      type: IsarType.string,
     ),
   },
 
@@ -96,7 +127,32 @@ int _syncPreferenceEstimateSize(
     }
   }
   {
+    final value = object.lastSyncEtag;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.server;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.webDavFolder.length * 3;
+  {
+    final value = object.webDavPassword;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.webDavUrl;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.webDavUsername;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -113,14 +169,20 @@ void _syncPreferenceSerialize(
   writer.writeString(offsets[0], object.authToken);
   writer.writeLong(offsets[1], object.autoSyncFrequency);
   writer.writeString(offsets[2], object.email);
-  writer.writeLong(offsets[3], object.lastSyncHistory);
-  writer.writeLong(offsets[4], object.lastSyncManga);
-  writer.writeLong(offsets[5], object.lastSyncUpdate);
-  writer.writeString(offsets[6], object.server);
-  writer.writeBool(offsets[7], object.syncHistories);
-  writer.writeBool(offsets[8], object.syncOn);
-  writer.writeBool(offsets[9], object.syncSettings);
-  writer.writeBool(offsets[10], object.syncUpdates);
+  writer.writeString(offsets[3], object.lastSyncEtag);
+  writer.writeLong(offsets[4], object.lastSyncHistory);
+  writer.writeLong(offsets[5], object.lastSyncManga);
+  writer.writeLong(offsets[6], object.lastSyncUpdate);
+  writer.writeString(offsets[7], object.server);
+  writer.writeBool(offsets[8], object.syncHistories);
+  writer.writeBool(offsets[9], object.syncOn);
+  writer.writeByte(offsets[10], object.syncServiceType.index);
+  writer.writeBool(offsets[11], object.syncSettings);
+  writer.writeBool(offsets[12], object.syncUpdates);
+  writer.writeString(offsets[13], object.webDavFolder);
+  writer.writeString(offsets[14], object.webDavPassword);
+  writer.writeString(offsets[15], object.webDavUrl);
+  writer.writeString(offsets[16], object.webDavUsername);
 }
 
 SyncPreference _syncPreferenceDeserialize(
@@ -133,16 +195,26 @@ SyncPreference _syncPreferenceDeserialize(
     authToken: reader.readStringOrNull(offsets[0]),
     autoSyncFrequency: reader.readLongOrNull(offsets[1]) ?? 0,
     email: reader.readStringOrNull(offsets[2]),
-    lastSyncHistory: reader.readLongOrNull(offsets[3]),
-    lastSyncManga: reader.readLongOrNull(offsets[4]),
-    lastSyncUpdate: reader.readLongOrNull(offsets[5]),
-    server: reader.readStringOrNull(offsets[6]),
+    lastSyncEtag: reader.readStringOrNull(offsets[3]),
+    lastSyncHistory: reader.readLongOrNull(offsets[4]),
+    lastSyncManga: reader.readLongOrNull(offsets[5]),
+    lastSyncUpdate: reader.readLongOrNull(offsets[6]),
+    server: reader.readStringOrNull(offsets[7]),
     syncId: id,
-    syncOn: reader.readBoolOrNull(offsets[8]) ?? false,
+    syncOn: reader.readBoolOrNull(offsets[9]) ?? false,
+    syncServiceType:
+        _SyncPreferencesyncServiceTypeValueEnumMap[reader.readByteOrNull(
+          offsets[10],
+        )] ??
+        SyncServiceType.mangayomiServer,
+    webDavFolder: reader.readStringOrNull(offsets[13]) ?? 'mangayomi',
+    webDavPassword: reader.readStringOrNull(offsets[14]),
+    webDavUrl: reader.readStringOrNull(offsets[15]),
+    webDavUsername: reader.readStringOrNull(offsets[16]),
   );
-  object.syncHistories = reader.readBool(offsets[7]);
-  object.syncSettings = reader.readBool(offsets[9]);
-  object.syncUpdates = reader.readBool(offsets[10]);
+  object.syncHistories = reader.readBool(offsets[8]);
+  object.syncSettings = reader.readBool(offsets[11]);
+  object.syncUpdates = reader.readBool(offsets[12]);
   return object;
 }
 
@@ -160,25 +232,50 @@ P _syncPreferenceDeserializeProp<P>(
     case 2:
       return (reader.readStringOrNull(offset)) as P;
     case 3:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readLongOrNull(offset)) as P;
     case 5:
       return (reader.readLongOrNull(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 7:
-      return (reader.readBool(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 8:
-      return (reader.readBoolOrNull(offset) ?? false) as P;
+      return (reader.readBool(offset)) as P;
     case 9:
-      return (reader.readBool(offset)) as P;
+      return (reader.readBoolOrNull(offset) ?? false) as P;
     case 10:
+      return (_SyncPreferencesyncServiceTypeValueEnumMap[reader.readByteOrNull(
+                offset,
+              )] ??
+              SyncServiceType.mangayomiServer)
+          as P;
+    case 11:
       return (reader.readBool(offset)) as P;
+    case 12:
+      return (reader.readBool(offset)) as P;
+    case 13:
+      return (reader.readStringOrNull(offset) ?? 'mangayomi') as P;
+    case 14:
+      return (reader.readStringOrNull(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
+    case 16:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
 }
+
+const _SyncPreferencesyncServiceTypeEnumValueMap = {
+  'mangayomiServer': 0,
+  'webDav': 1,
+};
+const _SyncPreferencesyncServiceTypeValueEnumMap = {
+  0: SyncServiceType.mangayomiServer,
+  1: SyncServiceType.webDav,
+};
 
 Id _syncPreferenceGetId(SyncPreference object) {
   return object.syncId ?? Isar.autoIncrement;
@@ -653,6 +750,165 @@ extension SyncPreferenceQueryFilter
   }
 
   QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'lastSyncEtag'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'lastSyncEtag'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'lastSyncEtag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'lastSyncEtag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'lastSyncEtag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'lastSyncEtag',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'lastSyncEtag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'lastSyncEtag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'lastSyncEtag',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'lastSyncEtag',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'lastSyncEtag', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  lastSyncEtagIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'lastSyncEtag', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
   lastSyncHistoryIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1122,6 +1378,61 @@ extension SyncPreferenceQueryFilter
   }
 
   QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  syncServiceTypeEqualTo(SyncServiceType value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'syncServiceType', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  syncServiceTypeGreaterThan(SyncServiceType value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'syncServiceType',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  syncServiceTypeLessThan(SyncServiceType value, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'syncServiceType',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  syncServiceTypeBetween(
+    SyncServiceType lower,
+    SyncServiceType upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'syncServiceType',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
   syncSettingsEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1135,6 +1446,624 @@ extension SyncPreferenceQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
         FilterCondition.equalTo(property: r'syncUpdates', value: value),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderEqualTo(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'webDavFolder',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'webDavFolder',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'webDavFolder',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'webDavFolder',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'webDavFolder',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'webDavFolder',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'webDavFolder',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'webDavFolder',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'webDavFolder', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavFolderIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'webDavFolder', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'webDavPassword'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'webDavPassword'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'webDavPassword',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'webDavPassword',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'webDavPassword',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'webDavPassword',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'webDavPassword',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'webDavPassword',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'webDavPassword',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'webDavPassword',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'webDavPassword', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavPasswordIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'webDavPassword', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'webDavUrl'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'webDavUrl'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'webDavUrl',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'webDavUrl',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'webDavUrl',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'webDavUrl',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'webDavUrl',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'webDavUrl',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'webDavUrl',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'webDavUrl',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'webDavUrl', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUrlIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'webDavUrl', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'webDavUsername'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'webDavUsername'),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'webDavUsername',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'webDavUsername',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'webDavUsername',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'webDavUsername',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'webDavUsername',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'webDavUsername',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'webDavUsername',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'webDavUsername',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'webDavUsername', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterFilterCondition>
+  webDavUsernameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'webDavUsername', value: ''),
       );
     });
   }
@@ -1184,6 +2113,20 @@ extension SyncPreferenceQuerySortBy
   QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy> sortByEmailDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'email', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByLastSyncEtag() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncEtag', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByLastSyncEtagDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncEtag', Sort.desc);
     });
   }
 
@@ -1270,6 +2213,20 @@ extension SyncPreferenceQuerySortBy
   }
 
   QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortBySyncServiceType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncServiceType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortBySyncServiceTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncServiceType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
   sortBySyncSettings() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncSettings', Sort.asc);
@@ -1294,6 +2251,61 @@ extension SyncPreferenceQuerySortBy
   sortBySyncUpdatesDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncUpdates', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByWebDavFolder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavFolder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByWebDavFolderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavFolder', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByWebDavPassword() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavPassword', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByWebDavPasswordDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavPassword', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy> sortByWebDavUrl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUrl', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByWebDavUrlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUrl', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByWebDavUsername() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUsername', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  sortByWebDavUsernameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUsername', Sort.desc);
     });
   }
 }
@@ -1336,6 +2348,20 @@ extension SyncPreferenceQuerySortThenBy
   QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy> thenByEmailDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'email', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByLastSyncEtag() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncEtag', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByLastSyncEtagDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncEtag', Sort.desc);
     });
   }
 
@@ -1435,6 +2461,20 @@ extension SyncPreferenceQuerySortThenBy
   }
 
   QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenBySyncServiceType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncServiceType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenBySyncServiceTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncServiceType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
   thenBySyncSettings() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'syncSettings', Sort.asc);
@@ -1461,6 +2501,61 @@ extension SyncPreferenceQuerySortThenBy
       return query.addSortBy(r'syncUpdates', Sort.desc);
     });
   }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByWebDavFolder() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavFolder', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByWebDavFolderDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavFolder', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByWebDavPassword() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavPassword', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByWebDavPasswordDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavPassword', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy> thenByWebDavUrl() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUrl', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByWebDavUrlDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUrl', Sort.desc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByWebDavUsername() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUsername', Sort.asc);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QAfterSortBy>
+  thenByWebDavUsernameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'webDavUsername', Sort.desc);
+    });
+  }
 }
 
 extension SyncPreferenceQueryWhereDistinct
@@ -1485,6 +2580,13 @@ extension SyncPreferenceQueryWhereDistinct
   }) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'email', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QDistinct>
+  distinctByLastSyncEtag({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastSyncEtag', caseSensitive: caseSensitive);
     });
   }
 
@@ -1531,6 +2633,13 @@ extension SyncPreferenceQueryWhereDistinct
   }
 
   QueryBuilder<SyncPreference, SyncPreference, QDistinct>
+  distinctBySyncServiceType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'syncServiceType');
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QDistinct>
   distinctBySyncSettings() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'syncSettings');
@@ -1541,6 +2650,41 @@ extension SyncPreferenceQueryWhereDistinct
   distinctBySyncUpdates() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'syncUpdates');
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QDistinct>
+  distinctByWebDavFolder({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'webDavFolder', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QDistinct>
+  distinctByWebDavPassword({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'webDavPassword',
+        caseSensitive: caseSensitive,
+      );
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QDistinct> distinctByWebDavUrl({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'webDavUrl', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<SyncPreference, SyncPreference, QDistinct>
+  distinctByWebDavUsername({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(
+        r'webDavUsername',
+        caseSensitive: caseSensitive,
+      );
     });
   }
 }
@@ -1569,6 +2713,13 @@ extension SyncPreferenceQueryProperty
   QueryBuilder<SyncPreference, String?, QQueryOperations> emailProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'email');
+    });
+  }
+
+  QueryBuilder<SyncPreference, String?, QQueryOperations>
+  lastSyncEtagProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastSyncEtag');
     });
   }
 
@@ -1610,6 +2761,13 @@ extension SyncPreferenceQueryProperty
     });
   }
 
+  QueryBuilder<SyncPreference, SyncServiceType, QQueryOperations>
+  syncServiceTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'syncServiceType');
+    });
+  }
+
   QueryBuilder<SyncPreference, bool, QQueryOperations> syncSettingsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'syncSettings');
@@ -1619,6 +2777,33 @@ extension SyncPreferenceQueryProperty
   QueryBuilder<SyncPreference, bool, QQueryOperations> syncUpdatesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'syncUpdates');
+    });
+  }
+
+  QueryBuilder<SyncPreference, String, QQueryOperations>
+  webDavFolderProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'webDavFolder');
+    });
+  }
+
+  QueryBuilder<SyncPreference, String?, QQueryOperations>
+  webDavPasswordProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'webDavPassword');
+    });
+  }
+
+  QueryBuilder<SyncPreference, String?, QQueryOperations> webDavUrlProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'webDavUrl');
+    });
+  }
+
+  QueryBuilder<SyncPreference, String?, QQueryOperations>
+  webDavUsernameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'webDavUsername');
     });
   }
 }
