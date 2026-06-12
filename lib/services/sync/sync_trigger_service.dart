@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/misc.dart' show ProviderListenable;
 import 'package:riverpod/riverpod.dart';
 import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/models/sync_preference.dart';
