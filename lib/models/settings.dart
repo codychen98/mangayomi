@@ -589,7 +589,7 @@ class Settings {
     checkForExtensionUpdates = json['checkForExtensionUpdates'];
     if (json['cookiesList'] != null) {
       cookiesList = (json['cookiesList'] as List)
-          .map((e) => MCookie.fromJson(e))
+          .map(_mcookieFromDynamic)
           .toList();
     }
     cropBorders = json['cropBorders'];
@@ -859,7 +859,7 @@ class Settings {
     'enableLogs': enableLogs,
     'checkForAppUpdates': checkForAppUpdates,
     'checkForExtensionUpdates': checkForExtensionUpdates,
-    'cookiesList': cookiesList,
+    'cookiesList': cookiesList?.map((v) => v.toJson()).toList(),
     'cropBorders': cropBorders,
     'dateFormat': dateFormat,
     'defaultReaderMode': defaultReaderMode.index,
@@ -1053,6 +1053,13 @@ enum ScaleType {
 }
 
 enum BackgroundColor { black, grey, white, automatic }
+
+MCookie _mcookieFromDynamic(dynamic value) {
+  if (value is MCookie) {
+    return value;
+  }
+  return MCookie.fromJson(value as Map<String, dynamic>);
+}
 
 @embedded
 class MCookie {

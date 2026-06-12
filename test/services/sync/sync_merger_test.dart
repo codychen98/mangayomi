@@ -3,6 +3,7 @@ import 'package:mangayomi/models/category.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/services/sync/sync_merger.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
 
@@ -260,6 +261,38 @@ void main() {
       expect(merged.history.first.date, '2000');
       expect(merged.history.first.mangaId, merged.manga.first.id);
       expect(merged.history.first.chapterId, merged.chapters.first.id);
+    });
+
+    test('merges settings with cookies without type errors', () {
+      final local = SyncSnapshot(
+        settings: [
+          Settings.fromJson({
+            'id': 227,
+            'updatedAt': 100,
+            'cookiesList': [],
+          }),
+        ],
+      );
+      final remote = SyncSnapshot(
+        settings: [
+          Settings.fromJson({
+            'id': 227,
+            'updatedAt': 500,
+            'cookiesList': [
+              {'host': 'example.com', 'cookie': 'session=abc'},
+            ],
+          }),
+        ],
+      );
+
+      final merged = mergeSyncSnapshots(local, remote);
+
+      expect(merged.settings, hasLength(1));
+      expect(merged.settings.first.updatedAt, 500);
+      expect(
+        Settings.fromJson(merged.settings.first.toJson()).cookiesList,
+        hasLength(1),
+      );
     });
   });
 }
