@@ -1670,7 +1670,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get include_sensitive_settings =>
-      'Include sensitive settings (e.g., tracker login tokens)';
+      'Include sensitive settings (e.g., tracker login tokens, WebDAV and sync server passwords)';
+
+  @override
+  String get backup_sync_configuration => 'Sync configuration';
 
   @override
   String get create => 'Create';

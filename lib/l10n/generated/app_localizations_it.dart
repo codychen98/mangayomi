@@ -1690,6 +1690,9 @@ class AppLocalizationsIt extends AppLocalizations {
       'Includi impostazioni sensibili (es. token di login del tracker)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'Crea';
 
   @override

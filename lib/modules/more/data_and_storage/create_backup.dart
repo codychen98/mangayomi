@@ -222,6 +222,7 @@ List<(String, int)> _getSettingsList(BuildContext context) {
     (l10n.app_settings, 6),
     (l10n.custom_buttons, 10),
     (l10n.sources_settings, 7),
+    (l10n.backup_sync_configuration, 11),
     (l10n.include_sensitive_settings, 8),
   ];
 }

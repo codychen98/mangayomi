@@ -1688,6 +1688,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Incluir configuraciones sensibles (por ejemplo, tokens de inicio de sesión de rastreadores)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'Crear';
 
   @override
@@ -4224,6 +4227,9 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
   @override
   String get include_sensitive_settings =>
       'Incluir configuraciones sensibles (por ejemplo, tokens de inicio de sesión de rastreadores)';
+
+  @override
+  String get backup_sync_configuration => 'Sync configuration';
 
   @override
   String get create => 'Crear';

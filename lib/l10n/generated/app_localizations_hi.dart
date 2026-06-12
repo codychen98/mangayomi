@@ -1675,6 +1675,9 @@ class AppLocalizationsHi extends AppLocalizations {
       'संवेदनशील सेटिंग्स शामिल करें (जैसे, ट्रैकर लॉगिन टोकन)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'बनाएं';
 
   @override

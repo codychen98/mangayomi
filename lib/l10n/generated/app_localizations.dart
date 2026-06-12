@@ -3098,8 +3098,14 @@ abstract class AppLocalizations {
   /// No description provided for @include_sensitive_settings.
   ///
   /// In en, this message translates to:
-  /// **'Include sensitive settings (e.g., tracker login tokens)'**
+  /// **'Include sensitive settings (e.g., tracker login tokens, WebDAV and sync server passwords)'**
   String get include_sensitive_settings;
+
+  /// No description provided for @backup_sync_configuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync configuration'**
+  String get backup_sync_configuration;
 
   /// No description provided for @create.
   ///

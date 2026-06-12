@@ -19,7 +19,9 @@ import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/track.dart';
+import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/models/track_preference.dart';
+import 'package:mangayomi/modules/more/data_and_storage/providers/backup_sync_preferences.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/proto/BackupAniyomi.pb.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/proto/BackupMihon.pb.dart';
 import 'package:mangayomi/modules/more/settings/appearance/providers/blend_level_state_provider.dart';
@@ -166,6 +168,9 @@ void restoreBackup(Ref ref, Map<String, dynamic> backup, {bool full = true}) {
       final feedSavedSearches = (backup["feedSavedSearches"] as List?)
           ?.map((e) => FeedSavedSearch.fromJson(e))
           .toList();
+      final syncPreferences = (backup["syncPreferences"] as List?)
+          ?.map((e) => SyncPreference.fromJson(e))
+          .toList();
 
       isar.writeTxnSync(() {
         isar.mangas.clearSync();
@@ -267,6 +272,20 @@ void restoreBackup(Ref ref, Map<String, dynamic> backup, {bool full = true}) {
           isar.feedSavedSearchs.clearSync();
           if (feedSavedSearches != null) {
             isar.feedSavedSearchs.putAllSync(feedSavedSearches);
+          }
+          if (syncPreferences != null) {
+            final existingBySyncId = {
+              for (final pref
+                  in isar.syncPreferences.filter().syncIdIsNotNull().findAllSync())
+                pref.syncId!: pref,
+            };
+            final merged = syncPreferences.map((incoming) {
+              return mergeSyncPreferenceFromBackup(
+                incoming,
+                existingBySyncId[incoming.syncId],
+              );
+            }).toList();
+            isar.syncPreferences.putAllSync(merged);
           }
           _invalidateCommonState(ref);
         }
@@ -569,6 +588,7 @@ int _protoInt(Object value) {
 int _protoMillis(Object seconds) => _protoInt(seconds) * 1000;
 
 void _invalidateCommonState(Ref ref) {
+  ref.invalidate(synchingProvider(syncId: 1));
   ref.read(synchingProvider(syncId: 1).notifier).clearAllChangedParts(false);
   ref.invalidate(followSystemThemeStateProvider);
   ref.invalidate(themeModeStateProvider);

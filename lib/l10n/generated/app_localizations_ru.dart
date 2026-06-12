@@ -1697,6 +1697,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Включить чувствительные настройки (например, токены для входа в трекер)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'Создать';
 
   @override

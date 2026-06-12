@@ -1635,6 +1635,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get include_sensitive_settings => '包含敏感设置（例如追踪器登录令牌）';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => '创建';
 
   @override

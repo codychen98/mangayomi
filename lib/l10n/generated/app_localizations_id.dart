@@ -1678,6 +1678,9 @@ class AppLocalizationsId extends AppLocalizations {
       'Sertakan pengaturan sensitif (misalnya, token login pelacak)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'Buat';
 
   @override

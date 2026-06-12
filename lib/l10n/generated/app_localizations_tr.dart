@@ -1678,6 +1678,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Hassas ayarları dahil et (ör. izleyici giriş token\'ları)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'Oluştur';
 
   @override

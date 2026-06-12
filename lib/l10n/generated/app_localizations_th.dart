@@ -1674,6 +1674,9 @@ class AppLocalizationsTh extends AppLocalizations {
       'รวมการตั้งค่าที่อ่อนไหว (เช่น โทเค็นการเข้าสู่ระบบของตัวติดตาม)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'สร้าง';
 
   @override

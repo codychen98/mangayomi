@@ -1675,6 +1675,9 @@ class AppLocalizationsAs extends AppLocalizations {
       'সংবেদনশীল ছেটিংছ অন্তৰ্ভুক্ত কৰক (যেনে, ট্ৰেকাৰ লগইন টোকেন)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'সৃষ্টি কৰক';
 
   @override

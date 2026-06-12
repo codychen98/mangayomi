@@ -18,8 +18,10 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/track.dart';
 import 'package:mangayomi/models/track_preference.dart';
+import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/backup_compression.dart';
+import 'package:mangayomi/modules/more/data_and_storage/providers/backup_sync_preferences.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:share_plus/share_plus.dart';
@@ -159,6 +161,13 @@ Future<void> doBackUp(
           .map((e) => e.toJson())
           .toList();
       datas.addAll({"customButtons": res});
+    }
+    if (list.contains(11)) {
+      final res = exportSyncPreferencesForBackup(
+        isar.syncPreferences.filter().syncIdIsNotNull().findAllSync(),
+        includeSensitive: list.contains(8),
+      );
+      datas.addAll({"syncPreferences": res});
     }
     final regExp = RegExp(r'[^a-zA-Z0-9 .()\-\s]');
     final name =

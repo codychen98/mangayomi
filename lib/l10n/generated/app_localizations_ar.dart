@@ -1687,6 +1687,9 @@ class AppLocalizationsAr extends AppLocalizations {
       'تضمين الإعدادات الحساسة (مثل رموز تسجيل الدخول للمتعقب)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'إنشاء';
 
   @override

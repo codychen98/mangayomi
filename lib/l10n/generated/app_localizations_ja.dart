@@ -1654,6 +1654,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get include_sensitive_settings => '機密設定を含める（例：トラッカーログイントークン）';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => '作成';
 
   @override

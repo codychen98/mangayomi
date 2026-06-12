@@ -1691,6 +1691,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Inclure les paramètres sensibles (par ex., jetons de connexion des traceurs)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'Créer';
 
   @override

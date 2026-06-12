@@ -1685,6 +1685,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Incluir configurações sensíveis (ex: tokens de login do tracker)';
 
   @override
+  String get backup_sync_configuration => 'Sync configuration';
+
+  @override
   String get create => 'Criar';
 
   @override
@@ -4216,6 +4219,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   @override
   String get include_sensitive_settings =>
       'Incluir configurações sensíveis (ex.: tokens de login de rastreadores)';
+
+  @override
+  String get backup_sync_configuration => 'Sync configuration';
 
   @override
   String get create => 'Criar';
