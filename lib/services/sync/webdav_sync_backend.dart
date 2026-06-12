@@ -172,35 +172,56 @@ class WebDavSyncBackend implements SyncBackend {
     required SyncSnapshot localSnapshot,
     required bool silent,
   }) async {
-    final pullResult = await client.pull(ifNoneMatch: prefs.lastSyncEtag);
-    final mergedSnapshot = resolveSnapshotForBidirectionalSync(
-      local: localSnapshot,
-      pullResult: pullResult,
-    );
-    final ifMatch = ifMatchEtagForPush(pullResult: pullResult, prefs: prefs);
-    final mergedBody = encodeSyncSnapshot(mergedSnapshot);
-    _maybeShowLargeSyncToast(l10n, mergedBody.length, silent);
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final currentPrefs = attempt == 0
+          ? prefs
+          : ref.read(synchingProvider(syncId: syncId));
+      final pullResult = await client.pull(
+        ifNoneMatch: attempt == 0 ? currentPrefs.lastSyncEtag : null,
+      );
+      final mergedSnapshot = resolveSnapshotForBidirectionalSync(
+        local: localSnapshot,
+        pullResult: pullResult,
+      );
+      final ifMatch = ifMatchEtagForPush(
+        pullResult: pullResult,
+        prefs: currentPrefs,
+      );
+      final mergedBody = encodeSyncSnapshot(mergedSnapshot);
+      if (attempt == 0) {
+        _maybeShowLargeSyncToast(l10n, mergedBody.length, silent);
+      }
 
-    final pushResult = await client.push(
-      mergedBody,
-      ifMatch: ifMatch,
-    );
-    if (pushResult.conflict) {
-      _showError(l10n, l10n.webdav_sync_conflict);
+      final pushResult = await client.push(
+        mergedBody,
+        ifMatch: ifMatch,
+      );
+      if (pushResult.conflict) {
+        if (attempt == 0) {
+          continue;
+        }
+        _showError(l10n, l10n.webdav_sync_conflict);
+        return;
+      }
+      if (!pushResult.success) {
+        _showError(l10n, l10n.sync_failed);
+        return;
+      }
+
+      if (shouldApplyRemoteSnapshot(pullResult)) {
+        await applySyncSnapshotToDatabase(mergedSnapshot, ref);
+      }
+      _storeEtag(
+        syncNotifier,
+        pushResult.newEtag ?? pullResult.etag ?? currentPrefs.lastSyncEtag,
+      );
+      _updateSyncTimestamps(syncNotifier, currentPrefs);
+      ref.invalidate(synchingProvider(syncId: syncId));
+
+      if (!silent) {
+        botToast(l10n.sync_finished, second: 2);
+      }
       return;
-    }
-    if (!pushResult.success) {
-      _showError(l10n, l10n.sync_failed);
-      return;
-    }
-
-    await applySyncSnapshotToDatabase(mergedSnapshot, ref);
-    _storeEtag(syncNotifier, pushResult.newEtag ?? pullResult.etag ?? prefs.lastSyncEtag);
-    _updateSyncTimestamps(syncNotifier, prefs);
-    ref.invalidate(synchingProvider(syncId: syncId));
-
-    if (!silent) {
-      botToast(l10n.sync_finished, second: 2);
     }
   }
 
@@ -314,6 +335,13 @@ String messageForWebDavException(
     return l10n.webdav_invalid_credentials;
   }
   return error.message;
+}
+
+/// Whether merged remote data should be written to the local database.
+bool shouldApplyRemoteSnapshot(WebDavPullResult pullResult) {
+  return !pullResult.notFound &&
+      !pullResult.notModified &&
+      pullResult.bytes != null;
 }
 
 /// Resolves the merged snapshot for bidirectional sync from a pull result.

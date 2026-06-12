@@ -10,6 +10,8 @@ part 'sync_coordinator.g.dart';
 
 @riverpod
 class SyncCoordinator extends _$SyncCoordinator {
+  static bool _syncInProgress = false;
+
   @override
   void build({required int syncId}) {
     ref.keepAlive();
@@ -39,16 +41,24 @@ class SyncCoordinator extends _$SyncCoordinator {
     bool silent, {
     bool upload = false,
     bool download = false,
-  }) {
-    final prefs = ref.read(synchingProvider(syncId: syncId));
-    return _backendFor(prefs.syncServiceType).startSync(
-      ref: ref,
-      l10n: l10n,
-      syncId: syncId,
-      silent: silent,
-      upload: upload,
-      download: download,
-    );
+  }) async {
+    if (_syncInProgress) {
+      return;
+    }
+    _syncInProgress = true;
+    try {
+      final prefs = ref.read(synchingProvider(syncId: syncId));
+      await _backendFor(prefs.syncServiceType).startSync(
+        ref: ref,
+        l10n: l10n,
+        syncId: syncId,
+        silent: silent,
+        upload: upload,
+        download: download,
+      );
+    } finally {
+      _syncInProgress = false;
+    }
   }
 
   SyncBackend _backendFor(SyncServiceType type) {

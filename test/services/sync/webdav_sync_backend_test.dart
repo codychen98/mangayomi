@@ -174,6 +174,30 @@ void main() {
     });
   });
 
+  group('shouldApplyRemoteSnapshot', () {
+    test('returns false when remote is missing or unchanged', () {
+      expect(
+        shouldApplyRemoteSnapshot(const WebDavPullResult(notFound: true)),
+        isFalse,
+      );
+      expect(
+        shouldApplyRemoteSnapshot(
+          const WebDavPullResult(notModified: true, etag: 'abc'),
+        ),
+        isFalse,
+      );
+    });
+
+    test('returns true when remote body is present', () {
+      expect(
+        shouldApplyRemoteSnapshot(
+          WebDavPullResult(bytes: Uint8List.fromList(const [123]), etag: 'abc'),
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('ifMatchEtagForPush', () {
     test('returns null for first sync', () {
       final prefs = SyncPreference();

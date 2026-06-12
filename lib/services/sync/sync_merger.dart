@@ -494,66 +494,71 @@ SyncSnapshot mergeSyncSnapshots(SyncSnapshot local, SyncSnapshot remote) {
 
 /// Applies a merged snapshot to Isar (full replace for synced entity types).
 Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
-  await isar.writeTxn(() async {
+  final applySettings = merged.settings.isNotEmpty;
+
+  isar.writeTxnSync(() {
     isar.categorys.clearSync();
     if (merged.categories.isNotEmpty) {
-      await isar.categorys.putAll(merged.categories);
+      isar.categorys.putAllSync(merged.categories);
     }
 
     isar.mangas.clearSync();
     if (merged.manga.isNotEmpty) {
-      await isar.mangas.putAll(merged.manga);
+      isar.mangas.putAllSync(merged.manga);
     }
 
     isar.chapters.clearSync();
     for (final chapter in merged.chapters) {
-      final manga = await isar.mangas.get(chapter.mangaId!);
+      final manga = isar.mangas.getSync(chapter.mangaId!);
       if (manga != null) {
-        await isar.chapters.put(chapter..manga.value = manga);
-        await chapter.manga.save();
+        isar.chapters.putSync(chapter..manga.value = manga);
+        chapter.manga.saveSync();
       }
     }
 
     isar.tracks.clearSync();
     if (merged.tracks.isNotEmpty) {
-      await isar.tracks.putAll(merged.tracks);
+      isar.tracks.putAllSync(merged.tracks);
     }
 
     isar.historys.clearSync();
     for (final history in merged.history) {
-      final chapter = await isar.chapters.get(history.chapterId!);
+      final chapter = isar.chapters.getSync(history.chapterId!);
       if (chapter != null) {
-        await isar.historys.put(history..chapter.value = chapter);
-        await history.chapter.save();
+        isar.historys.putSync(history..chapter.value = chapter);
+        history.chapter.saveSync();
       }
     }
 
     isar.updates.clearSync();
     for (final update in merged.updates) {
-      final chapter = await isar.chapters
+      final chapter = isar.chapters
           .filter()
           .mangaIdEqualTo(update.mangaId)
           .nameEqualTo(update.chapterName)
-          .findFirst();
+          .findFirstSync();
       if (chapter != null) {
-        await isar.updates.put(update..chapter.value = chapter);
-        await update.chapter.save();
+        isar.updates.putSync(update..chapter.value = chapter);
+        update.chapter.saveSync();
       }
     }
 
-    if (merged.settings.isNotEmpty) {
+    if (applySettings) {
       final oldSettings = isar.settings.getSync(227)!;
       final settings = _copySettings(merged.settings.first);
-      await isar.settings.put(settings..cookiesList = oldSettings.cookiesList);
-      ref.invalidate(followSystemThemeStateProvider);
-      ref.invalidate(themeModeStateProvider);
-      ref.invalidate(blendLevelStateProvider);
-      ref.invalidate(flexSchemeColorStateProvider);
-      ref.invalidate(pureBlackDarkModeStateProvider);
-      ref.invalidate(l10nLocaleStateProvider);
-      ref.invalidate(extensionsRepoStateProvider(ItemType.manga));
-      ref.invalidate(extensionsRepoStateProvider(ItemType.anime));
-      ref.invalidate(extensionsRepoStateProvider(ItemType.novel));
+      isar.settings.putSync(settings..cookiesList = oldSettings.cookiesList);
     }
   });
+
+  if (applySettings) {
+    ref.invalidate(followSystemThemeStateProvider);
+    ref.invalidate(themeModeStateProvider);
+    ref.invalidate(blendLevelStateProvider);
+    ref.invalidate(flexSchemeColorStateProvider);
+    ref.invalidate(pureBlackDarkModeStateProvider);
+    ref.invalidate(l10nLocaleStateProvider);
+    ref.invalidate(extensionsRepoStateProvider(ItemType.manga));
+    ref.invalidate(extensionsRepoStateProvider(ItemType.anime));
+    ref.invalidate(extensionsRepoStateProvider(ItemType.novel));
+  }
 }
