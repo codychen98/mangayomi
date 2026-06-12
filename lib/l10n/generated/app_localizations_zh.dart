@@ -959,6 +959,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get last_sync_update => '最后更新同步于: ';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => '同步服务器地址';
 
   @override
@@ -1862,6 +1865,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => '启用 mpv 着色器/脚本';

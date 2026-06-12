@@ -59,6 +59,20 @@ void main() {
         'https://cloud.example.com/dav/mangayomi/mangayomi-sync.json',
       );
     });
+
+    test('encodes folder segments with special characters', () {
+      final client = WebDavClient(
+        url: 'https://webdav.pcloud.com',
+        username: 'user',
+        password: 'pass',
+        folder: '(Reinstall)/BACKUP/Mangayomi',
+      );
+
+      expect(
+        client.buildFileUrl(),
+        'https://webdav.pcloud.com/(Reinstall)/BACKUP/Mangayomi/mangayomi-sync.json',
+      );
+    });
   });
 
   group('WebDavClient.ensureFolderExists', () {

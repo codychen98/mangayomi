@@ -989,6 +989,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get last_sync_update => 'آخر مزامنة تحديث في:';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => 'عنوان خادم المزامنة';
 
   @override
@@ -1922,6 +1925,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => 'تمكين تظليل / سكريبتات mpv';

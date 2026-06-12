@@ -45,67 +45,84 @@ class SyncListile extends ConsumerWidget {
             color: Colors.grey,
           ),
         ),
-        trailing: (isLogged
-            ? const Icon(Icons.check, size: 30, color: Colors.green)
-            : null),
-        enabled: enabled,
-        onTap: isLogged
-            ? () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: Text(l10n.log_out_from(serviceName)),
-                      actions: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
-                                surfaceTintColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  side: BorderSide(
-                                    color: context.secondaryColor,
+        trailing: isLogged
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.check, size: 30, color: Colors.green),
+                  IconButton(
+                    icon: Icon(
+                      Icons.logout,
+                      color: context.secondaryColor,
+                    ),
+                    tooltip: l10n.log_out,
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: Text(l10n.log_out_from(serviceName)),
+                            actions: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      surfaceTintColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        side: BorderSide(
+                                          color: context.secondaryColor,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text(
+                                      l10n.cancel,
+                                      style: TextStyle(
+                                        color: context.secondaryColor,
+                                      ),
+                                    ),
                                   ),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
+                                  const SizedBox(width: 15),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      ref
+                                          .read(
+                                            synchingProvider(syncId: id).notifier,
+                                          )
+                                          .logout();
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text(
+                                      l10n.log_out,
+                                      style: TextStyle(
+                                        color: context.secondaryColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              child: Text(
-                                l10n.cancel,
-                                style: TextStyle(color: context.secondaryColor),
-                              ),
-                            ),
-                            const SizedBox(width: 15),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.withValues(
-                                  alpha: 0.7,
-                                ),
-                              ),
-                              onPressed: () {
-                                ref
-                                    .read(synchingProvider(syncId: id).notifier)
-                                    .logout();
-                                Navigator.pop(context);
-                              },
-                              child: Text(
-                                l10n.log_out,
-                                style: TextStyle(color: context.secondaryColor),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    );
-                  },
-                );
-              }
-            : onTap,
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              )
+            : null,
+        enabled: enabled,
+        onTap: enabled ? onTap : null,
         title: Text(
           text ?? serviceName,
           style: TextStyle(fontSize: text != null ? 13 : null),

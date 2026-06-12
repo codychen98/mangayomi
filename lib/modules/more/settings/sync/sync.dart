@@ -21,6 +21,18 @@ class SyncScreen extends ConsumerWidget {
 
   const SyncScreen({super.key});
 
+  static String _formatLastSyncTimestamp({
+    required int? timestamp,
+    required WidgetRef ref,
+    required BuildContext context,
+    required AppLocalizations l10n,
+  }) {
+    if (timestamp == null || timestamp <= 0) {
+      return l10n.last_sync_never;
+    }
+    return '${dateFormat(timestamp.toString(), ref: ref, context: context)} ${dateFormatHour(timestamp.toString(), context)}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = l10nLocalizations(context)!;
@@ -351,7 +363,7 @@ class SyncScreen extends ConsumerWidget {
                           children: [
                             const SizedBox(width: 20),
                             Text(
-                              "${l10n.last_sync_manga}: ${dateFormat((syncPreference.lastSyncManga ?? 0).toString(), ref: ref, context: context)} ${dateFormatHour((syncPreference.lastSyncManga ?? 0).toString(), context)}",
+                              "${l10n.last_sync_manga}${_formatLastSyncTimestamp(timestamp: syncPreference.lastSyncManga, ref: ref, context: context, l10n: l10n)}",
                               style: TextStyle(
                                 fontSize: 11,
                                 color: context.secondaryColor,
@@ -359,7 +371,7 @@ class SyncScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 20),
                             Text(
-                              "${l10n.last_sync_history}: ${dateFormat((syncPreference.lastSyncHistory ?? 0).toString(), ref: ref, context: context)} ${dateFormatHour((syncPreference.lastSyncHistory ?? 0).toString(), context)}",
+                              "${l10n.last_sync_history}${_formatLastSyncTimestamp(timestamp: syncPreference.lastSyncHistory, ref: ref, context: context, l10n: l10n)}",
                               style: TextStyle(
                                 fontSize: 11,
                                 color: context.secondaryColor,
@@ -367,7 +379,7 @@ class SyncScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 20),
                             Text(
-                              "${l10n.last_sync_update}: ${dateFormat((syncPreference.lastSyncUpdate ?? 0).toString(), ref: ref, context: context)} ${dateFormatHour((syncPreference.lastSyncUpdate ?? 0).toString(), context)}",
+                              "${l10n.last_sync_update}${_formatLastSyncTimestamp(timestamp: syncPreference.lastSyncUpdate, ref: ref, context: context, l10n: l10n)}",
                               style: TextStyle(
                                 fontSize: 11,
                                 color: context.secondaryColor,
@@ -696,6 +708,7 @@ class SyncScreen extends ConsumerWidget {
     String errorMessage = '';
     bool isLoading = false;
     bool obscureText = true;
+    final bool isConfigured = isSyncConfigured(syncPreference);
     final l10n = l10nLocalizations(context)!;
     showDialog(
       context: context,
@@ -786,6 +799,7 @@ class SyncScreen extends ConsumerWidget {
                         }),
                         decoration: InputDecoration(
                           labelText: l10n.webdav_password,
+                          helperText: isConfigured ? l10n.webdav_password_keep_hint : null,
                           suffixIcon: IconButton(
                             onPressed: () => setState(() {
                               obscureText = !obscureText;
@@ -851,6 +865,9 @@ class SyncScreen extends ConsumerWidget {
                                 setState(() {
                                   isLoading = true;
                                 });
+                                final effectivePassword = password.isNotEmpty
+                                    ? password
+                                    : (syncPreference.webDavPassword ?? '');
                                 final res = await ref
                                     .read(
                                       syncCoordinatorProvider(
@@ -861,7 +878,7 @@ class SyncScreen extends ConsumerWidget {
                                       l10n,
                                       url,
                                       username,
-                                      password,
+                                      effectivePassword,
                                       folder: folder,
                                     );
                                 if (!res.$1) {

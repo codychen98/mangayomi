@@ -42,10 +42,14 @@ class WebDavSyncBackend implements SyncBackend {
     required String password,
     String? folder,
   }) async {
+    final prefs = ref.read(synchingProvider(syncId: syncId));
+    final effectivePassword = password.isNotEmpty
+        ? password
+        : (prefs.webDavPassword ?? '');
     final client = WebDavClient(
       url: server,
       username: username,
-      password: password,
+      password: effectivePassword,
       folder: folder ?? 'mangayomi',
     );
     try {
@@ -56,7 +60,7 @@ class WebDavSyncBackend implements SyncBackend {
       final notifier = ref.read(synchingProvider(syncId: syncId).notifier);
       notifier.setWebDavUrl(server.trim());
       notifier.setWebDavUsername(username);
-      notifier.setWebDavPassword(password);
+      notifier.setWebDavPassword(effectivePassword);
       if (folder != null && folder.isNotEmpty) {
         notifier.setWebDavFolder(folder);
       }

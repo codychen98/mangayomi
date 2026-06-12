@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:mangayomi/services/http/m_client.dart';
+import 'package:http/io_client.dart';
 
 /// Remote sync file name under the configured WebDAV folder.
 const String webDavSyncFileName = 'mangayomi-sync.json';
@@ -54,18 +55,25 @@ class WebDavClient {
     required String password,
     String folder = 'mangayomi',
     http.Client? httpClient,
-  })  : _baseUrl = _normalizeBaseUrl(url),
+  })  : _baseUri = Uri.parse(_normalizeBaseUrl(url)),
         _username = username.trim(),
         _password = password,
         _folder = folder.trim(),
-        _http = httpClient ??
-            MClient.init(reqcopyWith: {'useDartHttpClient': true});
+        _http = httpClient ?? IOClient(HttpClient()),
+        _ownsHttpClient = httpClient == null;
 
-  final String _baseUrl;
+  final Uri _baseUri;
   final String _username;
   final String _password;
   final String _folder;
   final http.Client _http;
+  final bool _ownsHttpClient;
+
+  List<String> get _folderSegments => _folder
+      .split('/')
+      .map((part) => part.trim())
+      .where((part) => part.isNotEmpty)
+      .toList();
 
   String get _authorizationHeader =>
       'Basic ${base64Encode(utf8.encode('$_username:$_password'))}';
@@ -87,7 +95,9 @@ class WebDavClient {
 
   /// Returns an error message when settings are invalid; `null` when valid.
   String? validateSettings() {
-    if (_baseUrl.isEmpty || !_baseUrl.startsWith('http')) {
+    if (!_baseUri.hasScheme ||
+        (_baseUri.scheme != 'http' && _baseUri.scheme != 'https') ||
+        _baseUri.host.isEmpty) {
       return 'Invalid WebDAV URL';
     }
     if (_username.isEmpty || _password.isEmpty) {
@@ -96,12 +106,17 @@ class WebDavClient {
     return null;
   }
 
+  Uri _uriForPathSegments(List<String> segments) {
+    final baseSegments =
+        _baseUri.pathSegments.where((segment) => segment.isNotEmpty);
+    return _baseUri.replace(pathSegments: [...baseSegments, ...segments]);
+  }
+
   String buildFileUrl([String fileName = webDavSyncFileName]) {
-    final cleanFolder = _folder.replaceAll(RegExp(r'^/+|/+$'), '');
-    if (cleanFolder.isEmpty) {
-      return '$_baseUrl/$fileName';
+    if (_folderSegments.isEmpty) {
+      return _uriForPathSegments([fileName]).toString();
     }
-    return '$_baseUrl/$cleanFolder/$fileName';
+    return _uriForPathSegments([..._folderSegments, fileName]).toString();
   }
 
   /// Creates nested folder segments with `MKCOL` when missing.
@@ -111,24 +126,23 @@ class WebDavClient {
       throw WebDavException(validationError);
     }
 
-    final folderParts =
-        _folder.split('/').map((part) => part.trim()).where((part) => part.isNotEmpty);
-    if (folderParts.isEmpty) {
+    if (_folderSegments.isEmpty) {
       return;
     }
 
-    var currentPath = _baseUrl;
-    for (final part in folderParts) {
-      currentPath = '$currentPath/$part';
-      final created = await _createSingleFolder(currentPath);
+    final accumulated = <String>[];
+    for (final part in _folderSegments) {
+      accumulated.add(part);
+      final folderUri = _uriForPathSegments(accumulated);
+      final created = await _createSingleFolder(folderUri);
       if (!created) {
-        throw WebDavException('Failed to create folder: $currentPath');
+        throw WebDavException('Failed to create folder: $folderUri');
       }
     }
   }
 
-  Future<bool> _createSingleFolder(String folderUrl) async {
-    final request = http.Request('MKCOL', Uri.parse(folderUrl))
+  Future<bool> _createSingleFolder(Uri folderUri) async {
+    final request = http.Request('MKCOL', folderUri)
       ..headers['Authorization'] = _authorizationHeader
       ..headers['Content-Length'] = '0';
 
@@ -225,6 +239,8 @@ class WebDavClient {
   }
 
   void close() {
-    _http.close();
+    if (_ownsHttpClient) {
+      _http.close();
+    }
   }
 }

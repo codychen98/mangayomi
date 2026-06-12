@@ -982,6 +982,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get last_sync_update => 'Última atualização sincronizada em:';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => 'Endereço do servidor de sincronização';
 
   @override
@@ -1927,6 +1930,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => 'Ativar shaders / scripts mpv';
@@ -3500,6 +3506,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get last_sync_update => 'Última atualização sincronizada em:';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => 'Endereço do servidor de sincronização';
 
   @override
@@ -4439,6 +4448,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => 'Ativar shaders / scripts mpv';

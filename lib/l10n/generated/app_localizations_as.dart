@@ -979,6 +979,9 @@ class AppLocalizationsAs extends AppLocalizations {
   String get last_sync_update => 'শেহতীয়া আপডেট সিংক: ';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => 'সিংক চাৰ্ভাৰ ঠিকনা';
 
   @override
@@ -1913,6 +1916,9 @@ class AppLocalizationsAs extends AppLocalizations {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => 'mpv ছেডাৰ / স্ক্ৰিপ্ট সক্ষম কৰক';

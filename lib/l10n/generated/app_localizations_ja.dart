@@ -970,6 +970,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get last_sync_update => '最終更新同期: ';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => '同期サーバーアドレス';
 
   @override
@@ -1884,6 +1887,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => 'mpvシェーダー/スクリプトを有効化';

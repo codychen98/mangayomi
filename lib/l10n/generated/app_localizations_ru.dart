@@ -993,6 +993,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get last_sync_update => 'Последнее обновление синхронизировано на:';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => 'Адрес сервера синхронизации';
 
   @override
@@ -1941,6 +1944,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => 'Включить шейдеры / скрипты mpv';

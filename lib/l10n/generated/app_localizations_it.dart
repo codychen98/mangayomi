@@ -984,6 +984,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get last_sync_update => 'Ultimo aggiornamento: sincronizzazione a:';
 
   @override
+  String get last_sync_never => 'Never';
+
+  @override
   String get sync_server => 'Indirizzo del server di sincronizzazione';
 
   @override
@@ -1932,6 +1935,9 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get webdav_sync_large => 'Syncing large library...';
+
+  @override
+  String get webdav_password_keep_hint => 'Leave blank to keep current password';
 
   @override
   String get enable_mpv => 'Attiva shader / script mpv';

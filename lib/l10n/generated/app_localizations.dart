@@ -1811,6 +1811,12 @@ abstract class AppLocalizations {
   /// **'Last update sync at: '**
   String get last_sync_update;
 
+  /// No description provided for @last_sync_never.
+  ///
+  /// In en, this message translates to:
+  /// **'Never'**
+  String get last_sync_never;
+
   /// No description provided for @sync_server.
   ///
   /// In en, this message translates to:
@@ -3550,6 +3556,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Syncing large library...'**
   String get webdav_sync_large;
+
+  /// No description provided for @webdav_password_keep_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave blank to keep current password'**
+  String get webdav_password_keep_hint;
 
   /// No description provided for @enable_mpv.
   ///
