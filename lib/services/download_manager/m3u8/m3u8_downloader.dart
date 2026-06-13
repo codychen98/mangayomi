@@ -9,6 +9,7 @@ import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/http/rhttp/src/model/settings.dart';
 import 'package:mangayomi/services/download_manager/m3u8/models/download.dart';
 import 'package:mangayomi/services/download_manager/m3u8/models/ts_info.dart';
+import 'package:mangayomi/services/download_manager/download_retry.dart';
 import 'package:mangayomi/services/download_manager/download_isolate_pool.dart';
 import 'package:mangayomi/services/download_manager/m_downloader.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
@@ -54,18 +55,22 @@ class M3u8Downloader {
     isolateChapsSendPorts.remove('${chapter.id}');
   }
 
-  Future<T> _withRetry<T>(Future<T> Function() operation) async {
-    int attempts = 0;
-    while (true) {
-      try {
-        attempts++;
-        return await operation();
-      } catch (e) {
-        if (attempts >= 3) {
-          throw M3u8DownloaderException('Operation failed after 3 attempts', e);
-        }
-      }
+  Future<T> _withRetry<T>(Future<T> Function() operation) =>
+      withDownloadRetry(operation);
+
+  Future<String> _getM3u8Body(String url) async {
+    final response = await httpClient.get(Uri.parse(url), headers: headers);
+    if (response.statusCode == 200) return response.body;
+    if (isRateLimitStatusCode(response.statusCode)) {
+      throw DownloadRateLimitException(
+        'Failed to load m3u8 body',
+        response.statusCode,
+        retryAfterSeconds: parseRetryAfterSeconds(response.headers),
+      );
     }
+    throw M3u8DownloaderException(
+      'Failed to load m3u8 body (status ${response.statusCode})',
+    );
   }
 
   Future<(List<TsInfo>, Uint8List?, Uint8List?, int?)> _getTsList() async {
@@ -126,12 +131,18 @@ class M3u8Downloader {
             () =>
                 httpClient.get(Uri.parse(element.file ?? ''), headers: headers),
           );
-          if (response.statusCode != 200) {
+          if (response.statusCode == 200) {
+            _log('Subtitle file downloaded: ${element.label}');
+            await subtitleFile.writeAsBytes(response.bodyBytes);
+          } else if (isRateLimitStatusCode(response.statusCode)) {
+            throw DownloadRateLimitException(
+              'Failed to download subtitle file: ${element.label}',
+              response.statusCode,
+              retryAfterSeconds: parseRetryAfterSeconds(response.headers),
+            );
+          } else {
             _log('Warning: Failed to download subtitle file: ${element.label}');
-            continue;
           }
-          _log('Subtitle file downloaded: ${element.label}');
-          await subtitleFile.writeAsBytes(response.bodyBytes);
         } else {
           _log('Subtitle file written: ${element.label}');
           await subtitleFile.writeAsString(element.file!);
@@ -260,14 +271,6 @@ class M3u8Downloader {
     }
   }
 
-  Future<String> _getM3u8Body(String url) async {
-    final response = await httpClient.get(Uri.parse(url), headers: headers);
-    if (response.statusCode != 200) {
-      throw M3u8DownloaderException('Failed to load m3u8 body');
-    }
-    return response.body;
-  }
-
   List<TsInfo> _parseTsList(String host, String body) {
     final lines = body.split('\n');
     final tsList = <TsInfo>[];
@@ -300,6 +303,13 @@ class M3u8Downloader {
         );
         if (response.statusCode == 200) {
           return (Uint8List.fromList(response.bodyBytes), iv);
+        }
+        if (isRateLimitStatusCode(response.statusCode)) {
+          throw DownloadRateLimitException(
+            'Failed to load m3u8 key',
+            response.statusCode,
+            retryAfterSeconds: parseRetryAfterSeconds(response.headers),
+          );
         }
       }
       return (null, null);

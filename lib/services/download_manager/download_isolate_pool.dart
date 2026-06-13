@@ -8,6 +8,7 @@ import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/page.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/http/rhttp/src/model/settings.dart';
+import 'package:mangayomi/services/download_manager/download_retry.dart';
 import 'package:mangayomi/services/download_manager/m3u8/models/download.dart';
 import 'package:mangayomi/services/download_manager/m3u8/models/ts_info.dart';
 import 'package:mangayomi/src/rust/frb_generated.dart';
@@ -21,7 +22,6 @@ final downloadTaskCancellation = <String, bool>{};
 /// connection open (common CDN stall that previously froze progress forever).
 const _kDownloadIdleTimeout = Duration(seconds: 60);
 
-const _kMaxDownloadRetries = 3;
 
 /// Shared Isolate pool to optimize performance
 /// Instead of creating a new Isolate for each download,
@@ -486,11 +486,17 @@ Future<void> _downloadFile(
 ) async {
   try {
     if (itemType != ItemType.anime) {
-      final response = await _withRetry(
+      final response = await withDownloadRetry(
         () => client.get(Uri.parse(pageUrl.url), headers: pageUrl.headers),
-        3,
       );
       if (response.statusCode != 200) {
+        if (isRateLimitStatusCode(response.statusCode)) {
+          throw DownloadRateLimitException(
+            'Failed to download file: ${pageUrl.fileName!}',
+            response.statusCode,
+            retryAfterSeconds: parseRetryAfterSeconds(response.headers),
+          );
+        }
         throw DownloadPoolException(
           'Failed to download file: ${pageUrl.fileName!}',
         );
@@ -500,7 +506,7 @@ Future<void> _downloadFile(
       await file.writeAsBytes(response.bodyBytes);
     } else {
       // Streaming for videos (saves RAM)
-      await _withRetry(() async {
+      await withDownloadRetry(() async {
         final file = File(pageUrl.fileName!);
         var resumeOffset = 0;
         if (await file.exists()) {
@@ -519,6 +525,13 @@ Future<void> _downloadFile(
         // streaming request (e.g. AnimeGG). Rejecting 206 here caused 3
         // retries → silent stall.
         if (response.statusCode < 200 || response.statusCode >= 300) {
+          if (isRateLimitStatusCode(response.statusCode)) {
+            throw DownloadRateLimitException(
+              'Failed to download file: ${pageUrl.fileName!}',
+              response.statusCode,
+              retryAfterSeconds: parseRetryAfterSeconds(response.headers),
+            );
+          }
           throw DownloadPoolException(
             'Failed to download file: ${pageUrl.fileName!} '
             '(status ${response.statusCode})',
@@ -560,7 +573,7 @@ Future<void> _downloadFile(
           await sink.flush();
           await sink.close();
         }
-      }, _kMaxDownloadRetries);
+      });
     }
   } catch (e) {
     throw DownloadPoolException(
@@ -632,7 +645,7 @@ Future<void> _downloadSegment(
   final file = File(path.join(params.tempDir, '${ts.name}.ts'));
 
   try {
-    await _withRetry(() async {
+    await withDownloadRetry(() async {
       if (await file.exists()) {
         await file.delete();
       }
@@ -646,6 +659,13 @@ Future<void> _downloadSegment(
       // Accept any 2xx (including 206 Partial Content) — see comment in
       // _downloadFile.
       if (response.statusCode < 200 || response.statusCode >= 300) {
+        if (isRateLimitStatusCode(response.statusCode)) {
+          throw DownloadRateLimitException(
+            'Failed to download segment: ${ts.name}',
+            response.statusCode,
+            retryAfterSeconds: parseRetryAfterSeconds(response.headers),
+          );
+        }
         throw DownloadPoolException(
           'Failed to download segment: ${ts.name} '
           '(status ${response.statusCode})',
@@ -672,7 +692,7 @@ Future<void> _downloadSegment(
         );
         await file.writeAsBytes(decrypted);
       }
-    }, _kMaxDownloadRetries);
+    });
   } catch (e) {
     throw DownloadPoolException('Failed to process segment: ${ts.name}', e);
   }
@@ -735,24 +755,6 @@ Future<void> _consumeStreamWithIdleTimeout(
   )) {
     sink.add(chunk);
     onChunk?.call(chunk.length);
-  }
-}
-
-/// Helper for retry
-Future<T> _withRetry<T>(Future<T> Function() operation, int maxRetries) async {
-  int attempts = 0;
-  while (true) {
-    try {
-      attempts++;
-      return await operation();
-    } catch (e) {
-      if (attempts >= maxRetries) {
-        throw DownloadPoolException(
-          'Operation failed after $maxRetries attempts',
-          e,
-        );
-      }
-    }
   }
 }
 

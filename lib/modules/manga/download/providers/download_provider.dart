@@ -20,6 +20,7 @@ import 'package:mangayomi/modules/more/settings/downloads/providers/downloads_st
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/router/router.dart';
+import 'package:mangayomi/services/download_manager/download_retry.dart';
 import 'package:mangayomi/services/download_manager/m_downloader.dart';
 import 'package:mangayomi/services/get_video_list.dart';
 import 'package:mangayomi/services/get_chapter_pages.dart';
@@ -412,15 +413,24 @@ Future<void> downloadChapter(
       });
     }
   } catch (e, st) {
-    recordDownloadAttempt(chapter.id!, permanentFailure: false);
-    final attempts = isar.downloads.getSync(chapter.id!)?.failed ?? 0;
-    logDownloadQueueEvent(
-      'DOWNLOAD_FAIL',
-      chapter,
-      detail:
-          'attempt=$attempts/$kMaxDownloadAttempts error=$e\n$st',
-      logLevel: LogLevel.error,
-    );
+    if (isRateLimitDownloadError(e)) {
+      logDownloadQueueEvent(
+        'RATE_LIMITED',
+        chapter,
+        detail: 'error=$e',
+        logLevel: LogLevel.warning,
+      );
+    } else {
+      recordDownloadAttempt(chapter.id!, permanentFailure: false);
+      final attempts = isar.downloads.getSync(chapter.id!)?.failed ?? 0;
+      logDownloadQueueEvent(
+        'DOWNLOAD_FAIL',
+        chapter,
+        detail:
+            'attempt=$attempts/$kMaxDownloadAttempts error=$e\n$st',
+        logLevel: LogLevel.error,
+      );
+    }
   } finally {
     if (callback != null) {
       callback();
@@ -439,14 +449,30 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
         .isDownloadEqualTo(false)
         .isStartDownloadEqualTo(true)
         .findAll();
-    final pendingDownloads = ongoingDownloads
-        .where((download) => !isDownloadSkipped(download))
-        .toList();
+    final pendingDownloads = <Download>[];
+    var orphansRemoved = 0;
+    for (final download in ongoingDownloads) {
+      if (isDownloadSkipped(download)) continue;
+      if (download.chapter.value == null) {
+        orphansRemoved++;
+        AppLogger.log(
+          '[QUEUE_ORPHAN] Removed orphan download id=${download.id} '
+          '(chapter link missing)',
+          logLevel: LogLevel.warning,
+        );
+        if (download.id != null) {
+          isar.writeTxnSync(() => isar.downloads.deleteSync(download.id!));
+        }
+        continue;
+      }
+      pendingDownloads.add(download);
+    }
     final skippedAtStart =
-        ongoingDownloads.length - pendingDownloads.length;
+        ongoingDownloads.where(isDownloadSkipped).length;
     AppLogger.log(
       '[QUEUE_START] pending=${pendingDownloads.length} '
-      'skipped=${skippedAtStart} total_in_queue=${ongoingDownloads.length}',
+      'skipped=$skippedAtStart orphans_removed=$orphansRemoved '
+      'total_in_queue=${ongoingDownloads.length}',
     );
     final maxConcurrentDownloads = ref.read(concurrentDownloadsStateProvider);
     int index = 0;
@@ -460,7 +486,22 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
       if (current < maxConcurrentDownloads) {
         current++;
         final downloadItem = pendingDownloads[index++];
-        final chapter = downloadItem.chapter.value!;
+        final chapter = downloadItem.chapter.value;
+        if (chapter == null) {
+          AppLogger.log(
+            '[QUEUE_ORPHAN] Skipped orphan download id=${downloadItem.id} '
+            'during processing',
+            logLevel: LogLevel.warning,
+          );
+          if (downloadItem.id != null) {
+            isar.writeTxnSync(
+              () => isar.downloads.deleteSync(downloadItem.id!),
+            );
+          }
+          downloaded++;
+          current--;
+          continue;
+        }
         chapter.cancelActiveDownloadTask();
         await Future.delayed(const Duration(milliseconds: 500));
         ref.read(
