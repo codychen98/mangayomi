@@ -52,6 +52,7 @@ Future<void> addDownloadToQueue(Ref ref, {required Chapter chapter}) async {
   isar.writeTxnSync(() {
     isar.downloads.putSync(download..chapter.value = chapter);
   });
+  logDownloadQueueEvent('QUEUE_ADD', chapter);
 }
 
 @riverpod
@@ -70,6 +71,7 @@ Future<void> downloadChapter(
         connectivity.contains(ConnectivityResult.wifi) ||
         connectivity.contains(ConnectivityResult.ethernet);
     if (onlyOnWifi && !isOnWifi) {
+      logDownloadQueueEvent('WIFI_BLOCKED', chapter);
       botToast(navigatorKey.currentContext!.l10n.downloads_are_limited_to_wifi);
       return;
     }
@@ -159,6 +161,9 @@ Future<void> downloadChapter(
         isar.writeTxnSync(() {
           isar.downloads.putSync(download..chapter.value = chapter);
         });
+        if (progress.isCompleted) {
+          logDownloadQueueEvent('DOWNLOAD_OK', chapter);
+        }
       } else {
         final download = isar.downloads.getSync(chapter.id!);
         if (download != null && progress.total != 0) {
@@ -173,6 +178,9 @@ Future<void> downloadChapter(
                 ..isDownload = progress.isCompleted,
             );
           });
+          if (progress.isCompleted) {
+            logDownloadQueueEvent('DOWNLOAD_OK', chapter);
+          }
         }
       }
     }
@@ -270,6 +278,12 @@ Future<void> downloadChapter(
     }
 
     if (!isOk && (itemType == ItemType.manga || itemType == ItemType.anime)) {
+      logDownloadQueueEvent(
+        'EMPTY_CONTENT',
+        chapter,
+        reason: itemType == ItemType.anime ? 'empty_video_list' : 'empty_page_list',
+        logLevel: LogLevel.warning,
+      );
       recordDownloadAttempt(chapter.id!, permanentFailure: true);
       return;
     }
@@ -398,11 +412,15 @@ Future<void> downloadChapter(
       });
     }
   } catch (e, st) {
-    AppLogger.log(
-      'Download failed for chapter ${chapter.id} (${chapter.name}): $e\n$st',
+    recordDownloadAttempt(chapter.id!, permanentFailure: false);
+    final attempts = isar.downloads.getSync(chapter.id!)?.failed ?? 0;
+    logDownloadQueueEvent(
+      'DOWNLOAD_FAIL',
+      chapter,
+      detail:
+          'attempt=$attempts/$kMaxDownloadAttempts error=$e\n$st',
       logLevel: LogLevel.error,
     );
-    recordDownloadAttempt(chapter.id!, permanentFailure: false);
   } finally {
     if (callback != null) {
       callback();
@@ -424,6 +442,12 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
     final pendingDownloads = ongoingDownloads
         .where((download) => !isDownloadSkipped(download))
         .toList();
+    final skippedAtStart =
+        ongoingDownloads.length - pendingDownloads.length;
+    AppLogger.log(
+      '[QUEUE_START] pending=${pendingDownloads.length} '
+      'skipped=${skippedAtStart} total_in_queue=${ongoingDownloads.length}',
+    );
     final maxConcurrentDownloads = ref.read(concurrentDownloadsStateProvider);
     int index = 0;
     int downloaded = 0;
@@ -452,6 +476,27 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
       }
       return true;
     });
+    var succeeded = 0;
+    var permanentFail = 0;
+    var transientFail = 0;
+    var stillPending = 0;
+    for (final item in pendingDownloads) {
+      final record = isar.downloads.getSync(item.id!);
+      if (record?.isDownload == true) {
+        succeeded++;
+      } else if ((record?.failed ?? 0) >= kMaxDownloadAttempts) {
+        permanentFail++;
+      } else if ((record?.failed ?? 0) > 0) {
+        transientFail++;
+      } else {
+        stillPending++;
+      }
+    }
+    AppLogger.log(
+      '[QUEUE_SUMMARY] processed=$downloaded succeeded=$succeeded '
+      'permanent_fail=$permanentFail transient_fail=$transientFail '
+      'still_pending=$stillPending skipped_at_start=$skippedAtStart',
+    );
     keepAlive.close();
   } catch (e, st) {
     AppLogger.log(

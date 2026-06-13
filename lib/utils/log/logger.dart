@@ -22,7 +22,8 @@ class AppLogger {
       final directory = await storage.getDefaultDirectory();
       _logFile = File(path.join(directory!.path, 'logs.txt'));
 
-      if (await _logFile!.exists() && await _logFile!.length() > 100 * 1024) {
+      if (await _logFile!.exists() &&
+          await _logFile!.length() > 5 * 1024 * 1024) {
         await _logFile!.delete();
       }
 
