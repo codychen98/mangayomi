@@ -6,6 +6,7 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/download.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/custom_floating_action_btn.dart';
+import 'package:mangayomi/modules/manga/download/download_queue_utils.dart';
 import 'package:mangayomi/modules/manga/download/providers/download_provider.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/utils/extensions/chapter_extensions.dart';
@@ -95,6 +96,14 @@ class DownloadQueueScreen extends ConsumerWidget {
                 );
               },
               itemBuilder: (context, Download element) {
+                final skipped = isDownloadSkipped(element);
+                final attempts = element.failed ?? 0;
+                final statusLabel = skipped
+                    ? l10n.failed
+                    : attempts > 0
+                    ? '${l10n.failed} ($attempts/$kMaxDownloadAttempts)'
+                    : '${element.succeeded}/${element.total}';
+
                 return SizedBox(
                   height: 60,
                   child: Row(
@@ -117,8 +126,13 @@ class DownloadQueueScreen extends ConsumerWidget {
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 Text(
-                                  "${element.succeeded}/${element.total}",
-                                  style: const TextStyle(fontSize: 10),
+                                  statusLabel,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: skipped
+                                        ? Theme.of(context).colorScheme.error
+                                        : null,
+                                  ),
                                 ),
                               ],
                             ),
@@ -132,10 +146,23 @@ class DownloadQueueScreen extends ConsumerWidget {
                               curve: Curves.easeInOut,
                               tween: Tween<double>(
                                 begin: 0,
-                                end: element.succeeded! / element.total!,
+                                end: skipped
+                                    ? 1
+                                    : element.succeeded! / element.total!,
                               ),
                               builder: (context, value, _) =>
-                                  LinearProgressIndicator(value: value),
+                                  LinearProgressIndicator(
+                                    value: value,
+                                    color: skipped
+                                        ? Theme.of(context).colorScheme.error
+                                        : null,
+                                    backgroundColor: skipped
+                                        ? Theme.of(context)
+                                              .colorScheme
+                                              .error
+                                              .withValues(alpha: 0.2)
+                                        : null,
+                                  ),
                             ),
                           ],
                         ),
@@ -146,7 +173,12 @@ class DownloadQueueScreen extends ConsumerWidget {
                           popUpAnimationStyle: popupAnimationStyle,
                           child: const Icon(Icons.more_vert),
                           onSelected: (value) async {
-                            if (value.toString() == 'Cancel') {
+                            if (value.toString() == 'Retry') {
+                              if (element.id != null) {
+                                resetDownloadAttempts(element.id!);
+                                ref.read(processDownloadsProvider());
+                              }
+                            } else if (value.toString() == 'Cancel') {
                               if (element.chapter.value != null) {
                                 element.chapter.value!.cancelDownloads(
                                   element.id!,
@@ -180,6 +212,11 @@ class DownloadQueueScreen extends ConsumerWidget {
                             }
                           },
                           itemBuilder: (context) => [
+                            if (skipped)
+                              PopupMenuItem(
+                                value: 'Retry',
+                                child: Text(l10n.retry),
+                              ),
                             PopupMenuItem(
                               value: 'Cancel',
                               child: Text(l10n.cancel),

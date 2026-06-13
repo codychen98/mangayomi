@@ -41,13 +41,14 @@ extension ChapterExtension on Chapter {
     }
   }
 
-  void cancelDownloads(int? downloadId) {
-    // Cancel via the Isolate pool (new system)
+  void cancelActiveDownloadTask() {
     DownloadIsolatePool.instance.cancelTask('$id');
     DownloadIsolatePool.instance.cancelTask('m3u8_$id');
-
-    // Clean the map for compatibility
     isolateChapsSendPorts.remove('$id');
+  }
+
+  void cancelDownloads(int? downloadId) {
+    cancelActiveDownloadTask();
 
     isar.writeTxnSync(() {
       isar.downloads.deleteSync(id!);
