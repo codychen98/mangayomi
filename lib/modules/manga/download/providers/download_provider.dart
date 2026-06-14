@@ -500,20 +500,20 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
           }
           downloaded++;
           current--;
-          continue;
+        } else {
+          chapter.cancelActiveDownloadTask();
+          await Future.delayed(const Duration(milliseconds: 500));
+          ref.read(
+            downloadChapterProvider(
+              chapter: chapter,
+              useWifi: useWifi,
+              callback: () {
+                downloaded++;
+                current--;
+              },
+            ),
+          );
         }
-        chapter.cancelActiveDownloadTask();
-        await Future.delayed(const Duration(milliseconds: 500));
-        ref.read(
-          downloadChapterProvider(
-            chapter: chapter,
-            useWifi: useWifi,
-            callback: () {
-              downloaded++;
-              current--;
-            },
-          ),
-        );
       }
       return true;
     });
