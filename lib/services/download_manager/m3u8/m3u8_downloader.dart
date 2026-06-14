@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
