@@ -1,7 +1,5 @@
-import 'dart:developer';
 import 'dart:io';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
@@ -13,6 +11,7 @@ import 'package:mangayomi/services/download_manager/download_retry.dart';
 import 'package:mangayomi/services/download_manager/download_isolate_pool.dart';
 import 'package:mangayomi/services/download_manager/m_downloader.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
+import 'package:mangayomi/modules/manga/download/download_queue_utils.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:convert/convert.dart';
@@ -44,10 +43,7 @@ class M3u8Downloader {
   });
 
   void _log(String message) {
-    if (kDebugMode) {
-      log('[M3u8Downloader] $message');
-    }
-    AppLogger.log(message);
+    AppLogger.log('[M3U8] ${downloadLogContext(chapter)} $message');
   }
 
   void close() {
@@ -149,8 +145,7 @@ class M3u8Downloader {
         }
       }
     } catch (e) {
-      AppLogger.log("Download failed", logLevel: LogLevel.error);
-      AppLogger.log(e.toString(), logLevel: LogLevel.error);
+      _log('download failed: $e');
       throw M3u8DownloaderException('Download failed', e);
     } finally {
       close();
@@ -194,6 +189,7 @@ class M3u8Downloader {
         onProgress(progress);
       },
       onComplete: () async {
+        _log('isolate complete — merging ${segments.length} segments');
         // Merge the segments after downloading
         await _mergeSegments(fileName, tempDir, onProgress);
 
@@ -211,12 +207,14 @@ class M3u8Downloader {
         }
       },
       onError: (error) {
+        _log('isolate error: $error');
         if (!completer.isCompleted) {
           completer.completeError(error);
         }
       },
     );
 
+    _log('submitted isolate task=$taskId segments=${segments.length}');
     return completer.future;
   }
 

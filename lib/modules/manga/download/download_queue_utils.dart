@@ -67,6 +67,19 @@ void logDownloadQueueEvent(
   AppLogger.log(buffer.toString(), logLevel: logLevel);
 }
 
+/// Logs processor-wide events that are not tied to a single chapter.
+void logDownloadQueueMessage(
+  String event, {
+  String? detail,
+  LogLevel logLevel = LogLevel.info,
+}) {
+  final buffer = StringBuffer('[$event]');
+  if (detail != null) {
+    buffer.write(' $detail');
+  }
+  AppLogger.log(buffer.toString(), logLevel: logLevel);
+}
+
 bool isDownloadSkipped(Download download) =>
     (download.failed ?? 0) >= kMaxDownloadAttempts;
 

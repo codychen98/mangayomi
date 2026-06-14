@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:mangayomi/utils/log/logger.dart';
+
 const kDefaultDownloadRetries = 3;
 const kMaxRateLimitRetries = 12;
 const kMaxBackoffSeconds = 60;
@@ -59,22 +61,37 @@ Future<T> withDownloadRetry<T>(
           cause: e,
         );
       }
-      await Future.delayed(
-        rateLimitRetryDelay(
-          rateLimitAttempts,
-          retryAfterSeconds: e.retryAfterSeconds,
-        ),
+      final delay = rateLimitRetryDelay(
+        rateLimitAttempts,
+        retryAfterSeconds: e.retryAfterSeconds,
       );
+      AppLogger.log(
+        '[DOWNLOAD_RETRY] kind=rate_limit attempt=$rateLimitAttempts/'
+        '$maxRateLimitRetries status=${e.statusCode} '
+        'delay=${delay.inSeconds}s error=$e',
+        logLevel: LogLevel.warning,
+      );
+      await Future.delayed(delay);
       attempts--;
     } catch (e) {
       if (isRateLimitDownloadError(e)) {
         rateLimitAttempts++;
         if (rateLimitAttempts >= maxRateLimitRetries) rethrow;
-        await Future.delayed(rateLimitRetryDelay(rateLimitAttempts));
+        final delay = rateLimitRetryDelay(rateLimitAttempts);
+        AppLogger.log(
+          '[DOWNLOAD_RETRY] kind=rate_limit_wrapped attempt=$rateLimitAttempts/'
+          '$maxRateLimitRetries delay=${delay.inSeconds}s error=$e',
+          logLevel: LogLevel.warning,
+        );
+        await Future.delayed(delay);
         attempts--;
         continue;
       }
       if (attempts >= maxRetries) rethrow;
+      AppLogger.log(
+        '[DOWNLOAD_RETRY] kind=transient attempt=$attempts/$maxRetries error=$e',
+        logLevel: LogLevel.warning,
+      );
       await Future.delayed(const Duration(milliseconds: 300));
     }
   }

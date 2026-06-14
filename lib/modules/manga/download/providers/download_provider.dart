@@ -64,6 +64,17 @@ Future<void> downloadChapter(
   VoidCallback? callback,
 }) async {
   final keepAlive = ref.keepAlive();
+  final startedAt = DateTime.now();
+  final priorAttempts = isar.downloads.getSync(chapter.id!)?.failed ?? 0;
+  final itemType = chapter.manga.value!.itemType;
+  var outcome = 'started';
+
+  logDownloadQueueEvent(
+    'DOWNLOAD_START',
+    chapter,
+    detail:
+        'attempt=${priorAttempts + 1}/$kMaxDownloadAttempts type=$itemType',
+  );
 
   try {
     bool onlyOnWifi = useWifi ?? ref.read(onlyOnWifiStateProvider);
@@ -72,6 +83,7 @@ Future<void> downloadChapter(
         connectivity.contains(ConnectivityResult.wifi) ||
         connectivity.contains(ConnectivityResult.ethernet);
     if (onlyOnWifi && !isOnWifi) {
+      outcome = 'wifi_blocked';
       logDownloadQueueEvent('WIFI_BLOCKED', chapter);
       botToast(navigatorKey.currentContext!.l10n.downloads_are_limited_to_wifi);
       return;
@@ -92,7 +104,6 @@ Future<void> downloadChapter(
     bool isOk = false;
     final manga = chapter.manga.value!;
     final chapterName = chapter.name!.replaceForbiddenCharacters(' ');
-    final itemType = chapter.manga.value!.itemType;
     final chapterDirectory = (await storageProvider.getMangaChapterDirectory(
       chapter,
       mangaMainDirectory: mangaMainDirectory,
@@ -143,6 +154,8 @@ Future<void> downloadChapter(
       }
     }
 
+    var lastLoggedProgress = -1;
+
     Future<void> setProgress(DownloadProgress progress) async {
       if (progress.isCompleted && itemType == ItemType.manga) {
         await processConvert();
@@ -184,6 +197,23 @@ Future<void> downloadChapter(
           }
         }
       }
+
+      if (progress.total > 0) {
+        final pct = (progress.completed / progress.total * 100).toInt();
+        final milestone = progress.isCompleted
+            ? 100
+            : (pct ~/ 10) * 10;
+        if (milestone != lastLoggedProgress) {
+          lastLoggedProgress = milestone;
+          logDownloadQueueEvent(
+            'DOWNLOAD_PROGRESS',
+            chapter,
+            detail:
+                'pct=$pct segments=${progress.completed}/${progress.total} '
+                'completed=${progress.isCompleted}',
+          );
+        }
+      }
     }
 
     setProgress(DownloadProgress(0, 0, itemType));
@@ -217,14 +247,34 @@ Future<void> downloadChapter(
     }
 
     if (itemType == ItemType.manga) {
+      logDownloadQueueEvent(
+        'DOWNLOAD_PHASE',
+        chapter,
+        reason: 'fetch_pages',
+      );
+      final fetchStarted = DateTime.now();
       final value = await ref.read(
         getChapterPagesProvider(chapter: chapter).future,
+      );
+      logDownloadQueueEvent(
+        'DOWNLOAD_PHASE',
+        chapter,
+        reason: 'fetch_pages_done',
+        detail:
+            'pages=${value.pageUrls.length} '
+            'elapsed=${DateTime.now().difference(fetchStarted).inMilliseconds}ms',
       );
       if (value.pageUrls.isNotEmpty) {
         pageUrls = value.pageUrls;
         isOk = true;
       }
     } else if (itemType == ItemType.anime) {
+      logDownloadQueueEvent(
+        'DOWNLOAD_PHASE',
+        chapter,
+        reason: 'fetch_video_list',
+      );
+      final fetchStarted = DateTime.now();
       final value = await ref.read(
         getVideoListProvider(episode: chapter).future,
       );
@@ -258,6 +308,16 @@ Future<void> downloadChapter(
         videoHeader.addAll(videosUrls.first.headers ?? {});
         isOk = true;
       }
+      logDownloadQueueEvent(
+        'DOWNLOAD_PHASE',
+        chapter,
+        reason: 'fetch_video_list_done',
+        detail:
+            'streams=${value.$1.length} m3u8=${m3u8Urls.length} '
+            'direct=${nonM3u8Urls.length} mode='
+            '${hasM3U8File ? "m3u8" : nonM3U8File ? "direct" : "none"} '
+            'elapsed=${DateTime.now().difference(fetchStarted).inMilliseconds}ms',
+      );
     } else if (itemType == ItemType.novel && chapter.url != null) {
       final manga = chapter.manga.value!;
       final source = getSource(manga.lang!, manga.source!, manga.sourceId)!;
@@ -279,6 +339,7 @@ Future<void> downloadChapter(
     }
 
     if (!isOk && (itemType == ItemType.manga || itemType == ItemType.anime)) {
+      outcome = 'empty_content';
       logDownloadQueueEvent(
         'EMPTY_CONTENT',
         chapter,
@@ -378,6 +439,12 @@ Future<void> downloadChapter(
         await setProgress(DownloadProgress(1, 1, itemType, isCompleted: true));
       } else {
         savePageUrls();
+        logDownloadQueueEvent(
+          'DOWNLOAD_PHASE',
+          chapter,
+          reason: 'file_download',
+          detail: 'files=${pages.length}',
+        );
         await MDownloader(
           chapter: chapter,
           pageUrls: pages,
@@ -408,12 +475,20 @@ Future<void> downloadChapter(
         await setProgress(DownloadProgress(1, 1, itemType, isCompleted: true));
       }
     } else if (hasM3U8File) {
+      logDownloadQueueEvent(
+        'DOWNLOAD_PHASE',
+        chapter,
+        reason: 'm3u8_download',
+        detail: 'url=${m3u8Downloader?.m3u8Url ?? "unknown"}',
+      );
       await m3u8Downloader?.download((progress) {
         setProgress(progress);
       });
     }
+    outcome = 'ok';
   } catch (e, st) {
     if (isRateLimitDownloadError(e)) {
+      outcome = 'rate_limited';
       logDownloadQueueEvent(
         'RATE_LIMITED',
         chapter,
@@ -421,6 +496,7 @@ Future<void> downloadChapter(
         logLevel: LogLevel.warning,
       );
     } else {
+      outcome = 'error';
       recordDownloadAttempt(chapter.id!, permanentFailure: false);
       final attempts = isar.downloads.getSync(chapter.id!)?.failed ?? 0;
       logDownloadQueueEvent(
@@ -432,6 +508,16 @@ Future<void> downloadChapter(
       );
     }
   } finally {
+    final elapsed = DateTime.now().difference(startedAt).inSeconds;
+    final finalAttempts = isar.downloads.getSync(chapter.id!)?.failed ?? 0;
+    final finalSucceeded = isar.downloads.getSync(chapter.id!)?.succeeded ?? 0;
+    logDownloadQueueEvent(
+      'DOWNLOAD_END',
+      chapter,
+      detail:
+          'outcome=$outcome elapsed=${elapsed}s '
+          'failed=$finalAttempts succeeded=$finalSucceeded',
+    );
     if (callback != null) {
       callback();
     }
@@ -492,7 +578,11 @@ void _releaseTimedOutSlots({
     logDownloadQueueEvent(
       'QUEUE_SLOT_TIMEOUT',
       chapter,
-      detail: 'timeout=${kDownloadSlotTimeout.inMinutes}m',
+      detail:
+          'timeout=${kDownloadSlotTimeout.inMinutes}m '
+          'elapsed=${DateTime.now().difference(slot.startedAt).inMinutes}m '
+          'stall=${DateTime.now().difference(slot.lastProgressAt).inMinutes}m '
+          'succeeded=${slot.lastSucceeded}',
       logLevel: LogLevel.warning,
     );
     chapter.cancelActiveDownloadTask();
@@ -545,12 +635,19 @@ Future<void> _runDownloadQueuePass(
   var current = 0;
   final activeSlots = <int, _ActiveDownloadSlot>{};
   final finishedChapterIds = <int>{};
+  var lastHeartbeat = DateTime.now();
 
   void finishChapter(int chapterId) {
     if (!finishedChapterIds.add(chapterId)) return;
     activeSlots.remove(chapterId);
     downloaded++;
     current--;
+    logDownloadQueueMessage(
+      'QUEUE_SLOT_RELEASE',
+      detail:
+          'chapterId=$chapterId downloaded=$downloaded/${pendingDownloads.length} '
+          'current=$current active=${activeSlots.length}',
+    );
   }
 
   await Future.doWhile(() async {
@@ -559,6 +656,28 @@ Future<void> _runDownloadQueuePass(
       activeSlots: activeSlots,
       onSlotReleased: finishChapter,
     );
+    if (activeSlots.isNotEmpty &&
+        DateTime.now().difference(lastHeartbeat) >= const Duration(seconds: 30)) {
+      lastHeartbeat = DateTime.now();
+      final slotDetails = activeSlots.entries.map((entry) {
+        final slot = entry.value;
+        final chapterId = slot.chapter.id;
+        final record = chapterId == null
+            ? null
+            : isar.downloads.getSync(chapterId);
+        final elapsed = DateTime.now().difference(slot.startedAt).inSeconds;
+        final stall = DateTime.now().difference(slot.lastProgressAt).inSeconds;
+        return 'id=$chapterId pct=${record?.succeeded ?? 0} '
+            'failed=${record?.failed ?? 0} elapsed=${elapsed}s stall=${stall}s';
+      }).join('; ');
+      logDownloadQueueMessage(
+        'QUEUE_HEARTBEAT',
+        detail:
+            'processed=$downloaded/${pendingDownloads.length} '
+            'current=$current max=$maxConcurrentDownloads '
+            'next_index=$index active=${activeSlots.length} [$slotDetails]',
+      );
+    }
     if (pendingDownloads.length == downloaded) {
       return false;
     }
@@ -587,6 +706,14 @@ Future<void> _runDownloadQueuePass(
         await Future.delayed(const Duration(milliseconds: 500));
         final chapterId = chapter.id!;
         activeSlots[chapterId] = _ActiveDownloadSlot.start(chapter);
+        logDownloadQueueEvent(
+          'QUEUE_DEQUEUE',
+          chapter,
+          detail:
+              'index=$index/${pendingDownloads.length} '
+              'current=$current max=$maxConcurrentDownloads '
+              'failed=${downloadItem.failed ?? 0}',
+        );
         ref.read(
           downloadChapterProvider(
             chapter: chapter,
@@ -625,6 +752,12 @@ Future<void> _runDownloadQueuePass(
     'permanent_fail=$permanentFail transient_fail=$transientFail '
     'still_pending=$stillPending skipped_at_start=$skippedAtStart',
   );
+  logDownloadQueueMessage(
+    'QUEUE_PASS_END',
+    detail:
+        'pending=${pendingDownloads.length} processed=$downloaded '
+        'active_slots_cleared=${activeSlots.length}',
+  );
 }
 
 @riverpod
@@ -637,9 +770,18 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
     return;
   }
 
+  logDownloadQueueMessage('QUEUE_RUN_START');
   final keepAlive = ref.keepAlive();
   try {
+    var pass = 0;
     do {
+      pass++;
+      if (pass > 1) {
+        logDownloadQueueMessage(
+          'QUEUE_RESTART',
+          detail: 'starting coalesced pass=$pass',
+        );
+      }
       await _runDownloadQueuePass(ref, useWifi: useWifi);
     } while (DownloadQueueCoordinator.consumeRestartRequest());
   } catch (e, st) {
@@ -649,6 +791,7 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
     );
   } finally {
     DownloadQueueCoordinator.release();
+    logDownloadQueueMessage('QUEUE_RUN_END');
     keepAlive.close();
   }
 }

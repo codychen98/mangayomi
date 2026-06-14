@@ -13,6 +13,7 @@ import 'package:mangayomi/services/download_manager/m3u8/models/download.dart';
 import 'package:mangayomi/services/download_manager/m3u8/models/ts_info.dart';
 import 'package:mangayomi/src/rust/frb_generated.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:encrypt/encrypt.dart' as encrypt;
 
@@ -123,8 +124,17 @@ class DownloadIsolatePool {
       } else if (message is DownloadComplete || message is Exception) {
         downloadTaskCancellation.remove(taskId);
         receivePort.close();
-        if (message is DownloadComplete) onComplete();
-        if (message is Exception) onError(message);
+        if (message is DownloadComplete) {
+          AppLogger.log('[POOL_DONE] taskId=$taskId');
+          onComplete();
+        }
+        if (message is Exception) {
+          AppLogger.log(
+            '[POOL_ERROR] taskId=$taskId error=$message',
+            logLevel: LogLevel.error,
+          );
+          onError(message);
+        }
       }
     });
   }
@@ -173,11 +183,16 @@ class DownloadIsolatePool {
   /// Cancel a download task
   void cancelTask(String taskId) {
     downloadTaskCancellation[taskId] = true;
+    AppLogger.log('[POOL_CANCEL] taskId=$taskId');
   }
 
   /// Add a task to the queue and try to process it
   void _enqueueTask(_DownloadTask task) {
     _taskQueue.add(task);
+    AppLogger.log(
+      '[POOL_ENQUEUE] taskId=${task.taskId} type=${task.type.name} '
+      'queue=${_taskQueue.length} active_workers=$activeWorkers',
+    );
     _processQueue();
   }
 
@@ -194,6 +209,9 @@ class DownloadIsolatePool {
           '[DownloadPool] Worker $workerIndex starting task ${task.taskId}',
         );
       }
+      AppLogger.log(
+        '[POOL_START] taskId=${task.taskId} worker=$workerIndex',
+      );
 
       worker.executeTask(task).then((_) {
         _availableWorkers.add(workerIndex); // Worker is free again
@@ -202,6 +220,10 @@ class DownloadIsolatePool {
             '[DownloadPool] Worker $workerIndex finished task ${task.taskId}, available workers: ${_availableWorkers.length}',
           );
         }
+        AppLogger.log(
+          '[POOL_WORKER_IDLE] taskId=${task.taskId} worker=$workerIndex '
+          'available=${_availableWorkers.length}',
+        );
         _processQueue(); // Process the next task
       });
     }
