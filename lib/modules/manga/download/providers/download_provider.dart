@@ -444,6 +444,7 @@ class _ActiveDownloadSlot {
     required this.chapter,
     required this.startedAt,
     required this.lastSucceeded,
+    required this.lastProgressAt,
   });
 
   final Chapter chapter;
@@ -459,7 +460,8 @@ class _ActiveDownloadSlot {
       chapter: chapter,
       startedAt: now,
       lastSucceeded: succeeded,
-    )..lastProgressAt = now;
+      lastProgressAt: now,
+    );
   }
 
   bool refreshProgress() {
