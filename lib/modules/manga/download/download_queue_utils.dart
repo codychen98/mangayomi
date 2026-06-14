@@ -9,6 +9,41 @@ import 'package:mangayomi/utils/log/logger.dart';
 /// Maximum download attempts before an item is skipped (but kept visible).
 const int kMaxDownloadAttempts = 3;
 
+/// Release a occupied slot when no DB progress change for this long.
+const Duration kDownloadSlotTimeout = Duration(minutes: 10);
+
+/// Max wait for the local extension server before auto-resuming downloads.
+const Duration kExtensionServerReadyTimeout = Duration(seconds: 30);
+
+/// Poll interval while waiting for the extension server on launch.
+const Duration kExtensionServerReadyPollInterval = Duration(seconds: 1);
+
+/// Serializes [processDownloads] runs; coalesces overlapping start requests.
+class DownloadQueueCoordinator {
+  static bool _running = false;
+  static bool _restartRequested = false;
+
+  static bool tryAcquire() {
+    if (_running) return false;
+    _running = true;
+    return true;
+  }
+
+  static void requestRestart() {
+    _restartRequested = true;
+  }
+
+  static bool consumeRestartRequest() {
+    final restart = _restartRequested;
+    _restartRequested = false;
+    return restart;
+  }
+
+  static void release() {
+    _running = false;
+  }
+}
+
 String downloadLogContext(Chapter chapter) {
   final mangaName = chapter.manga.value?.name ?? 'unknown';
   return 'manga="$mangaName" chapterId=${chapter.id} '

@@ -30,6 +30,8 @@ import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/manga/download/download_queue_utils.dart';
 import 'package:mangayomi/modules/manga/download/providers/download_provider.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
+import 'package:mangayomi/services/m_extension_server.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 
 final libLocationRegex = RegExp(r"^/(Manga|Anime|Novel)Library$");
 
@@ -102,7 +104,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
         _initializeTimers();
         _initializeProviders();
         maybeTriggerSync(ref.read, SyncTriggerEvent.appStart);
-        _resumePendingDownloads();
+        unawaited(_resumePendingDownloadsWhenReady());
       }
     });
 
@@ -146,10 +148,30 @@ class _MainScreenState extends ConsumerState<MainScreen>
     });
   }
 
-  void _resumePendingDownloads() {
-    if (hasAutoResumableDownloads()) {
-      ref.read(processDownloadsProvider());
+  Future<void> _resumePendingDownloadsWhenReady() async {
+    if (!hasAutoResumableDownloads()) return;
+
+    final server = MExtensionServerPlatform(ref);
+    await server.startServer();
+
+    final deadline = DateTime.now().add(kExtensionServerReadyTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (await server.check()) break;
+      await Future.delayed(kExtensionServerReadyPollInterval);
     }
+
+    if (!mounted) return;
+    if (!hasAutoResumableDownloads()) return;
+
+    if (!(await server.check())) {
+      AppLogger.log(
+        '[QUEUE_RESUME] Extension server not ready after '
+        '${kExtensionServerReadyTimeout.inSeconds}s; starting queue anyway',
+        logLevel: LogLevel.warning,
+      );
+    }
+
+    ref.read(processDownloadsProvider());
   }
 
   void _onBackupTimerTick(Timer timer) {

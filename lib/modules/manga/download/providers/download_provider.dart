@@ -439,112 +439,214 @@ Future<void> downloadChapter(
   }
 }
 
-@riverpod
-Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
-  final keepAlive = ref.keepAlive();
-  try {
-    final ongoingDownloads = await isar.downloads
-        .filter()
-        .idIsNotNull()
-        .isDownloadEqualTo(false)
-        .isStartDownloadEqualTo(true)
-        .findAll();
-    final pendingDownloads = <Download>[];
-    var orphansRemoved = 0;
-    for (final download in ongoingDownloads) {
-      if (isDownloadSkipped(download)) continue;
-      if (isOrphanDownload(download)) {
-        orphansRemoved++;
+class _ActiveDownloadSlot {
+  _ActiveDownloadSlot({
+    required this.chapter,
+    required this.startedAt,
+    required this.lastSucceeded,
+  });
+
+  final Chapter chapter;
+  final DateTime startedAt;
+  int lastSucceeded;
+  DateTime lastProgressAt;
+
+  factory _ActiveDownloadSlot.start(Chapter chapter) {
+    final succeeded =
+        isar.downloads.getSync(chapter.id!)?.succeeded ?? 0;
+    final now = DateTime.now();
+    return _ActiveDownloadSlot(
+      chapter: chapter,
+      startedAt: now,
+      lastSucceeded: succeeded,
+    )..lastProgressAt = now;
+  }
+
+  bool refreshProgress() {
+    final succeeded =
+        isar.downloads.getSync(chapter.id!)?.succeeded ?? 0;
+    if (succeeded > lastSucceeded) {
+      lastSucceeded = succeeded;
+      lastProgressAt = DateTime.now();
+      return true;
+    }
+    return false;
+  }
+
+  bool get isTimedOut =>
+      DateTime.now().difference(lastProgressAt) > kDownloadSlotTimeout;
+}
+
+void _releaseTimedOutSlots({
+  required Map<int, _ActiveDownloadSlot> activeSlots,
+  required void Function(int chapterId) onSlotReleased,
+}) {
+  for (final entry in activeSlots.entries.toList()) {
+    final slot = entry.value;
+    slot.refreshProgress();
+    if (!slot.isTimedOut) continue;
+
+    final chapter = slot.chapter;
+    logDownloadQueueEvent(
+      'QUEUE_SLOT_TIMEOUT',
+      chapter,
+      detail: 'timeout=${kDownloadSlotTimeout.inMinutes}m',
+      logLevel: LogLevel.warning,
+    );
+    chapter.cancelActiveDownloadTask();
+    if (chapter.id != null) {
+      recordDownloadAttempt(chapter.id!, permanentFailure: false);
+      onSlotReleased(chapter.id!);
+    }
+  }
+}
+
+Future<void> _runDownloadQueuePass(
+  Ref ref, {
+  bool? useWifi,
+}) async {
+  AppLogger.log('[QUEUE_START] loading pending downloads from database');
+  final ongoingDownloads = await isar.downloads
+      .filter()
+      .idIsNotNull()
+      .isDownloadEqualTo(false)
+      .isStartDownloadEqualTo(true)
+      .findAll();
+  final pendingDownloads = <Download>[];
+  var orphansRemoved = 0;
+  for (final download in ongoingDownloads) {
+    if (isDownloadSkipped(download)) continue;
+    if (isOrphanDownload(download)) {
+      orphansRemoved++;
+      AppLogger.log(
+        '[QUEUE_ORPHAN] Removed orphan download id=${download.id} '
+        '(chapter link missing)',
+        logLevel: LogLevel.warning,
+      );
+      if (download.id != null) {
+        isar.writeTxnSync(() => isar.downloads.deleteSync(download.id!));
+      }
+      continue;
+    }
+    pendingDownloads.add(download);
+  }
+  final skippedAtStart = ongoingDownloads.where(isDownloadSkipped).length;
+  AppLogger.log(
+    '[QUEUE_START] pending=${pendingDownloads.length} '
+    'skipped=$skippedAtStart orphans_removed=$orphansRemoved '
+    'total_in_queue=${ongoingDownloads.length}',
+  );
+
+  final maxConcurrentDownloads = ref.read(concurrentDownloadsStateProvider);
+  var index = 0;
+  var downloaded = 0;
+  var current = 0;
+  final activeSlots = <int, _ActiveDownloadSlot>{};
+  final finishedChapterIds = <int>{};
+
+  void finishChapter(int chapterId) {
+    if (!finishedChapterIds.add(chapterId)) return;
+    activeSlots.remove(chapterId);
+    downloaded++;
+    current--;
+  }
+
+  await Future.doWhile(() async {
+    await Future.delayed(const Duration(seconds: 1));
+    _releaseTimedOutSlots(
+      activeSlots: activeSlots,
+      onSlotReleased: finishChapter,
+    );
+    if (pendingDownloads.length == downloaded) {
+      return false;
+    }
+    if (current < maxConcurrentDownloads) {
+      current++;
+      final downloadItem = pendingDownloads[index++];
+      loadDownloadLinks(downloadItem);
+      final chapter = downloadItem.chapter.value;
+      if (chapter == null) {
         AppLogger.log(
-          '[QUEUE_ORPHAN] Removed orphan download id=${download.id} '
-          '(chapter link missing)',
+          '[QUEUE_ORPHAN] Skipped orphan download id=${downloadItem.id} '
+          'during processing',
           logLevel: LogLevel.warning,
         );
-        if (download.id != null) {
-          isar.writeTxnSync(() => isar.downloads.deleteSync(download.id!));
-        }
-        continue;
-      }
-      pendingDownloads.add(download);
-    }
-    final skippedAtStart =
-        ongoingDownloads.where(isDownloadSkipped).length;
-    AppLogger.log(
-      '[QUEUE_START] pending=${pendingDownloads.length} '
-      'skipped=$skippedAtStart orphans_removed=$orphansRemoved '
-      'total_in_queue=${ongoingDownloads.length}',
-    );
-    final maxConcurrentDownloads = ref.read(concurrentDownloadsStateProvider);
-    int index = 0;
-    int downloaded = 0;
-    int current = 0;
-    await Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (pendingDownloads.length == downloaded) {
-        return false;
-      }
-      if (current < maxConcurrentDownloads) {
-        current++;
-        final downloadItem = pendingDownloads[index++];
-        loadDownloadLinks(downloadItem);
-        final chapter = downloadItem.chapter.value;
-        if (chapter == null) {
-          AppLogger.log(
-            '[QUEUE_ORPHAN] Skipped orphan download id=${downloadItem.id} '
-            'during processing',
-            logLevel: LogLevel.warning,
+        if (downloadItem.id != null) {
+          isar.writeTxnSync(
+            () => isar.downloads.deleteSync(downloadItem.id!),
           );
-          if (downloadItem.id != null) {
-            isar.writeTxnSync(
-              () => isar.downloads.deleteSync(downloadItem.id!),
-            );
-          }
+          finishChapter(downloadItem.id!);
+        } else {
           downloaded++;
           current--;
-        } else {
-          chapter.cancelActiveDownloadTask();
-          await Future.delayed(const Duration(milliseconds: 500));
-          ref.read(
-            downloadChapterProvider(
-              chapter: chapter,
-              useWifi: useWifi,
-              callback: () {
-                downloaded++;
-                current--;
-              },
-            ),
-          );
         }
-      }
-      return true;
-    });
-    var succeeded = 0;
-    var permanentFail = 0;
-    var transientFail = 0;
-    var stillPending = 0;
-    for (final item in pendingDownloads) {
-      final record = isar.downloads.getSync(item.id!);
-      if (record?.isDownload == true) {
-        succeeded++;
-      } else if ((record?.failed ?? 0) >= kMaxDownloadAttempts) {
-        permanentFail++;
-      } else if ((record?.failed ?? 0) > 0) {
-        transientFail++;
       } else {
-        stillPending++;
+        chapter.cancelActiveDownloadTask();
+        await Future.delayed(const Duration(milliseconds: 500));
+        final chapterId = chapter.id!;
+        activeSlots[chapterId] = _ActiveDownloadSlot.start(chapter);
+        ref.read(
+          downloadChapterProvider(
+            chapter: chapter,
+            useWifi: useWifi,
+            callback: () => finishChapter(chapterId),
+          ),
+        );
       }
     }
+    return true;
+  });
+
+  for (final slot in activeSlots.values) {
+    slot.chapter.cancelActiveDownloadTask();
+  }
+  activeSlots.clear();
+
+  var succeeded = 0;
+  var permanentFail = 0;
+  var transientFail = 0;
+  var stillPending = 0;
+  for (final item in pendingDownloads) {
+    final record = isar.downloads.getSync(item.id!);
+    if (record?.isDownload == true) {
+      succeeded++;
+    } else if ((record?.failed ?? 0) >= kMaxDownloadAttempts) {
+      permanentFail++;
+    } else if ((record?.failed ?? 0) > 0) {
+      transientFail++;
+    } else {
+      stillPending++;
+    }
+  }
+  AppLogger.log(
+    '[QUEUE_SUMMARY] processed=$downloaded succeeded=$succeeded '
+    'permanent_fail=$permanentFail transient_fail=$transientFail '
+    'still_pending=$stillPending skipped_at_start=$skippedAtStart',
+  );
+}
+
+@riverpod
+Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
+  if (!DownloadQueueCoordinator.tryAcquire()) {
+    DownloadQueueCoordinator.requestRestart();
     AppLogger.log(
-      '[QUEUE_SUMMARY] processed=$downloaded succeeded=$succeeded '
-      'permanent_fail=$permanentFail transient_fail=$transientFail '
-      'still_pending=$stillPending skipped_at_start=$skippedAtStart',
+      '[QUEUE_RESTART] Deferred — download processor already running',
     );
-    keepAlive.close();
+    return;
+  }
+
+  final keepAlive = ref.keepAlive();
+  try {
+    do {
+      await _runDownloadQueuePass(ref, useWifi: useWifi);
+    } while (DownloadQueueCoordinator.consumeRestartRequest());
   } catch (e, st) {
     AppLogger.log(
       'processDownloads failed: $e\n$st',
       logLevel: LogLevel.error,
     );
+  } finally {
+    DownloadQueueCoordinator.release();
     keepAlive.close();
   }
 }
