@@ -33,8 +33,7 @@ class DownloadQueueScreen extends ConsumerWidget {
           final orphanIds = <int>[];
           final entries = <Download>[];
           for (final d in allEntries) {
-            if (d.chapter.value == null ||
-                d.chapter.value?.manga.value == null) {
+            if (isOrphanDownload(d)) {
               if (d.id != null) orphanIds.add(d.id!);
             } else {
               entries.add(d);

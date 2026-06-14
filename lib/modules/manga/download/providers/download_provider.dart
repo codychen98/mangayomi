@@ -453,7 +453,7 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
     var orphansRemoved = 0;
     for (final download in ongoingDownloads) {
       if (isDownloadSkipped(download)) continue;
-      if (download.chapter.value == null) {
+      if (isOrphanDownload(download)) {
         orphansRemoved++;
         AppLogger.log(
           '[QUEUE_ORPHAN] Removed orphan download id=${download.id} '
@@ -486,6 +486,7 @@ Future<void> processDownloads(Ref ref, {bool? useWifi}) async {
       if (current < maxConcurrentDownloads) {
         current++;
         final downloadItem = pendingDownloads[index++];
+        loadDownloadLinks(downloadItem);
         final chapter = downloadItem.chapter.value;
         if (chapter == null) {
           AppLogger.log(

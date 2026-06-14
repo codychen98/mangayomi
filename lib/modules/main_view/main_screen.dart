@@ -27,6 +27,8 @@ import 'package:mangayomi/services/sync/sync_coordinator.dart';
 import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
+import 'package:mangayomi/modules/manga/download/download_queue_utils.dart';
+import 'package:mangayomi/modules/manga/download/providers/download_provider.dart';
 import 'package:mangayomi/modules/more/providers/incognito_mode_state_provider.dart';
 
 final libLocationRegex = RegExp(r"^/(Manga|Anime|Novel)Library$");
@@ -100,6 +102,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
         _initializeTimers();
         _initializeProviders();
         maybeTriggerSync(ref.read, SyncTriggerEvent.appStart);
+        _resumePendingDownloads();
       }
     });
 
@@ -141,6 +144,12 @@ class _MainScreenState extends ConsumerState<MainScreen>
         }
       }
     });
+  }
+
+  void _resumePendingDownloads() {
+    if (hasAutoResumableDownloads()) {
+      ref.read(processDownloadsProvider());
+    }
   }
 
   void _onBackupTimerTick(Timer timer) {

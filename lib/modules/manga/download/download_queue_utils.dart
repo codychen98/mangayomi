@@ -34,6 +34,46 @@ void logDownloadQueueEvent(
 bool isDownloadSkipped(Download download) =>
     (download.failed ?? 0) >= kMaxDownloadAttempts;
 
+/// Loads chapter and manga Isar links on [download].
+///
+/// [IsarLink.value] is null until loaded; callers must use this before
+/// reading links from watch/findAll results.
+void loadDownloadLinks(Download download) {
+  if (!download.chapter.isLoaded) {
+    download.chapter.loadSync();
+  }
+  final chapter = download.chapter.value;
+  if (chapter != null && !chapter.manga.isLoaded) {
+    chapter.manga.loadSync();
+  }
+}
+
+/// True when the linked chapter or parent manga was deleted from the DB.
+bool isOrphanDownload(Download download) {
+  loadDownloadLinks(download);
+  return download.chapter.value == null ||
+      download.chapter.value?.manga.value == null;
+}
+
+/// Incomplete queue rows (`isDownload == false`, `isStartDownload == true`).
+List<Download> getPendingQueueDownloads() {
+  return isar.downloads
+      .filter()
+      .idIsNotNull()
+      .isDownloadEqualTo(false)
+      .isStartDownloadEqualTo(true)
+      .findAllSync();
+}
+
+/// Whether [processDownloads] has at least one item it can attempt.
+bool hasAutoResumableDownloads() {
+  for (final download in getPendingQueueDownloads()) {
+    if (isOrphanDownload(download)) continue;
+    if (!isDownloadSkipped(download)) return true;
+  }
+  return false;
+}
+
 /// Whether [chapter] should be added to the download queue, applying
 /// duplicate-episode deduplication for the parent manga.
 bool shouldAddChapterToQueue(Chapter chapter) {
