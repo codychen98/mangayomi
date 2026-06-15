@@ -23,6 +23,40 @@ final downloadTaskCancellation = <String, bool>{};
 /// connection open (common CDN stall that previously froze progress forever).
 const _kDownloadIdleTimeout = Duration(seconds: 60);
 
+/// Abort when TCP/TLS/HTTP headers never arrive (M3U8 segment hang at 0%).
+const _kDownloadConnectTimeout = Duration(seconds: 30);
+
+Future<StreamedResponse> _sendWithConnectTimeout(
+  Client client,
+  Request request,
+) {
+  return client.send(request).timeout(
+    _kDownloadConnectTimeout,
+    onTimeout: () {
+      throw DownloadPoolException(
+        'Timed out waiting for HTTP response from ${request.url.host} '
+        '(>${_kDownloadConnectTimeout.inSeconds}s)',
+      );
+    },
+  );
+}
+
+Future<Response> _getWithConnectTimeout(
+  Client client,
+  Uri uri, {
+  Map<String, String>? headers,
+}) {
+  return client.get(uri, headers: headers).timeout(
+    _kDownloadConnectTimeout,
+    onTimeout: () {
+      throw DownloadPoolException(
+        'Timed out waiting for HTTP response from ${uri.host} '
+        '(>${_kDownloadConnectTimeout.inSeconds}s)',
+      );
+    },
+  );
+}
+
 
 /// Shared Isolate pool to optimize performance
 /// Instead of creating a new Isolate for each download,
@@ -509,7 +543,11 @@ Future<void> _downloadFile(
   try {
     if (itemType != ItemType.anime) {
       final response = await withDownloadRetry(
-        () => client.get(Uri.parse(pageUrl.url), headers: pageUrl.headers),
+        () => _getWithConnectTimeout(
+          client,
+          Uri.parse(pageUrl.url),
+          headers: pageUrl.headers,
+        ),
       );
       if (response.statusCode != 200) {
         if (isRateLimitStatusCode(response.statusCode)) {
@@ -541,7 +579,10 @@ Future<void> _downloadFile(
           headers['Range'] = 'bytes=$resumeOffset-';
         }
         request.headers.addAll(headers);
-        StreamedResponse response = await client.send(request);
+        StreamedResponse response = await _sendWithConnectTimeout(
+          client,
+          request,
+        );
         // Accept any 2xx — including 206 Partial Content, which the server
         // returns when the source extension sends `Range: bytes=0-` on the
         // streaming request (e.g. AnimeGG). Rejecting 206 here caused 3
@@ -676,7 +717,7 @@ Future<void> _downloadSegment(
       if (params.headers != null) {
         request.headers.addAll(params.headers!);
       }
-      final response = await client.send(request);
+      final response = await _sendWithConnectTimeout(client, request);
 
       // Accept any 2xx (including 206 Partial Content) — see comment in
       // _downloadFile.

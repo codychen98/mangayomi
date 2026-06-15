@@ -10,7 +10,7 @@ import 'package:mangayomi/utils/log/logger.dart';
 const int kMaxDownloadAttempts = 3;
 
 /// Release a occupied slot when no DB progress change for this long.
-const Duration kDownloadSlotTimeout = Duration(minutes: 10);
+const Duration kDownloadSlotTimeout = Duration(minutes: 3);
 
 /// Max wait for the local extension server before auto-resuming downloads.
 const Duration kExtensionServerReadyTimeout = Duration(seconds: 30);

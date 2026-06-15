@@ -7,16 +7,19 @@ const kMaxRateLimitRetries = 12;
 const kMaxBackoffSeconds = 60;
 
 /// HTTP status codes that indicate temporary server overload / throttling.
+/// 444 is used by some Miruro/nginx CDNs as a connection-close block.
 bool isRateLimitStatusCode(int statusCode) =>
-    statusCode == 429 || statusCode == 503;
+    statusCode == 429 || statusCode == 503 || statusCode == 444;
 
-/// Whether [error] represents server throttling (429/503), including wrapped
+/// Whether [error] represents server throttling (429/503/444), including wrapped
 /// pool/M3U8 exceptions from nested downloads.
 bool isRateLimitDownloadError(Object error) {
   if (error is DownloadRateLimitException) return true;
   final message = error.toString();
   return message.contains('status 429') ||
       message.contains('status 503') ||
+      message.contains('status 444') ||
+      message.contains('HTTP error 444') ||
       message.contains('DownloadRateLimitException');
 }
 
