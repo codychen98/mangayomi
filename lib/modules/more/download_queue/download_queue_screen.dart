@@ -11,6 +11,7 @@ import 'package:mangayomi/modules/manga/download/providers/download_provider.dar
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/utils/extensions/chapter_extensions.dart';
 import 'package:mangayomi/utils/global_style.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 
 class DownloadQueueScreen extends ConsumerWidget {
   const DownloadQueueScreen({super.key});
@@ -28,24 +29,22 @@ class DownloadQueueScreen extends ConsumerWidget {
           .watch(fireImmediately: true),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          // Filter out orphaned downloads (chapter or manga deleted)
           final allEntries = snapshot.data!;
-          final orphanIds = <int>[];
           final entries = <Download>[];
+          var orphanCount = 0;
           for (final d in allEntries) {
             if (isOrphanDownload(d)) {
-              if (d.id != null) orphanIds.add(d.id!);
-            } else {
-              entries.add(d);
+              orphanCount++;
+              continue;
             }
+            entries.add(d);
           }
-          // Auto-clean orphaned download records
-          if (orphanIds.isNotEmpty) {
-            isar.writeTxnSync(() {
-              for (final id in orphanIds) {
-                isar.downloads.deleteSync(id);
-              }
-            });
+          if (orphanCount > 0) {
+            logDownloadQueueMessage(
+              'QUEUE_UI_ORPHAN_SKIP',
+              detail: 'hidden=$orphanCount (not deleted from UI)',
+              logLevel: LogLevel.warning,
+            );
           }
           if (entries.isEmpty) {
             return Scaffold(
@@ -54,6 +53,18 @@ class DownloadQueueScreen extends ConsumerWidget {
             );
           }
           final allQueueLength = entries.length;
+          var activeCount = 0;
+          var waitingCount = 0;
+          var failedCount = 0;
+          for (final entry in entries) {
+            if (isDownloadSkipped(entry)) {
+              failedCount++;
+            } else if ((entry.succeeded ?? 0) > 0) {
+              activeCount++;
+            } else {
+              waitingCount++;
+            }
+          }
           return Scaffold(
             appBar: AppBar(
               title: Row(
@@ -75,16 +86,30 @@ class DownloadQueueScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(28),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '$activeCount active · $waitingCount waiting · '
+                      '$failedCount failed',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ),
+              ),
             ),
             body: GroupedListView<Download, String>(
               elements: entries,
               groupBy: (element) =>
-                  element.chapter.value?.manga.value?.source ?? "",
+                  resolveDownloadManga(element)?.source ?? "",
               groupSeparatorBuilder: (String groupByValue) {
                 final sourceQueueLength = entries
                     .where(
                       (element) =>
-                          (element.chapter.value?.manga.value?.source ?? "") ==
+                          (resolveDownloadManga(element)?.source ?? "") ==
                           groupByValue,
                     )
                     .toList()
@@ -95,6 +120,8 @@ class DownloadQueueScreen extends ConsumerWidget {
                 );
               },
               itemBuilder: (context, Download element) {
+                final chapter = resolveDownloadChapter(element);
+                final manga = resolveDownloadManga(element);
                 final skipped = isDownloadSkipped(element);
                 final attempts = element.failed ?? 0;
                 final statusLabel = skipped
@@ -120,8 +147,7 @@ class DownloadQueueScreen extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  element.chapter.value?.manga.value?.name ??
-                                      "",
+                                  manga?.name ?? "",
                                   style: const TextStyle(fontSize: 16),
                                 ),
                                 Text(
@@ -136,7 +162,7 @@ class DownloadQueueScreen extends ConsumerWidget {
                               ],
                             ),
                             Text(
-                              element.chapter.value?.name ?? "",
+                              chapter?.name ?? "",
                               style: const TextStyle(fontSize: 13),
                             ),
                             const SizedBox(height: 8),
@@ -178,12 +204,11 @@ class DownloadQueueScreen extends ConsumerWidget {
                                 ref.read(processDownloadsProvider());
                               }
                             } else if (value.toString() == 'Cancel') {
-                              if (element.chapter.value != null) {
-                                element.chapter.value!.cancelDownloads(
+                              if (chapter != null) {
+                                chapter.cancelDownloads(
                                   element.id!,
                                 );
                               } else {
-                                // Orphaned download — just delete the record
                                 isar.writeTxnSync(() {
                                   isar.downloads.deleteSync(element.id!);
                                 });
@@ -192,12 +217,17 @@ class DownloadQueueScreen extends ConsumerWidget {
                               final a = entries
                                   .where(
                                     (e) =>
-                                        '${e.chapter.value?.manga.value?.name}' ==
-                                            '${element.chapter.value?.manga.value?.name}' &&
-                                        '${e.chapter.value?.manga.value?.source}' ==
-                                            '${element.chapter.value?.manga.value?.source}',
+                                        '${resolveDownloadManga(e)?.name}' ==
+                                            '${manga?.name}' &&
+                                        '${resolveDownloadManga(e)?.source}' ==
+                                            '${manga?.source}',
                                   )
-                                  .map((e) => (e.id, e.chapter.value?.id))
+                                  .map(
+                                    (e) => (
+                                      e.id,
+                                      resolveDownloadChapter(e)?.id,
+                                    ),
+                                  )
                                   .toList();
                               for (var ids in a) {
                                 final (downloadId, chapterId) = ids;
@@ -236,8 +266,8 @@ class DownloadQueueScreen extends ConsumerWidget {
                 );
               },
               itemComparator: (item1, item2) =>
-                  (item1.chapter.value?.manga.value?.source ?? "").compareTo(
-                    item2.chapter.value?.manga.value?.source ?? "",
+                  (resolveDownloadManga(item1)?.source ?? "").compareTo(
+                    resolveDownloadManga(item2)?.source ?? "",
                   ),
               order: GroupedListOrder.DESC,
             ),
@@ -260,7 +290,7 @@ class DownloadQueueScreen extends ConsumerWidget {
 
   void _cancelAllDownloads(List<Download> entries) {
     for (final entry in entries) {
-      final chapter = entry.chapter.value;
+      final chapter = resolveDownloadChapter(entry);
       if (chapter != null && entry.id != null) {
         chapter.cancelDownloads(entry.id!);
       }

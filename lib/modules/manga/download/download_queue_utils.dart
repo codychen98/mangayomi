@@ -2,6 +2,7 @@ import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/download.dart';
+import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/utils/chapter_recognition.dart';
 import 'package:mangayomi/utils/extensions/manga_extensions.dart';
 import 'package:mangayomi/utils/log/logger.dart';
@@ -97,11 +98,40 @@ void loadDownloadLinks(Download download) {
   }
 }
 
-/// True when the linked chapter or parent manga was deleted from the DB.
-bool isOrphanDownload(Download download) {
+/// Chapter for [download], loading the Isar link or falling back to [download.id].
+Chapter? resolveDownloadChapter(Download download) {
   loadDownloadLinks(download);
-  return download.chapter.value == null ||
-      download.chapter.value?.manga.value == null;
+  final linked = download.chapter.value;
+  if (linked != null) return linked;
+  final chapterId = download.id;
+  if (chapterId == null) return null;
+  return isar.chapters.getSync(chapterId);
+}
+
+/// Parent manga for queue display; uses [Chapter.mangaId] when the link is unset.
+Manga? resolveDownloadManga(Download download) {
+  final chapter = resolveDownloadChapter(download);
+  if (chapter == null) return null;
+  if (!chapter.manga.isLoaded) {
+    chapter.manga.loadSync();
+  }
+  final linked = chapter.manga.value;
+  if (linked != null) return linked;
+  final mangaId = chapter.mangaId;
+  if (mangaId == null) return null;
+  return isar.mangas.getSync(mangaId);
+}
+
+/// True when the linked chapter or parent manga was deleted from the DB.
+///
+/// Uses direct collection lookups — [IsarLink.value] alone is unreliable on
+/// [watch] results and previously caused mass false orphan deletion.
+bool isOrphanDownload(Download download) {
+  final chapter = resolveDownloadChapter(download);
+  if (chapter == null) return true;
+  final mangaId = chapter.mangaId;
+  if (mangaId == null) return true;
+  return isar.mangas.getSync(mangaId) == null;
 }
 
 /// Incomplete queue rows (`isDownload == false`, `isStartDownload == true`).

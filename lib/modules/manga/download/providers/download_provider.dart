@@ -685,7 +685,7 @@ Future<void> _runDownloadQueuePass(
       current++;
       final downloadItem = pendingDownloads[index++];
       loadDownloadLinks(downloadItem);
-      final chapter = downloadItem.chapter.value;
+      final chapter = resolveDownloadChapter(downloadItem);
       if (chapter == null) {
         AppLogger.log(
           '[QUEUE_ORPHAN] Skipped orphan download id=${downloadItem.id} '
