@@ -76,6 +76,7 @@ Future<dynamic> updateMangaDetail(
       ..updatedAt = now;
 
     final chaps = getManga.chapters;
+    var unseenUpdatesToAdd = 0;
 
     await isar.writeTxn(() async {
       // Persist updated manga metadata.
@@ -180,9 +181,7 @@ Future<dynamic> updateMangaDetail(
             newUpdateCount++;
           }
         }
-        if (newUpdateCount > 0) {
-          incrementUnseenUpdatesCount(manga.itemType, newUpdateCount);
-        }
+        unseenUpdatesToAdd = newUpdateCount;
       }
       // Calculate fetch interval:
       // median of gaps between recent distinct chapter dates, clamped [1, 28].
@@ -197,6 +196,10 @@ Future<dynamic> updateMangaDetail(
         await isar.mangas.put(manga);
       }
     });
+
+    if (unseenUpdatesToAdd > 0) {
+      incrementUnseenUpdatesCount(manga.itemType, unseenUpdatesToAdd);
+    }
   } catch (e, s) {
     if (showToast) {
       botToast('$e\n$s');
