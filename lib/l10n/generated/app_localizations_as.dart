@@ -2552,4 +2552,49 @@ class AppLocalizationsAs extends AppLocalizations {
 
   @override
   String get error_label => 'Error';
+
+  @override
+  String get library_update_settings => 'Library update';
+
+  @override
+  String get show_updates_tab_badge => 'Show notification badge on Updates tab';
+
+  @override
+  String get update_categories => 'Categories';
+
+  @override
+  String get update_categories_details =>
+      'Checked categories are included. Categories marked with a minus are excluded. Unchecked categories follow the default (all).';
+
+  @override
+  String update_categories_for(String mediaType) {
+    return 'Update categories ($mediaType)';
+  }
+
+  @override
+  String get library_update_categories_hint =>
+      'Choose which categories are checked when updating the library from the Updates tab. An empty include list means all categories except those explicitly excluded.';
+
+  @override
+  String get manage_library_categories => 'Create and reorder categories';
+
+  @override
+  String get include_category_in_updates => 'Include category in library updates';
+
+  @override
+  String get exclude_category_from_updates =>
+      'Exclude category from library updates';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get none => 'None';
+
+  @override
+  String get include => 'Include';
+
+  @override
+  String get exclude => 'Exclude';
+
 }

@@ -4,7 +4,7 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/manga.dart';
-import 'package:mangayomi/services/get_detail.dart';
+import 'package:mangayomi/services/library_update_preferences_service.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/fetch_interval.dart';
 import 'package:mangayomi/utils/utils.dart';
@@ -160,6 +160,7 @@ Future<dynamic> updateMangaDetail(
       // Insert new chapters oldest-first (API typically returns newest-first).
       if (newChapters.isNotEmpty) {
         final hasExisting = existingChapters.isNotEmpty;
+        var newUpdateCount = 0;
         for (final chap in newChapters.reversed) {
           await isar.chapters.put(chap);
           await chap.manga.save();
@@ -175,7 +176,11 @@ Future<dynamic> updateMangaDetail(
             )..chapter.value = chap;
             await isar.updates.put(update);
             await update.chapter.save();
+            newUpdateCount++;
           }
+        }
+        if (newUpdateCount > 0) {
+          incrementUnseenUpdatesCount(manga.itemType, newUpdateCount);
         }
       }
       // Calculate fetch interval:

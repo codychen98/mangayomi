@@ -14,7 +14,9 @@ import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/library_update_preferences.dart';
 import 'package:mangayomi/models/settings.dart';
+import 'package:mangayomi/services/library_update_preferences_service.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/models/track.dart';
@@ -310,6 +312,7 @@ class StorageProvider {
         SourcePreferenceStringValueSchema,
         SavedSearchSchema,
         FeedSavedSearchSchema,
+        LibraryUpdatePreferencesSchema,
       ],
       directory: dir!.path,
       name: "mangayomiDb",
@@ -320,6 +323,7 @@ class StorageProvider {
       if (settings == null) {
         await isar.writeTxn(() async => isar.settings.put(Settings()));
       }
+      await ensureLibraryUpdatePreferences();
     } catch (_) {
       if (await requestPermission()) {
         try {
@@ -330,6 +334,7 @@ class StorageProvider {
           if (settings == null) {
             await isar.writeTxn(() async => isar.settings.put(Settings()));
           }
+          await ensureLibraryUpdatePreferences();
         } catch (e) {
           debugPrint("Failed after retry with permission: $e");
         }

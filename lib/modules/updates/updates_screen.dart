@@ -16,7 +16,8 @@ import 'package:mangayomi/services/library_updater.dart';
 import 'package:mangayomi/utils/date.dart';
 import 'package:mangayomi/modules/widgets/error_text.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
-import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
+import 'package:mangayomi/modules/more/settings/library/providers/library_update_settings_provider.dart';
+import 'package:mangayomi/services/library_update_preferences_service.dart';
 
 class UpdatesScreen extends ConsumerStatefulWidget {
   const UpdatesScreen({super.key});
@@ -29,6 +30,18 @@ class _UpdatesScreenState extends BaseLibraryTabScreenState<UpdatesScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    resetUnseenUpdatesCount();
+  }
+
+  @override
+  void dispose() {
+    resetUnseenUpdatesCount();
+    super.dispose();
+  }
+
+  @override
   String get title => l10nLocalizations(context)!.updates;
 
   @override
@@ -39,6 +52,7 @@ class _UpdatesScreenState extends BaseLibraryTabScreenState<UpdatesScreen> {
         itemType: type,
         query: textEditingController.text,
         isLoading: _isLoading,
+        onRefresh: _updateLibrary,
       ),
     );
   }
@@ -50,7 +64,7 @@ class _UpdatesScreenState extends BaseLibraryTabScreenState<UpdatesScreen> {
       children: [
         Tab(text: label),
         const SizedBox(width: 8),
-        _updateNumbers(ref, type),
+        _updateNumbers(context, ref, type),
       ],
     );
   }
@@ -101,13 +115,16 @@ class _UpdatesScreenState extends BaseLibraryTabScreenState<UpdatesScreen> {
     try {
       setState(() => _isLoading = true);
       final itemType = getCurrentItemType();
-      final mangaList = await isar.mangas
-          .filter()
-          .idIsNotNull()
-          .favoriteEqualTo(true)
-          .itemTypeEqualTo(itemType)
-          .isLocalArchiveEqualTo(false)
-          .findAll();
+      final mangaList = filterLibraryEntriesForUpdate(
+        entries: await isar.mangas
+            .filter()
+            .idIsNotNull()
+            .favoriteEqualTo(true)
+            .itemTypeEqualTo(itemType)
+            .isLocalArchiveEqualTo(false)
+            .findAll(),
+        itemType: itemType,
+      );
       if (!mounted) return;
       await updateLibrary(
         ref: ref,
@@ -144,10 +161,12 @@ class UpdateTab extends ConsumerStatefulWidget {
   final String query;
   final ItemType itemType;
   final bool isLoading;
+  final Future<void> Function() onRefresh;
   const UpdateTab({
     required this.itemType,
     required this.query,
     required this.isLoading,
+    required this.onRefresh,
     super.key,
   });
 
@@ -180,8 +199,11 @@ class _UpdateTabState extends ConsumerState<UpdateTab>
             lastUpdatedList.sort((a, b) => b.compareTo(a));
             final lastUpdated = lastUpdatedList.firstOrNull;
             if (entries.isNotEmpty) {
-              return CustomScrollView(
-                slivers: [
+              return RefreshIndicator(
+                onRefresh: widget.onRefresh,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
                   if (lastUpdated != null)
                     SliverPadding(
                       padding: const EdgeInsets.only(
@@ -245,9 +267,22 @@ class _UpdateTabState extends ConsumerState<UpdateTab>
                     order: GroupedListOrder.DESC,
                   ),
                 ],
+                ),
               );
             }
-            return Center(child: Text(l10n.no_recent_updates));
+            return RefreshIndicator(
+              onRefresh: widget.onRefresh,
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.sizeOf(context).height * 0.5,
+                    child: Center(child: Text(l10n.no_recent_updates)),
+                  ),
+                ],
+              ),
+            );
           },
           error: (Object error, StackTrace stackTrace) {
             return ErrorText(error);
@@ -271,23 +306,17 @@ class _UpdateTabState extends ConsumerState<UpdateTab>
   }
 }
 
-Widget _updateNumbers(WidgetRef ref, ItemType itemType) {
-  return StreamBuilder(
-    stream: isar.updates
-        .filter()
-        .idIsNotNull()
-        .chapter((q) => q.manga((q) => q.itemTypeEqualTo(itemType)))
-        .watch(fireImmediately: true),
-    builder: (context, snapshot) {
-      final count = snapshot.data?.length ?? 0;
-      if (count == 0) return const SizedBox.shrink();
-      return Badge(
-        backgroundColor: Theme.of(context).focusColor,
-        label: Text(
-          count.toString(),
-          style: TextStyle(color: Theme.of(context).textTheme.bodySmall!.color),
-        ),
-      );
-    },
+Widget _updateNumbers(BuildContext context, WidgetRef ref, ItemType itemType) {
+  final preferences = ref.watch(libraryUpdatePreferencesProvider).valueOrNull;
+  final count = preferences == null
+      ? 0
+      : unseenUpdatesCountForItemType(preferences, itemType);
+  if (count == 0) return const SizedBox.shrink();
+  return Badge(
+    backgroundColor: Theme.of(context).focusColor,
+    label: Text(
+      count.toString(),
+      style: TextStyle(color: Theme.of(context).textTheme.bodySmall!.color),
+    ),
   );
 }

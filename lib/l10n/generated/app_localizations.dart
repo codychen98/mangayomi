@@ -4689,6 +4689,45 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error'**
   String get error_label;
+
+  /// No description provided for @library_update_settings.
+  String get library_update_settings;
+
+  /// No description provided for @show_updates_tab_badge.
+  String get show_updates_tab_badge;
+
+  /// No description provided for @update_categories.
+  String get update_categories;
+
+  /// No description provided for @update_categories_details.
+  String get update_categories_details;
+
+  /// No description provided for @update_categories_for.
+  String update_categories_for(String mediaType);
+
+  /// No description provided for @library_update_categories_hint.
+  String get library_update_categories_hint;
+
+  /// No description provided for @manage_library_categories.
+  String get manage_library_categories;
+
+  /// No description provided for @include_category_in_updates.
+  String get include_category_in_updates;
+
+  /// No description provided for @exclude_category_from_updates.
+  String get exclude_category_from_updates;
+
+  /// No description provided for @all.
+  String get all;
+
+  /// No description provided for @none.
+  String get none;
+
+  /// No description provided for @include.
+  String get include;
+
+  /// No description provided for @exclude.
+  String get exclude;
 }
 
 class _AppLocalizationsDelegate

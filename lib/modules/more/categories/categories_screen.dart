@@ -505,6 +505,9 @@ class _CategoriesTabState extends ConsumerState<CategoriesTab>
                     ),
                     SizedBox(width: 10),
                     IconButton(
+                      tooltip: category.shouldUpdate ?? true
+                          ? l10n.exclude_category_from_updates
+                          : l10n.include_category_in_updates,
                       onPressed: () async {
                         await isar.writeTxn(() async {
                           category.shouldUpdate =

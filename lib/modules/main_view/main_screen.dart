@@ -13,6 +13,7 @@ import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/more/about/providers/download_file_screen.dart';
 import 'package:mangayomi/modules/more/providers/downloaded_only_state_provider.dart';
+import 'package:mangayomi/modules/more/settings/library/providers/library_update_settings_provider.dart';
 import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/modules/widgets/loading_icon.dart';
@@ -876,48 +877,16 @@ class _UpdatesBadgeWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hideItems = ref.watch(hideItemsStateProvider);
+    final preferences = ref.watch(libraryUpdatePreferencesProvider).valueOrNull;
+    if (preferences == null || !preferences.showUpdatesTabBadge) {
+      return icon;
+    }
 
-    return StreamBuilder(
-      stream: isar.updates
-          .filter()
-          .idIsNotNull()
-          .optional(
-            hideItems.contains("/MangaLibrary"),
-            (q) => q.chapter(
-              (c) => c.manga((m) => m.not().itemTypeEqualTo(ItemType.manga)),
-            ),
-          )
-          .optional(
-            hideItems.contains("/AnimeLibrary"),
-            (q) => q.chapter(
-              (c) => c.manga((m) => m.not().itemTypeEqualTo(ItemType.anime)),
-            ),
-          )
-          .optional(
-            hideItems.contains("/NovelLibrary"),
-            (q) => q.chapter(
-              (c) => c.manga((m) => m.not().itemTypeEqualTo(ItemType.novel)),
-            ),
-          )
-          .watch(fireImmediately: true),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return icon;
-        }
+    final count = totalUnseenUpdatesCount(preferences, hideItems);
+    if (count == 0) {
+      return icon;
+    }
 
-        final entries = snapshot.data!.where((element) {
-          if (!element.chapter.isLoaded) {
-            element.chapter.loadSync();
-          }
-          return !(element.chapter.value?.isRead ?? false);
-        }).toList();
-
-        if (entries.isEmpty) {
-          return icon;
-        }
-
-        return Badge(label: Text("${entries.length}"), child: icon);
-      },
-    );
+    return Badge(label: Text('$count'), child: icon);
   }
 }
