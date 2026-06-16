@@ -18,6 +18,7 @@ import 'package:mangayomi/modules/widgets/error_text.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
 import 'package:mangayomi/modules/more/settings/library/providers/library_update_settings_provider.dart';
 import 'package:mangayomi/services/library_update_preferences_service.dart';
+import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 
 class UpdatesScreen extends ConsumerStatefulWidget {
   const UpdatesScreen({super.key});
@@ -272,7 +273,6 @@ class _UpdateTabState extends ConsumerState<UpdateTab>
             }
             return RefreshIndicator(
               onRefresh: widget.onRefresh,
-              physics: const AlwaysScrollableScrollPhysics(),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: [
@@ -307,7 +307,7 @@ class _UpdateTabState extends ConsumerState<UpdateTab>
 }
 
 Widget _updateNumbers(BuildContext context, WidgetRef ref, ItemType itemType) {
-  final preferences = ref.watch(libraryUpdatePreferencesProvider).valueOrNull;
+  final preferences = ref.watch(libraryUpdatePreferencesProvider).value;
   final count = preferences == null
       ? 0
       : unseenUpdatesCountForItemType(preferences, itemType);

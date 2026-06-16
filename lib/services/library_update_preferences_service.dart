@@ -1,7 +1,6 @@
 import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/library_update_preferences.dart';
-import 'package:mangayomi/models/library_update_preferences.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/services/library_update_category_filter.dart';
 

@@ -22,7 +22,7 @@ class LibrarySettingsScreen extends ConsumerWidget {
     final l10n = l10nLocalizations(context)!;
     final hideItems = ref.watch(hideItemsStateProvider);
     final visibleTypes = hiddenItemTypes(hideItems);
-    final preferences = ref.watch(libraryUpdatePreferencesProvider).valueOrNull ??
+    final preferences = ref.watch(libraryUpdatePreferencesProvider).value ??
         getLibraryUpdatePreferences();
 
     return Scaffold(

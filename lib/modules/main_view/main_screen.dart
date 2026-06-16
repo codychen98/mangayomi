@@ -877,7 +877,7 @@ class _UpdatesBadgeWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hideItems = ref.watch(hideItemsStateProvider);
-    final preferences = ref.watch(libraryUpdatePreferencesProvider).valueOrNull;
+    final preferences = ref.watch(libraryUpdatePreferencesProvider).value;
     if (preferences == null || !preferences.showUpdatesTabBadge) {
       return icon;
     }
