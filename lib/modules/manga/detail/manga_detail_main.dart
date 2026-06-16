@@ -61,55 +61,43 @@ class _MangaReaderDetailState extends ConsumerState<MangaReaderDetail> {
                 .watch(fireImmediately: true),
             builder: (context, snapshot) {
               final sourceExist = snapshot.hasData && snapshot.data!.isNotEmpty;
-              return RefreshIndicator(
-                onRefresh: () async {
-                  if (sourceExist && !_isLoading) {
-                    await ref.read(
-                      updateMangaDetailProvider(
-                        mangaId: manga.id,
-                        isInit: false,
-                      ).future,
-                    );
-                  }
-                },
-                child: Stack(
-                  children: [
-                    MangaDetailsView(
-                      manga: manga,
-                      sourceExist: sourceExist,
-                      checkForUpdate: (value) async {
-                        if (!_isLoading) {
-                          setState(() {
-                            _isLoading = true;
-                          });
-                          if (sourceExist) {
-                            await ref.read(
-                              updateMangaDetailProvider(
-                                mangaId: manga.id,
-                                isInit: false,
-                              ).future,
-                            );
-                          }
-                          if (mounted) {
-                            setState(() {
-                              _isLoading = false;
-                            });
-                          }
+              return Stack(
+                children: [
+                  MangaDetailsView(
+                    manga: manga,
+                    sourceExist: sourceExist,
+                    checkForUpdate: (value) async {
+                      if (!_isLoading) {
+                        setState(() {
+                          _isLoading = true;
+                        });
+                        if (sourceExist) {
+                          await ref.read(
+                            updateMangaDetailProvider(
+                              mangaId: manga.id,
+                              isInit: false,
+                            ).future,
+                          );
                         }
-                      },
-                    ),
-                    if (_isLoading)
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: Padding(
-                          padding: EdgeInsets.only(top: 40),
-                          child: Center(child: RefreshProgressIndicator()),
-                        ),
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
+                      }
+                    },
+                  ),
+                  if (_isLoading)
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 40),
+                        child: Center(child: RefreshProgressIndicator()),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               );
             },
           );

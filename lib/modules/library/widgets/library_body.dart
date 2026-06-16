@@ -11,6 +11,7 @@ import 'package:mangayomi/modules/library/widgets/library_listview_widget.dart';
 import 'package:mangayomi/modules/widgets/error_text.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/library_update_preferences_service.dart';
 import 'package:mangayomi/services/library_updater.dart';
 
 /// Displays the library body content for a given category (or uncategorized).
@@ -125,7 +126,10 @@ class LibraryBody extends ConsumerWidget {
                   await updateLibrary(
                     ref: ref,
                     context: context,
-                    mangaList: data,
+                    mangaList: filterLibraryEntriesForUpdate(
+                      entries: data,
+                      itemType: itemType,
+                    ),
                     itemType: itemType,
                   );
                 },

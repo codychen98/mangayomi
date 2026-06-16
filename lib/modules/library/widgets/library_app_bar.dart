@@ -13,6 +13,7 @@ import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/widgets/error_text.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/library_update_preferences_service.dart';
 import 'package:mangayomi/services/library_updater.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/global_style.dart';
@@ -192,7 +193,10 @@ class LibraryAppBar extends ConsumerWidget implements PreferredSizeWidget {
                 updateLibrary(
                   ref: ref,
                   context: context,
-                  mangaList: value,
+                  mangaList: filterLibraryEntriesForUpdate(
+                    entries: value,
+                    itemType: itemType,
+                  ),
                   itemType: itemType,
                 );
               });

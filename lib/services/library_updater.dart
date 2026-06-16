@@ -34,12 +34,11 @@ Future<void> updateLibrary({
   for (var i = 0; i < mangaList.length; i++) {
     final manga = mangaList[i];
     try {
-      await ref.read(
-        updateMangaDetailProvider(
-          mangaId: manga.id,
-          isInit: false,
-          showToast: false,
-        ).future,
+      await updateMangaDetail(
+        ref,
+        mangaId: manga.id,
+        isInit: false,
+        showToast: false,
       );
     } catch (e) {
       AppLogger.log("Failed to update $itemtype:", logLevel: LogLevel.error);

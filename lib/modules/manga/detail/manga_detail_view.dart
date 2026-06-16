@@ -106,6 +106,12 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
   bool _expanded = false;
   late final ScrollController _scrollController;
   late final isLocalArchive = widget.manga!.isLocalArchive ?? false;
+
+  Future<void> _refreshMangaDetail() async {
+    if (isLocalArchive || !widget.sourceExist) return;
+    await widget.checkForUpdate(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Watch all sort/filter providers so the list rebuilds whenever
@@ -656,19 +662,26 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
                   SizedBox(
                     width: context.width(0.5),
                     height: context.height(1),
-                    child: SingleChildScrollView(
-                      child: _bodyContainer(chapterLength: chapters.length),
+                    child: RefreshIndicator(
+                      onRefresh: _refreshMangaDetail,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: _bodyContainer(chapterLength: chapters.length),
+                      ),
                     ),
                   ),
                 Expanded(
-                  child: Scrollbar(
-                    interactive: true,
-                    thickness: 12,
-                    radius: const Radius.circular(10),
-                    controller: _scrollController,
-                    child: CustomScrollView(
+                  child: RefreshIndicator(
+                    onRefresh: _refreshMangaDetail,
+                    child: Scrollbar(
+                      interactive: true,
+                      thickness: 12,
+                      radius: const Radius.circular(10),
                       controller: _scrollController,
-                      slivers: [
+                      child: CustomScrollView(
+                        controller: _scrollController,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
                         SliverPadding(
                           padding: const EdgeInsets.only(top: 0, bottom: 60),
                           sliver: SuperSliverList.builder(
@@ -801,6 +814,7 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
                       ],
                     ),
                   ),
+                ),
                 ),
               ],
             ),

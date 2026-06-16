@@ -38,9 +38,11 @@ Future<dynamic> updateMangaDetail(
     );
     if (source == null) return;
 
-    final getManga = await ref.read(
-      getDetailProvider(url: manga.link!, source: source).future,
-    );
+    final detailProvider = getDetailProvider(url: manga.link!, source: source);
+    if (!isInit) {
+      ref.invalidate(detailProvider);
+    }
+    final getManga = await ref.read(detailProvider.future);
 
     final genre =
         getManga.genre
