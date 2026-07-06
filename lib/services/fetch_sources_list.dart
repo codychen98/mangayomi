@@ -454,6 +454,49 @@ List<dynamic> filtersFromJson(List<dynamic> json) {
   }).toList();
 }
 
+Map<String, dynamic> dalvikRequestBody({
+  required String method,
+  required Source source,
+  Map<String, dynamic>? extra,
+}) {
+  return {
+    "method": method,
+    "data": source.sourceCode,
+    if (source.baseUrl != null && source.baseUrl!.isNotEmpty)
+      "baseUrl": source.baseUrl,
+    if (source.lang != null && source.lang!.isNotEmpty) "lang": source.lang,
+    ...?extra,
+  };
+}
+
+Future<bool> refreshMihonSourcePreferences(
+  Source source,
+  String androidProxyServer,
+) async {
+  if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return false;
+  if (source.sourceCode == null || source.sourceCode!.isEmpty) return false;
+
+  final http = MClient.init(reqcopyWith: {'useDartHttpClient': true});
+  final preferences = await fetchPreferencesDalvik(
+    http,
+    source,
+    androidProxyServer,
+  );
+  if (preferences == null || preferences.isEmpty) return false;
+
+  final merged = mergeFetchedSourcePreferences(preferences, source.id!);
+  final dbSource = isar.sources.getSync(source.id!);
+  if (dbSource == null) return false;
+
+  isar.writeTxnSync(() {
+    isar.sources.putSync(
+      dbSource
+        ..preferenceList = jsonEncode(merged.map((e) => e.toJson()).toList()),
+    );
+  });
+  return true;
+}
+
 Future<List<SourcePreference>?> fetchPreferencesDalvik(
   InterceptedClient client,
   Source source,
@@ -463,12 +506,19 @@ Future<List<SourcePreference>?> fetchPreferencesDalvik(
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "preferences$name",
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        dalvikRequestBody(
+          method: "preferences$name",
+          source: source,
+        ),
+      ),
     );
-    final data = jsonDecode(res.body) as List;
+    if (res.statusCode != 200) return null;
+    final decoded = jsonDecode(res.body);
+    if (decoded is Map && decoded.containsKey('error')) return null;
+    if (decoded is! List) return null;
+    final data = decoded;
+    if (data.isEmpty) return [];
     return data
         .map(
           (e) => SourcePreference.fromJson(e)

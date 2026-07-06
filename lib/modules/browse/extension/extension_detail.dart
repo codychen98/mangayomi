@@ -8,8 +8,10 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/changed.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
+import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/fetch_sources_list.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
@@ -28,6 +30,34 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
   late Source source = isar.sources.getSync(widget.source.id!)!;
   late bool hasPreferences =
       loadSourcePreferencesForSource(source)?.isNotEmpty ?? false;
+  bool _loadingPreferences = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPreferencesIfNeeded();
+    });
+  }
+
+  Future<void> _loadPreferencesIfNeeded() async {
+    if (hasPreferences) return;
+    if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return;
+    if (source.sourceCode == null || source.sourceCode!.isEmpty) return;
+
+    setState(() => _loadingPreferences = true);
+    final proxy = ref.read(androidProxyServerStateProvider);
+    final loaded = await refreshMihonSourcePreferences(source, proxy);
+    if (!mounted) return;
+    setState(() {
+      _loadingPreferences = false;
+      if (loaded) {
+        source = isar.sources.getSync(widget.source.id!)!;
+        hasPreferences =
+            loadSourcePreferencesForSource(source)?.isNotEmpty ?? false;
+      }
+    });
+  }
 
   Future<void> _launchInBrowser(Uri url) async {
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
@@ -331,6 +361,11 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                 ),
               ),
             ),
+            if (_loadingPreferences)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
             if (hasPreferences)
               ListTile(
                 title: Text(l10n.settings),
