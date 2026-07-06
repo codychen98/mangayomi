@@ -6,6 +6,26 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/get_source_preference.dart';
 
+List<SourcePreference>? loadSourcePreferencesForSource(Source source) {
+  try {
+    final List<SourcePreference> defaults;
+    if (source.sourceCodeLanguage == SourceCodeLanguage.mihon &&
+        source.preferenceList != null) {
+      defaults = (jsonDecode(source.preferenceList!) as List)
+          .map((e) => SourcePreference.fromJson(e))
+          .toList();
+    } else {
+      defaults = getSourcePreference(source: source);
+    }
+    if (defaults.isEmpty) return null;
+    return defaults
+        .map((e) => getSourcePreferenceEntry(e.key!, source.id!))
+        .toList();
+  } catch (_) {
+    return null;
+  }
+}
+
 void setPreferenceSetting(SourcePreference sourcePreference, Source source) {
   final sourcePref = isar.sourcePreferences
       .filter()

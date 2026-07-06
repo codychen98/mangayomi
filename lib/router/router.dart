@@ -12,6 +12,7 @@ import 'package:mangayomi/models/track_search.dart';
 import 'package:mangayomi/modules/anime/anime_player_view.dart';
 import 'package:mangayomi/modules/browse/extension/edit_code.dart';
 import 'package:mangayomi/modules/browse/extension/extension_detail.dart';
+import 'package:mangayomi/modules/browse/extension/source_preferences_screen.dart';
 import 'package:mangayomi/modules/browse/extension/widgets/create_extension.dart';
 import 'package:mangayomi/modules/browse/sources/sources_filter_screen.dart';
 import 'package:mangayomi/modules/calendar/calendar_screen.dart';
@@ -189,6 +190,10 @@ class RouterNotifier extends ChangeNotifier {
     _genericRoute<Source>(
       name: "extension_detail",
       builder: (source) => ExtensionDetail(source: source),
+    ),
+    _genericRoute<Source>(
+      name: "source_preferences",
+      builder: (source) => SourcePreferencesScreen(source: source),
     ),
     _genericRoute<(String?, ItemType)>(
       name: "globalSearch",

@@ -1,18 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
-import 'package:mangayomi/eval/model/source_preference.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/changed.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
-import 'package:mangayomi/modules/browse/extension/widgets/source_preference_widget.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
-import 'package:mangayomi/services/get_source_preference.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
@@ -29,25 +25,17 @@ class ExtensionDetail extends ConsumerStatefulWidget {
 
 class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
   late Source source = isar.sources.getSync(widget.source.id!)!;
-  late List<SourcePreference>? sourcePreference = () {
-    try {
-      if (source.sourceCodeLanguage == SourceCodeLanguage.mihon &&
-          source.preferenceList != null) {
-        return (jsonDecode(source.preferenceList!) as List)
-            .map((e) => SourcePreference.fromJson(e))
-            .toList();
-      }
-      return getSourcePreference(
-        source: source,
-      ).map((e) => getSourcePreferenceEntry(e.key!, source.id!)).toList();
-    } catch (e) {
-      return null;
-    }
-  }();
+  late bool hasPreferences =
+      loadSourcePreferencesForSource(source)?.isNotEmpty ?? false;
+
   Future<void> _launchInBrowser(Uri url) async {
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw 'Could not launch $url';
     }
+  }
+
+  void _openSourcePreferences() {
+    context.push('/source_preferences', extra: source);
   }
 
   @override
@@ -177,12 +165,11 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                     if (res != null && mounted) {
                       setState(() {
                         source = res as Source;
-                        sourcePreference = getSourcePreference(source: source)
-                            .map(
-                              (e) =>
-                                  getSourcePreferenceEntry(e.key!, source.id!),
-                            )
-                            .toList();
+                        hasPreferences =
+                            loadSourcePreferencesForSource(
+                              source,
+                            )?.isNotEmpty ??
+                            false;
                       });
                     }
                   },
@@ -343,10 +330,14 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                 ),
               ),
             ),
-            if (sourcePreference != null)
-              SourcePreferenceWidget(
-                sourcePreference: sourcePreference!,
-                source: source,
+            if (hasPreferences)
+              ListTile(
+                title: Text(l10n.settings),
+                trailing: IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: _openSourcePreferences,
+                ),
+                onTap: _openSourcePreferences,
               ),
           ],
         ),
