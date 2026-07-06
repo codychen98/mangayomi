@@ -26,33 +26,59 @@ List<SourcePreference>? loadSourcePreferencesForSource(Source source) {
   }
 }
 
+List<SourcePreference> mergeFetchedSourcePreferences(
+  List<SourcePreference> fetched,
+  int sourceId,
+) {
+  return fetched.map((pref) {
+    final matches = isar.sourcePreferences
+        .filter()
+        .sourceIdEqualTo(sourceId)
+        .keyEqualTo(pref.key)
+        .findAllSync();
+    if (matches.isEmpty) return pref;
+    matches.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+    return matches.first;
+  }).toList();
+}
+
 void setPreferenceSetting(SourcePreference sourcePreference, Source source) {
-  final sourcePref = isar.sourcePreferences
+  final matchingPrefs = isar.sourcePreferences
       .filter()
       .sourceIdEqualTo(source.id)
       .keyEqualTo(sourcePreference.key)
-      .findFirstSync();
+      .findAllSync();
+
+  final persistedPreference = SourcePreference.fromJson(
+    sourcePreference.toJson(),
+  )..sourceId = source.id;
+
   isar.writeTxnSync(() {
-    if (source.sourceCodeLanguage == SourceCodeLanguage.mihon &&
-        source.preferenceList != null) {
-      final prefs = (jsonDecode(source.preferenceList!) as List)
-          .map((e) => SourcePreference.fromJson(e))
-          .toList();
-      final idx = prefs.indexWhere((e) => e.key == sourcePreference.key);
-      if (idx != -1) {
-        prefs[idx] = sourcePreference..id = null;
-        isar.sources.putSync(
-          source
-            ..preferenceList = jsonEncode(
-              prefs.map((e) => e.toJson()).toList(),
-            ),
-        );
+    for (final duplicate in matchingPrefs) {
+      if (duplicate.id != null) {
+        isar.sourcePreferences.deleteSync(duplicate.id!);
       }
     }
-    if (sourcePref != null) {
-      isar.sourcePreferences.putSync(sourcePreference);
-    } else {
-      isar.sourcePreferences.putSync(sourcePreference..sourceId = source.id);
+    isar.sourcePreferences.putSync(persistedPreference);
+
+    if (source.sourceCodeLanguage == SourceCodeLanguage.mihon) {
+      final dbSource = isar.sources.getSync(source.id!);
+      if (dbSource?.preferenceList != null) {
+        final prefs = (jsonDecode(dbSource!.preferenceList!) as List)
+            .map((e) => SourcePreference.fromJson(e))
+            .toList();
+        final idx = prefs.indexWhere((e) => e.key == sourcePreference.key);
+        if (idx != -1) {
+          prefs[idx] = SourcePreference.fromJson(sourcePreference.toJson())
+            ..sourceId = source.id;
+          isar.sources.putSync(
+            dbSource
+              ..preferenceList = jsonEncode(
+                prefs.map((e) => e.toJson()).toList(),
+              ),
+          );
+        }
+      }
     }
   });
 }
@@ -74,21 +100,23 @@ dynamic getPreferenceValue(int sourceId, String key) {
 }
 
 SourcePreference getSourcePreferenceEntry(String key, int sourceId) {
-  SourcePreference? sourcePreference = isar.sourcePreferences
+  final matchingPreferences = isar.sourcePreferences
       .filter()
       .sourceIdEqualTo(sourceId)
       .keyEqualTo(key)
-      .findFirstSync();
-  if (sourcePreference == null) {
-    final source = isar.sources.getSync(sourceId)!;
-    sourcePreference = getSourcePreference(source: source).firstWhere(
-      (element) => element.key == key,
-      orElse: () => throw "Error when getting source preference",
-    );
-    setPreferenceSetting(sourcePreference, source);
+      .findAllSync();
+  if (matchingPreferences.isNotEmpty) {
+    matchingPreferences.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+    return matchingPreferences.first;
   }
 
-  return sourcePreference;
+  final source = isar.sources.getSync(sourceId)!;
+  final sourcePreference = getSourcePreference(source: source).firstWhere(
+    (element) => element.key == key,
+    orElse: () => throw "Error when getting source preference",
+  );
+  setPreferenceSetting(sourcePreference, source);
+  return getSourcePreferenceEntry(key, sourceId);
 }
 
 String getSourcePreferenceStringValue(

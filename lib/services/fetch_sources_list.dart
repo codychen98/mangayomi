@@ -8,6 +8,7 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
+import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -183,6 +184,12 @@ Future<void> _updateSource(
       source,
       androidProxyServer,
     );
+    if (preferenceList != null) {
+      preferenceList = mergeFetchedSourcePreferences(
+        preferenceList,
+        source.id!,
+      );
+    }
   } else {
     headers = await getIsolateService.get<Map<String, String>>(
       source: source,
