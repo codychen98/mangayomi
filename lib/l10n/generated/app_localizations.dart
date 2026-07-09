@@ -3317,6 +3317,18 @@ abstract class AppLocalizations {
   /// **'Source is not installed!'**
   String get source_not_added;
 
+  /// No description provided for @extension_metadata_partial_install.
+  ///
+  /// In en, this message translates to:
+  /// **'Extension installed, but settings and filters could not be loaded. Open the extension to retry.'**
+  String get extension_metadata_partial_install;
+
+  /// No description provided for @extension_server_version_nudge.
+  ///
+  /// In en, this message translates to:
+  /// **'Update the proxy server in Settings → Android Proxy Server (Mihon) → Update files to load filters and settings.'**
+  String get extension_server_version_nudge;
+
   /// No description provided for @load_own_subtitles.
   ///
   /// In en, this message translates to:

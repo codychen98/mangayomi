@@ -18,13 +18,14 @@ import 'package:mangayomi/modules/manga/home/widgets/saved_search_dialogs.dart';
 import 'package:mangayomi/services/feed/saved_search_filters.dart';
 import 'package:mangayomi/modules/widgets/listview_widget.dart';
 import 'package:mangayomi/modules/widgets/progress_center.dart';
+import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/fetch_sources_list.dart';
 import 'package:mangayomi/services/get_filter_list.dart';
 import 'package:mangayomi/services/get_latest_updates.dart';
 import 'package:mangayomi/services/get_popular.dart';
 import 'package:mangayomi/services/get_source_baseurl.dart';
 import 'package:mangayomi/services/search.dart';
-import 'package:mangayomi/services/supports_latest.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/modules/library/widgets/search_text_form_field.dart';
 import 'package:mangayomi/modules/manga/home/widget/mangas_card_selector.dart';
@@ -161,6 +162,9 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
             });
           }
         });
+    if (_loadingMetadata) {
+      _loadMetadataIfNeeded();
+    }
   }
 
   @override
@@ -201,10 +205,53 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
       widget.initialFilters != null &&
       widget.initialFilters!.isNotEmpty;
   int? _activeSavedSearchId;
-  late final supportsLatest = isLocal
-      ? true
-      : ref.watch(supportsLatestProvider(source: source));
-  late final filterList = isLocal ? [] : getFilterList(source: source);
+  late bool supportsLatest = isLocal ? true : (source.supportLatest ?? false);
+  late List<dynamic> filterList = isLocal ? [] : getFilterList(source: source);
+  bool _loadingMetadata = !isLocal && mihonSourceMetadataMissing(source);
+  bool _showExtensionServerVersionNudge = false;
+
+  Future<void> _loadMetadataIfNeeded() async {
+    if (isLocal || !mihonSourceMetadataMissing(source)) {
+      if (_loadingMetadata && mounted) {
+        setState(() => _loadingMetadata = false);
+      }
+      return;
+    }
+
+    if (!_loadingMetadata && mounted) {
+      setState(() => _loadingMetadata = true);
+    }
+    final proxy = ref.read(androidProxyServerStateProvider);
+    await refreshMihonSourceMetadata(source, proxy);
+    if (!mounted) return;
+
+    final refreshedSource = isar.sources.getSync(widget.source.id!) ?? source;
+    setState(() {
+      _loadingMetadata = false;
+      source = refreshedSource;
+      supportsLatest = source.supportLatest ?? false;
+      filterList = getFilterList(source: source);
+      if (!widget.openWithFilter && filters.isEmpty) {
+        filters = filterList;
+      }
+      _showExtensionServerVersionNudge =
+          shouldShowAnimeExtensionServerVersionNudge(refreshedSource);
+    });
+  }
+
+  Widget _buildSubtitleMarquee(String text) {
+    return SizedBox(
+      height: 20,
+      child: Marquee(
+        text: text,
+        style: const TextStyle(fontSize: 12),
+        blankSpace: 40.0,
+        velocity: 30.0,
+        pauseAfterRound: const Duration(seconds: 1),
+        startPadding: 10.0,
+      ),
+    );
+  }
 
   void _applySavedSearch(SavedSearch savedSearch) {
     final restoredFilters = deserializeSavedSearchFilters(
@@ -286,19 +333,19 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
                         ? "${source.name}"
                         : "${context.l10n.local_source} ${source.itemType.localized(context.l10n)}",
                   ),
-                  source.notes != null && source.notes!.isNotEmpty
-                      ? SizedBox(
-                          height: 20,
-                          child: Marquee(
-                            text: l10n.extension_notes(source.notes!),
+                  if (source.notes != null && source.notes!.isNotEmpty)
+                    _buildSubtitleMarquee(l10n.extension_notes(source.notes!)),
+                  if (_showExtensionServerVersionNudge)
+                    source.notes != null && source.notes!.isNotEmpty
+                        ? Text(
+                            l10n.extension_server_version_nudge,
                             style: const TextStyle(fontSize: 12),
-                            blankSpace: 40.0,
-                            velocity: 30.0,
-                            pauseAfterRound: const Duration(seconds: 1),
-                            startPadding: 10.0,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : _buildSubtitleMarquee(
+                            l10n.extension_server_version_nudge,
                           ),
-                        )
-                      : Container(),
                 ],
               ),
         leading: !_isSearch ? null : Container(),
@@ -441,7 +488,15 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
               SizedBox(
                 width: context.width(1),
                 height: 45,
-                child: SuperListView.builder(
+                child: _loadingMetadata
+                    ? const Center(
+                        child: SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : SuperListView.builder(
                   scrollDirection: Axis.horizontal,
                   shrinkWrap: true,
                   itemCount: 3,

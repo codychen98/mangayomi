@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:isar_community/isar.dart';
+import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/eval/model/filter.dart';
 import 'package:mangayomi/eval/model/source_preference.dart';
 import 'package:mangayomi/main.dart';
@@ -9,8 +10,11 @@ import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
+import 'package:mangayomi/modules/more/settings/browse/extension_server/extension_server_utils.dart';
+import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 Future<void> fetchSourcesList({
@@ -129,6 +133,11 @@ Future<void> fetchSourcesList({
     );
     if (matchingSource.id != null && matchingSource.sourceCodeUrl!.isNotEmpty) {
       await _updateSource(matchingSource, androidProxyServer, repo, itemType);
+      final installedSource = await isar.sources.get(id);
+      if (installedSource != null &&
+          mihonSourceMetadataMissing(installedSource)) {
+        _showExtensionMetadataPartialInstallToast();
+      }
     }
   } else {
     for (var source in sourceList) {
@@ -173,23 +182,14 @@ Future<void> _updateSource(
   source.sourceCode = sourceCode;
   if (source.sourceCodeLanguage == SourceCodeLanguage.mihon) {
     headers = await fetchHeadersDalvik(http, source, androidProxyServer);
-    supportLatest = await fetchSupportLatestDalvik(
+    final metadata = await fetchMihonSourceMetadataFields(
       http,
       source,
       androidProxyServer,
     );
-    filterList = await fetchFilterListDalvik(http, source, androidProxyServer);
-    preferenceList = await fetchPreferencesDalvik(
-      http,
-      source,
-      androidProxyServer,
-    );
-    if (preferenceList != null) {
-      preferenceList = mergeFetchedSourcePreferences(
-        preferenceList,
-        source.id!,
-      );
-    }
+    supportLatest = metadata.supportLatest;
+    filterList = metadata.filterList;
+    preferenceList = metadata.preferenceList;
   } else {
     headers = await getIsolateService.get<Map<String, String>>(
       source: source,
@@ -231,6 +231,23 @@ Future<void> _updateSource(
     ..updatedAt = DateTime.now().millisecondsSinceEpoch;
 
   await isar.writeTxn(() async => isar.sources.put(updatedSource));
+
+  if (source.sourceCodeLanguage == SourceCodeLanguage.mihon &&
+      mihonSourceMetadataMissing(updatedSource)) {
+    AppLogger.log(
+      'Mihon metadata incomplete after install for '
+      '${updatedSource.name} (id=${updatedSource.id})',
+      logLevel: LogLevel.warning,
+    );
+  }
+}
+
+void _showExtensionMetadataPartialInstallToast() {
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+  final l10n = l10nLocalizations(context);
+  if (l10n == null) return;
+  botToast(l10n.extension_metadata_partial_install);
 }
 
 Future<void> _addNewSource(Source source, Repo? repo, ItemType itemType) async {
@@ -341,7 +358,137 @@ Future<Map<String, String>> fetchHeadersDalvik(
   }
 }
 
-Future<bool> fetchSupportLatestDalvik(
+bool? parseDalvikBoolResponse(String body, {int? statusCode}) {
+  if (statusCode != null && statusCode != 200) return null;
+  final trimmed = body.trim();
+  try {
+    final decoded = jsonDecode(trimmed);
+    if (decoded is Map && decoded.containsKey('error')) return null;
+    if (decoded is bool) return decoded;
+    return null;
+  } catch (_) {
+    // Fall through for plain-text boolean bodies.
+  }
+  if (trimmed == 'true') return true;
+  if (trimmed == 'false') return false;
+  return null;
+}
+
+FilterList? parseDalvikFilterResponse(String body) {
+  try {
+    final decoded = jsonDecode(body);
+    if (decoded is Map && decoded.containsKey('error')) return null;
+    final List<dynamic> data;
+    if (decoded is List) {
+      data = decoded;
+    } else if (decoded is Map && decoded['list'] is List) {
+      data = decoded['list'] as List;
+    } else {
+      return null;
+    }
+    return FilterList(filtersFromJson(data));
+  } catch (_) {
+    return null;
+  }
+}
+
+bool mihonSourceMetadataMissing(Source source) {
+  if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return false;
+  if (source.isAdded != true) return false;
+  if (source.sourceCode == null || source.sourceCode!.isEmpty) return false;
+  if (source.supportLatest == null) return true;
+  if (source.filterList == null || source.filterList!.isEmpty) return true;
+  if (source.preferenceList == null || source.preferenceList!.isEmpty) {
+    return true;
+  }
+  return false;
+}
+
+const minAnimeExtensionServerVersion = '1.0.4';
+
+bool shouldShowAnimeExtensionServerVersionNudge(Source source) {
+  if (source.itemType != ItemType.anime) return false;
+  if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return false;
+  if (!mihonSourceMetadataMissing(source)) return false;
+
+  final settings = isar.settings.getSync(227);
+  final jarPath = settings?.extensionServerPath ?? '';
+  final version = resolveInstalledExtensionServerVersion(jarPath);
+  if (version.isEmpty) return true;
+  return compareVersions(version, minAnimeExtensionServerVersion) < 0;
+}
+
+Future<
+  ({
+    bool? supportLatest,
+    FilterList? filterList,
+    List<SourcePreference>? preferenceList,
+  })
+>
+fetchMihonSourceMetadataFields(
+  InterceptedClient client,
+  Source source,
+  String androidProxyServer,
+) async {
+  final supportLatest = await fetchSupportLatestDalvik(
+    client,
+    source,
+    androidProxyServer,
+  );
+  final filterList = await fetchFilterListDalvik(
+    client,
+    source,
+    androidProxyServer,
+  );
+  var preferenceList = await fetchPreferencesDalvik(
+    client,
+    source,
+    androidProxyServer,
+  );
+  if (preferenceList != null) {
+    preferenceList = mergeFetchedSourcePreferences(preferenceList, source.id!);
+  }
+  return (
+    supportLatest: supportLatest,
+    filterList: filterList,
+    preferenceList: preferenceList,
+  );
+}
+
+Future<bool> refreshMihonSourceMetadata(
+  Source source,
+  String androidProxyServer,
+) async {
+  if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return false;
+  if (source.sourceCode == null || source.sourceCode!.isEmpty) return false;
+
+  final http = MClient.init(reqcopyWith: {'useDartHttpClient': true});
+  final metadata = await fetchMihonSourceMetadataFields(
+    http,
+    source,
+    androidProxyServer,
+  );
+
+  final dbSource = isar.sources.getSync(source.id!);
+  if (dbSource == null) return false;
+
+  if (metadata.supportLatest != null) {
+    dbSource.supportLatest = metadata.supportLatest;
+  }
+  if (metadata.filterList != null) {
+    dbSource.filterList = jsonEncode(metadata.filterList!.toJson());
+  }
+  if (metadata.preferenceList != null) {
+    dbSource.preferenceList = jsonEncode(
+      metadata.preferenceList!.map((e) => e.toJson()).toList(),
+    );
+  }
+
+  isar.writeTxnSync(() => isar.sources.putSync(dbSource));
+  return !mihonSourceMetadataMissing(dbSource);
+}
+
+Future<bool?> fetchSupportLatestDalvik(
   InterceptedClient client,
   Source source,
   String androidProxyServer,
@@ -350,14 +497,16 @@ Future<bool> fetchSupportLatestDalvik(
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "supportLatest$name",
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        dalvikRequestBody(
+          method: "supportLatest$name",
+          source: source,
+        ),
+      ),
     );
-    return res.body.trim() == "true";
+    return parseDalvikBoolResponse(res.body, statusCode: res.statusCode);
   } catch (_) {
-    return false;
+    return null;
   }
 }
 
@@ -370,11 +519,15 @@ Future<FilterList?> fetchFilterListDalvik(
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({"method": "filters$name", "data": source.sourceCode}),
+      body: jsonEncode(
+        dalvikRequestBody(
+          method: "filters$name",
+          source: source,
+        ),
+      ),
     );
-    final data = jsonDecode(res.body) as List;
-
-    return FilterList(filtersFromJson(data));
+    if (res.statusCode != 200) return null;
+    return parseDalvikFilterResponse(res.body);
   } catch (_) {
     return null;
   }

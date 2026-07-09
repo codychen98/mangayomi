@@ -1790,6 +1790,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get source_not_added => 'Sumber tidak diinstal!';
 
   @override
+  String get extension_metadata_partial_install =>
+      'Extension installed, but settings and filters could not be loaded. Open the extension to retry.';
+
+  @override
+  String get extension_server_version_nudge =>
+      'Update the proxy server in Settings → Android Proxy Server (Mihon) → Update files to load filters and settings.';
+
+  @override
   String get load_own_subtitles => 'Muat subtitle Anda sendiri...';
 
   @override

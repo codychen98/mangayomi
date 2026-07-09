@@ -30,32 +30,28 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
   late Source source = isar.sources.getSync(widget.source.id!)!;
   late bool hasPreferences =
       loadSourcePreferencesForSource(source)?.isNotEmpty ?? false;
-  bool _loadingPreferences = false;
+  bool _loadingMetadata = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPreferencesIfNeeded();
+      _loadMetadataIfNeeded();
     });
   }
 
-  Future<void> _loadPreferencesIfNeeded() async {
-    if (hasPreferences) return;
-    if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return;
-    if (source.sourceCode == null || source.sourceCode!.isEmpty) return;
+  Future<void> _loadMetadataIfNeeded() async {
+    if (!mihonSourceMetadataMissing(source)) return;
 
-    setState(() => _loadingPreferences = true);
+    setState(() => _loadingMetadata = true);
     final proxy = ref.read(androidProxyServerStateProvider);
-    final loaded = await refreshMihonSourcePreferences(source, proxy);
+    await refreshMihonSourceMetadata(source, proxy);
     if (!mounted) return;
     setState(() {
-      _loadingPreferences = false;
-      if (loaded) {
-        source = isar.sources.getSync(widget.source.id!)!;
-        hasPreferences =
-            loadSourcePreferencesForSource(source)?.isNotEmpty ?? false;
-      }
+      _loadingMetadata = false;
+      source = isar.sources.getSync(widget.source.id!)!;
+      hasPreferences =
+          loadSourcePreferencesForSource(source)?.isNotEmpty ?? false;
     });
   }
 
@@ -361,7 +357,7 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                 ),
               ),
             ),
-            if (_loadingPreferences)
+            if (_loadingMetadata)
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Center(child: CircularProgressIndicator()),

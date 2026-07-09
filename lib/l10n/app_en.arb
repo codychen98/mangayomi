@@ -677,6 +677,8 @@
   "genre_search_library": "Search genre in library",
   "genre_search_source": "Browse in source",
   "source_not_added": "Source is not installed!",
+  "extension_metadata_partial_install": "Extension installed, but settings and filters could not be loaded. Open the extension to retry.",
+  "extension_server_version_nudge": "Update the proxy server in Settings → Android Proxy Server (Mihon) → Update files to load filters and settings.",
   "load_own_subtitles": "Load your own subtitles...",
   "search_subtitles": "Search subtitles online...",
   "extension_notes": "Notes: {notes}",
