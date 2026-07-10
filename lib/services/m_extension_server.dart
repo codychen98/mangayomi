@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,25 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/services/extension_server_bootstrap.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
+
+const _dalvikReadyTimeout = Duration(seconds: 15);
+const _dalvikReadyPollInterval = Duration(milliseconds: 500);
+
+Future<bool> isExtensionServerDalvikReady(String baseUrl) async {
+  if (baseUrl.isEmpty || baseUrl == 'http://127.0.0.1:0') return false;
+  try {
+    final res = await http
+        .post(
+          Uri.parse('$baseUrl/dalvik'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'method': 'headersManga', 'data': ''}),
+        )
+        .timeout(const Duration(seconds: 3));
+    return res.statusCode == 200;
+  } catch (_) {
+    return false;
+  }
+}
 
 class MExtensionServerPlatform {
   WidgetRef ref;
@@ -26,35 +46,58 @@ class MExtensionServerPlatform {
     }
   }
 
+  Future<String> ensureDalvikProxyReady() async {
+    await startServer();
+    final deadline = DateTime.now().add(_dalvikReadyTimeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final proxy = ref.read(androidProxyServerStateProvider);
+      if (await isExtensionServerDalvikReady(proxy)) {
+        return proxy;
+      }
+      await Future.delayed(_dalvikReadyPollInterval);
+    }
+    return ref.read(androidProxyServerStateProvider);
+  }
+
   Future<void> startServer() async {
     try {
-      final isRunning = await check();
-      if (!isRunning) {
-        if (isDesktop) {
-          await ensurePortableExtensionServerConfigured();
+      if (isDesktop) {
+        await ensurePortableExtensionServerConfigured();
+        final settings = isar.settings.getSync(227);
+        final jrePath = settings?.jrePath;
+        final serverJarPath = settings?.extensionServerPath;
+        if ((jrePath?.isEmpty ?? true) || (serverJarPath?.isEmpty ?? true)) {
+          return;
         }
+        if (!await File(jrePath!).exists() ||
+            !await File(serverJarPath!).exists()) {
+          return;
+        }
+        final currentUrl = ref.read(androidProxyServerStateProvider);
+        if (await isExtensionServerDalvikReady(currentUrl)) {
+          return;
+        }
+        await MExtensionServer().stopServer();
         final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
         final port = server.port;
         await server.close();
-        if (isDesktop) {
-          final settings = isar.settings.getSync(227);
-          final jrePath = settings?.jrePath;
-          final serverJarPath = settings?.extensionServerPath;
-          if ((jrePath?.isEmpty ?? true) || (serverJarPath?.isEmpty ?? true)) {
-            return;
-          }
-          if (!await File(jrePath!).exists() ||
-              !await File(serverJarPath!).exists()) {
-            return;
-          }
-          await MExtensionServer().startServer(
-            port,
-            jvmPath: jrePath,
-            serverJarPath: serverJarPath,
-          );
-        } else {
-          await MExtensionServer().startServer(port);
-        }
+        await MExtensionServer().startServer(
+          port,
+          jvmPath: jrePath,
+          serverJarPath: serverJarPath,
+        );
+        ref
+            .read(androidProxyServerStateProvider.notifier)
+            .set("http://127.0.0.1:$port");
+        return;
+      }
+
+      final isRunning = await check();
+      if (!isRunning) {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        final port = server.port;
+        await server.close();
+        await MExtensionServer().startServer(port);
         ref
             .read(androidProxyServerStateProvider.notifier)
             .set("http://127.0.0.1:$port");

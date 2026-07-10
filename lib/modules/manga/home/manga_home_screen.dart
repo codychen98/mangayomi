@@ -22,6 +22,7 @@ import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_pr
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/fetch_sources_list.dart';
 import 'package:mangayomi/services/get_filter_list.dart';
+import 'package:mangayomi/services/m_extension_server.dart';
 import 'package:mangayomi/services/get_latest_updates.dart';
 import 'package:mangayomi/services/get_popular.dart';
 import 'package:mangayomi/services/get_source_baseurl.dart';
@@ -222,7 +223,7 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
     if (!_loadingMetadata && mounted) {
       setState(() => _loadingMetadata = true);
     }
-    final proxy = ref.read(androidProxyServerStateProvider);
+    final proxy = await MExtensionServerPlatform(ref).ensureDalvikProxyReady();
     await refreshMihonSourceMetadata(source, proxy);
     if (!mounted) return;
 

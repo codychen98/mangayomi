@@ -248,7 +248,16 @@ void _showExtensionMetadataPartialInstallToast() {
   if (context == null) return;
   final l10n = l10nLocalizations(context);
   if (l10n == null) return;
-  botToast(l10n.extension_metadata_partial_install);
+  final settings = isar.settings.getSync(227);
+  final jarPath = settings?.extensionServerPath ?? '';
+  final version = resolveInstalledExtensionServerVersion(jarPath);
+  final needsJarUpdate =
+      version.isEmpty ||
+      compareVersions(version, minAnimeExtensionServerVersion) < 0;
+  final message = needsJarUpdate
+      ? '${l10n.extension_metadata_partial_install} ${l10n.extension_server_version_nudge}'
+      : l10n.extension_metadata_partial_install;
+  botToast(message, second: needsJarUpdate ? 20 : 10);
 }
 
 Future<void> _addNewSource(Source source, Repo? repo, ItemType itemType) async {
