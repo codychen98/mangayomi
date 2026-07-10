@@ -360,7 +360,8 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
     }
     final l10n = l10nLocalizations(context)!;
     _setCheckingState(true);
-    final configuredPaths = _readConfiguredPaths();
+    var configuredPaths = _readConfiguredPaths();
+    configuredPaths = await _syncConfiguredPathsToNewestJar(configuredPaths);
     final fileState = await _resolveFileState(configuredPaths);
     final releaseState = await _resolveLatestReleaseState(l10n, fileState);
     if (!mounted) return;
@@ -387,6 +388,9 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
       await _downloadReleaseBundle(release, bundleZip, l10n);
       final installDir = await _resolveInstallDirectory();
       await MExtensionServerPlatform(ref).stopServer();
+      if (Platform.isWindows) {
+        await Future.delayed(const Duration(seconds: 1));
+      }
       await _installDownloadedBundle(bundleZip, installDir, l10n);
       await _startServerAndRefresh();
       botToast(l10n.extension_server_files_ready);
@@ -516,6 +520,14 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
   Future<Directory> _resolveInstallDirectory() async {
     if (Platform.isIOS) {
       return _defaultInstallDirectory();
+    }
+    final configuredPaths = _readConfiguredPaths();
+    final configuredDirectory = extensionServerDirectoryFromPaths(
+      jrePath: configuredPaths.jrePath,
+      extensionServerPath: configuredPaths.extensionServerPath,
+    );
+    if (configuredDirectory != null && configuredDirectory.isNotEmpty) {
+      return Directory(configuredDirectory);
     }
     if (_selectedInstallDirectory.isNotEmpty) {
       return Directory(_selectedInstallDirectory);
@@ -748,9 +760,45 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
 
   Future<void> _prepareInstallDirectory(Directory installDir) async {
     if (await installDir.exists()) {
-      await _deleteDirectoryWithRetry(installDir);
+      try {
+        await _deleteDirectoryWithRetry(installDir);
+      } catch (_) {
+        await removeExtensionServerJars(installDir);
+      }
     }
     await installDir.create(recursive: true);
+  }
+
+  Future<_ConfiguredPaths> _syncConfiguredPathsToNewestJar(
+    _ConfiguredPaths paths,
+  ) async {
+    final installDirectory = extensionServerDirectoryFromPaths(
+      jrePath: paths.jrePath,
+      extensionServerPath: paths.extensionServerPath,
+    );
+    if (installDirectory == null || installDirectory.isEmpty) {
+      return paths;
+    }
+    final installDir = Directory(installDirectory);
+    if (!await installDir.exists()) {
+      return paths;
+    }
+    final newestJar = await findExtensionServerJar(installDir);
+    if (newestJar == null || newestJar == paths.extensionServerPath) {
+      return paths;
+    }
+    final jrePath = paths.jrePath.isNotEmpty
+        ? paths.jrePath
+        : await findExtensionServerJavaExecutable(installDir);
+    await _saveResolvedPaths(
+      jrePath: jrePath,
+      extensionServerPath: newestJar,
+      installDirectory: installDirectory,
+    );
+    return _ConfiguredPaths(
+      jrePath: jrePath ?? '',
+      extensionServerPath: newestJar,
+    );
   }
 
   Future<_ResolvedPaths> _resolvePathsInDirectory(Directory installDir) async {

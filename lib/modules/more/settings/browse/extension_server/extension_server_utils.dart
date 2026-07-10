@@ -45,16 +45,63 @@ Future<String?> findExtensionServerJavaExecutable(Directory root) async {
   return null;
 }
 
+String? extractExtensionServerVersion(String value) {
+  final match = RegExp(r'v?(\d+(?:\.\d+)+)').firstMatch(value);
+  return match?.group(1);
+}
+
+int compareExtensionServerVersions(String version1, String version2) {
+  final v1Parts = version1.split('.');
+  final v2Parts = version2.split('.');
+  final minLength = v1Parts.length < v2Parts.length
+      ? v1Parts.length
+      : v2Parts.length;
+
+  for (var i = 0; i < minLength; i++) {
+    final v1Value = int.parse(v1Parts[i].padRight(2, '0'));
+    final v2Value = int.parse(v2Parts[i].padRight(2, '0'));
+    final comparison = v1Value.compareTo(v2Value);
+    if (comparison != 0) return comparison;
+  }
+
+  return v1Parts.length.compareTo(v2Parts.length);
+}
+
 Future<String?> findExtensionServerJar(Directory root) async {
+  String? newestPath;
+  String? newestVersion;
   await for (final entity in root.list(recursive: true, followLinks: false)) {
+    if (entity is! File) continue;
     final fileName = path.basename(entity.path);
-    if (entity is File &&
-        fileName.startsWith(extensionServerJarPrefix) &&
-        fileName.endsWith('.jar')) {
-      return entity.path;
+    if (!fileName.startsWith(extensionServerJarPrefix) ||
+        !fileName.endsWith('.jar')) {
+      continue;
+    }
+    final version =
+        extractExtensionServerVersion(fileName) ??
+        extensionServerFallbackVersion;
+    if (newestVersion == null ||
+        compareExtensionServerVersions(version, newestVersion) > 0) {
+      newestVersion = version;
+      newestPath = entity.path;
     }
   }
-  return null;
+  return newestPath;
+}
+
+Future<void> removeExtensionServerJars(Directory root) async {
+  if (!await root.exists()) return;
+  await for (final entity in root.list(recursive: true, followLinks: false)) {
+    if (entity is! File) continue;
+    final fileName = path.basename(entity.path);
+    if (!fileName.startsWith(extensionServerJarPrefix) ||
+        !fileName.endsWith('.jar')) {
+      continue;
+    }
+    try {
+      await entity.delete();
+    } catch (_) {}
+  }
 }
 
 String? extensionServerAssetNameForCurrentPlatform() {
@@ -91,9 +138,4 @@ String resolveExtensionServerReleaseVersion(Map<String, dynamic> release) {
       extensionServerFallbackVersion;
   return extractExtensionServerVersion(versionSource) ??
       versionSource.substringAfter('v').substringBefore('-');
-}
-
-String? extractExtensionServerVersion(String value) {
-  final match = RegExp(r'v?(\d+(?:\.\d+)+)').firstMatch(value);
-  return match?.group(1);
 }

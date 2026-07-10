@@ -39,7 +39,7 @@ Future<bool> ensurePortableExtensionServerConfigured() async {
   final currentJreOk =
       currentJre.isNotEmpty && await File(currentJre).exists();
 
-  if (currentJarOk && currentJreOk && currentJar == jarPath && currentJre == jrePath) {
+  if (currentJarOk && currentJreOk) {
     return false;
   }
 
