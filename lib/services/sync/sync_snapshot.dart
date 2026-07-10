@@ -328,8 +328,8 @@ SyncSnapshot buildLocalSnapshot(
       .toList();
 
   final extensionsPreferenceStringValues = isar.sourcePreferenceStringValues
-      .filter()
-      .idIsNotNull()
+      .where()
+      .anyId()
       .findAllSync()
       .map(
         (e) => SourcePreferenceStringValue.fromJson({

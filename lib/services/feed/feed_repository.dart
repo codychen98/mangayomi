@@ -2,6 +2,7 @@ import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/feed_saved_search.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/services/sync/sync_entity_keys.dart';
 import 'package:mangayomi/services/sync/sync_tombstone.dart';
 import 'package:mangayomi/services/sync/sync_trigger_service.dart';
