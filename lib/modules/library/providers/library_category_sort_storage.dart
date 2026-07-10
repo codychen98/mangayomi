@@ -46,5 +46,6 @@ Future<void> writeCategorySort({
   await _box().put(_sortKey(categoryId: categoryId, itemType: itemType), {
     'index': index,
     'reverse': reverse,
+    'updatedAt': DateTime.now().millisecondsSinceEpoch,
   });
 }

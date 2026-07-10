@@ -9,6 +9,7 @@ import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/manga/download/providers/download_provider.dart';
 import 'package:mangayomi/utils/extensions/chapter_extensions.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'library_state_provider.g.dart';
@@ -935,6 +936,7 @@ class SortLibraryCategoryState extends _$SortLibraryCategoryState {
       reverse: nextReverse,
     );
     state = SortLibraryManga(index: index, reverse: nextReverse);
+    await maybeTriggerMetadataSync();
   }
 
   void set(int index) {

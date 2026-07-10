@@ -3,6 +3,9 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/feed_saved_search.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/saved_search.dart';
+import 'package:mangayomi/services/sync/sync_entity_keys.dart';
+import 'package:mangayomi/services/sync/sync_tombstone.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 
 class SavedSearchRepository {
   static const SavedSearchRepository instance = SavedSearchRepository._();
@@ -37,6 +40,13 @@ class SavedSearchRepository {
   }
 
   Future<void> delete(int id) async {
+    final savedSearch = await isar.savedSearchs.get(id);
+    if (savedSearch != null) {
+      await SyncTombstoneStore.recordSavedSearchDeleted(
+        savedSearchSyncKey(savedSearch),
+      );
+      await maybeTriggerMetadataSync();
+    }
     await isar.writeTxn(() async {
       final feedRefs = await isar.feedSavedSearchs
           .filter()
@@ -54,7 +64,7 @@ class SavedSearchRepository {
   }
 
   Future<Id> insert(SavedSearch savedSearch) async {
-    return isar.writeTxn(() async {
+    final id = await isar.writeTxn(() async {
       var query = isar.savedSearchs
           .filter()
           .sourceIdEqualTo(savedSearch.sourceId)
@@ -83,6 +93,8 @@ class SavedSearchRepository {
         ),
       );
     });
+    await maybeTriggerMetadataSync();
+    return id;
   }
 
   Future<void> insertAll(List<SavedSearch> savedSearches) async {

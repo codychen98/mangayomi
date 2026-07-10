@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,7 @@ import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/fetch_sources_list.dart';
 import 'package:mangayomi/services/m_extension_server.dart';
 import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/language.dart';
@@ -344,6 +347,9 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
                                       isar.sourcePreferenceStringValues
                                           .deleteAllSync(sourcePrefsStringIds);
                                     });
+                                    unawaited(
+                                      onExtensionUninstalled(source.id!),
+                                    );
 
                                     Navigator.pop(ctx);
                                     Navigator.pop(context);

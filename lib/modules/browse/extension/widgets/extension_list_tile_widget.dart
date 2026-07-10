@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,7 @@ import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.da
 import 'package:mangayomi/services/fetch_item_sources.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/fetch_sources_list.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/utils/cached_network.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/language.dart';
@@ -165,6 +168,9 @@ class _ExtensionListTileWidgetState
                                       isar.sourcePreferenceStringValues
                                           .deleteAllSync(sourcePrefsStringIds);
                                     });
+                                    unawaited(
+                                      onExtensionUninstalled(widget.source.id!),
+                                    );
 
                                     Navigator.pop(ctx);
                                   },

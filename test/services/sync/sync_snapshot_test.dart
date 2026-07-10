@@ -57,7 +57,7 @@ void main() {
 
       final restored = SyncSnapshot.fromJson(snapshot.toJson());
 
-      expect(restored.version, '2');
+      expect(restored.version, '4');
       expect(restored.manga, hasLength(1));
       expect(restored.manga.first.itemType, ItemType.anime);
       expect(restored.manga.first.name, 'Test Anime');

@@ -3,6 +3,7 @@ import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/more/data_and_storage/providers/backup.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
+import 'package:mangayomi/utils/path_preferences.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:path/path.dart' as p;
 part 'auto_backup.g.dart';
@@ -60,6 +61,7 @@ class AutoBackupLocationState extends _$AutoBackupLocationState {
           ..updatedAt = DateTime.now().millisecondsSinceEpoch,
       ),
     );
+    PathPreferences.save(autoBackupLocation: location);
   }
 
   Directory? _storageProvider;

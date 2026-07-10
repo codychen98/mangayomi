@@ -2,6 +2,9 @@ import 'package:isar_community/isar.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/feed_saved_search.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/services/sync/sync_entity_keys.dart';
+import 'package:mangayomi/services/sync/sync_tombstone.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 
 const int maxFeedItems = 20;
 
@@ -83,13 +86,26 @@ class FeedRepository {
   }
 
   Future<void> delete(int id) async {
+    final feed = await isar.feedSavedSearchs.get(id);
+    if (feed != null) {
+      final savedSearches = await isar.savedSearchs
+          .filter()
+          .idIsNotNull()
+          .findAll();
+      final key = feedSavedSearchSyncKey(
+        feed,
+        savedSearchIdToSyncKey(savedSearches),
+      );
+      await SyncTombstoneStore.recordFeedDeleted(key);
+      await maybeTriggerMetadataSync();
+    }
     await isar.writeTxn(() async {
       await isar.feedSavedSearchs.delete(id);
     });
   }
 
   Future<Id> insert(FeedSavedSearch feed) async {
-    return isar.writeTxn(() async {
+    final id = await isar.writeTxn(() async {
       final existing = feed.savedSearchId == null
           ? await isar.feedSavedSearchs
                 .filter()
@@ -132,6 +148,8 @@ class FeedRepository {
         ),
       );
     });
+    await maybeTriggerMetadataSync();
+    return id;
   }
 
   Future<void> insertAll(List<FeedSavedSearch> feeds) async {
@@ -145,7 +163,7 @@ class FeedRepository {
     required int newIndex,
     required bool global,
   }) async {
-    return isar.writeTxn(() async {
+    final result = await isar.writeTxn(() async {
       final feeds = global
           ? await getGlobal(itemType: feed.itemType)
           : await getBySourceId(
@@ -181,6 +199,10 @@ class FeedRepository {
 
       return FeedReorderResult.success;
     });
+    if (result == FeedReorderResult.success) {
+      await maybeTriggerMetadataSync();
+    }
+    return result;
   }
 
   Future<int> _nextFeedOrder({

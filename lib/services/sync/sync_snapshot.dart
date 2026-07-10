@@ -1,17 +1,24 @@
 import 'package:isar_community/isar.dart';
+import 'package:mangayomi/eval/model/source_preference.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/category.dart';
 import 'package:mangayomi/models/chapter.dart';
+import 'package:mangayomi/models/feed_saved_search.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/models/saved_search.dart';
 import 'package:mangayomi/models/settings.dart';
+import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/models/track.dart';
 import 'package:mangayomi/models/update.dart';
+import 'package:mangayomi/services/sync/device_local_settings.dart';
+import 'package:mangayomi/services/sync/library_category_sort_sync.dart';
+import 'package:mangayomi/services/sync/sync_tombstone.dart';
 
-/// JSON snapshot of local library data for WebDAV sync (backup v2 shape).
+/// JSON snapshot of local library data for WebDAV sync.
 class SyncSnapshot {
-  static const String snapshotVersion = '2';
+  static const String snapshotVersion = '4';
 
   final String version;
   final List<Manga> manga;
@@ -21,6 +28,13 @@ class SyncSnapshot {
   final List<History> history;
   final List<Update> updates;
   final List<Settings> settings;
+  final List<SourcePreference> extensionsPreferences;
+  final List<SourcePreferenceStringValue> extensionsPreferenceStringValues;
+  final List<Source> extensions;
+  final List<SavedSearch> savedSearches;
+  final List<FeedSavedSearch> feedSavedSearches;
+  final List<SyncTombstone> tombstones;
+  final List<LibraryCategorySortEntry> libraryCategorySorts;
 
   const SyncSnapshot({
     this.version = snapshotVersion,
@@ -31,6 +45,13 @@ class SyncSnapshot {
     this.history = const [],
     this.updates = const [],
     this.settings = const [],
+    this.extensionsPreferences = const [],
+    this.extensionsPreferenceStringValues = const [],
+    this.extensions = const [],
+    this.savedSearches = const [],
+    this.feedSavedSearches = const [],
+    this.tombstones = const [],
+    this.libraryCategorySorts = const [],
   });
 
   factory SyncSnapshot.fromJson(Map<String, dynamic> json) {
@@ -43,6 +64,20 @@ class SyncSnapshot {
       history: _parseHistoryList(json['history']),
       updates: _parseUpdateList(json['updates']),
       settings: _parseSettingsList(json['settings']),
+      extensionsPreferences: _parseExtensionsPreferencesList(
+        json['extensions_preferences'],
+      ),
+      extensionsPreferenceStringValues:
+          _parseExtensionsPreferenceStringValuesList(
+        json['extensions_preference_string_values'],
+      ),
+      extensions: _parseExtensionsList(json['extensions']),
+      savedSearches: _parseSavedSearchList(json['savedSearches']),
+      feedSavedSearches: _parseFeedSavedSearchList(json['feedSavedSearches']),
+      tombstones: _parseTombstoneList(json['tombstones']),
+      libraryCategorySorts: parseLibraryCategorySortList(
+        json['libraryCategorySorts'],
+      ),
     );
   }
 
@@ -62,6 +97,31 @@ class SyncSnapshot {
     }
     if (settings.isNotEmpty) {
       json['settings'] = settings.map((e) => e.toJson()).toList();
+    }
+    if (extensionsPreferences.isNotEmpty) {
+      json['extensions_preferences'] =
+          extensionsPreferences.map((e) => e.toJson()).toList();
+    }
+    if (extensionsPreferenceStringValues.isNotEmpty) {
+      json['extensions_preference_string_values'] =
+          extensionsPreferenceStringValues.map((e) => e.toJson()).toList();
+    }
+    if (extensions.isNotEmpty) {
+      json['extensions'] = extensions.map((e) => e.toJson()).toList();
+    }
+    if (savedSearches.isNotEmpty) {
+      json['savedSearches'] = savedSearches.map((e) => e.toJson()).toList();
+    }
+    if (feedSavedSearches.isNotEmpty) {
+      json['feedSavedSearches'] =
+          feedSavedSearches.map((e) => e.toJson()).toList();
+    }
+    if (tombstones.isNotEmpty) {
+      json['tombstones'] = tombstones.map((e) => e.toJson()).toList();
+    }
+    if (libraryCategorySorts.isNotEmpty) {
+      json['libraryCategorySorts'] =
+          libraryCategorySorts.map((e) => e.toJson()).toList();
     }
     return json;
   }
@@ -130,6 +190,58 @@ class SyncSnapshot {
         [];
   }
 
+  static List<SourcePreference> _parseExtensionsPreferencesList(Object? raw) {
+    return (raw as List?)
+            ?.map(
+              (e) => SourcePreference.fromJson(e as Map<String, dynamic>),
+            )
+            .toList() ??
+        [];
+  }
+
+  static List<SourcePreferenceStringValue>
+  _parseExtensionsPreferenceStringValuesList(Object? raw) {
+    return (raw as List?)
+            ?.map(
+              (e) => SourcePreferenceStringValue.fromJson(
+                e as Map<String, dynamic>,
+              ),
+            )
+            .toList() ??
+        [];
+  }
+
+  static List<Source> _parseExtensionsList(Object? raw) {
+    return (raw as List?)
+            ?.map(
+              (e) => Source.fromJson(e as Map<String, dynamic>)
+                ..itemType = _itemTypeFromJson(e),
+            )
+            .toList() ??
+        [];
+  }
+
+  static List<SavedSearch> _parseSavedSearchList(Object? raw) {
+    return (raw as List?)
+            ?.map((e) => SavedSearch.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+  }
+
+  static List<FeedSavedSearch> _parseFeedSavedSearchList(Object? raw) {
+    return (raw as List?)
+            ?.map((e) => FeedSavedSearch.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+  }
+
+  static List<SyncTombstone> _parseTombstoneList(Object? raw) {
+    return (raw as List?)
+            ?.map((e) => SyncTombstone.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        [];
+  }
+
   static ItemType _itemTypeFromJson(Map<String, dynamic> json) {
     final isManga = json['isManga'];
     if (isManga == null) {
@@ -148,7 +260,10 @@ class SyncSnapshot {
 }
 
 /// Builds a full local snapshot from Isar using [sync_server.dart] scope.
-SyncSnapshot buildLocalSnapshot(SyncPreference prefs) {
+SyncSnapshot buildLocalSnapshot(
+  SyncPreference prefs, {
+  List<SyncTombstone> tombstones = const [],
+}) {
   final manga = isar.mangas
       .filter()
       .idIsNotNull()
@@ -205,6 +320,48 @@ SyncSnapshot buildLocalSnapshot(SyncPreference prefs) {
       ? [_settingsToSnapshotJson()]
       : <Settings>[];
 
+  final extensionsPreferences = isar.sourcePreferences
+      .filter()
+      .idIsNotNull()
+      .findAllSync()
+      .map((e) => SourcePreference.fromJson(e.toJson()))
+      .toList();
+
+  final extensionsPreferenceStringValues = isar.sourcePreferenceStringValues
+      .filter()
+      .idIsNotNull()
+      .findAllSync()
+      .map(
+        (e) => SourcePreferenceStringValue.fromJson({
+          'id': e.id,
+          'sourceId': e.sourceId,
+          'key': e.key,
+          'value': e.value,
+        }),
+      )
+      .toList();
+
+  final extensions = isar.sources
+      .filter()
+      .isAddedEqualTo(true)
+      .findAllSync()
+      .map((e) => Source.fromJson(e.toJson())..itemType = e.itemType)
+      .toList();
+
+  final savedSearches = isar.savedSearchs
+      .filter()
+      .idIsNotNull()
+      .findAllSync()
+      .map((e) => SavedSearch.fromJson(e.toJson()))
+      .toList();
+
+  final feedSavedSearches = isar.feedSavedSearchs
+      .filter()
+      .idIsNotNull()
+      .findAllSync()
+      .map((e) => FeedSavedSearch.fromJson(e.toJson()))
+      .toList();
+
   return SyncSnapshot(
     manga: manga,
     categories: categories,
@@ -213,6 +370,13 @@ SyncSnapshot buildLocalSnapshot(SyncPreference prefs) {
     history: history,
     updates: updates,
     settings: settings,
+    extensionsPreferences: extensionsPreferences,
+    extensionsPreferenceStringValues: extensionsPreferenceStringValues,
+    extensions: extensions,
+    savedSearches: savedSearches,
+    feedSavedSearches: feedSavedSearches,
+    tombstones: tombstones,
+    libraryCategorySorts: exportLibraryCategorySorts(),
   );
 }
 
@@ -228,5 +392,5 @@ Settings _settingsToSnapshotJson() {
   );
   settings.updatedAt ??= DateTime.now().millisecondsSinceEpoch;
   settings.cookiesList = [];
-  return settings;
+  return stripDeviceLocalSettings(settings);
 }

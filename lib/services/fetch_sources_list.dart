@@ -15,6 +15,7 @@ import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
+import 'package:mangayomi/services/sync/sync_trigger_service.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -232,6 +233,7 @@ Future<void> _updateSource(
     ..updatedAt = DateTime.now().millisecondsSinceEpoch;
 
   await isar.writeTxn(() async => isar.sources.put(updatedSource));
+  await onExtensionInstalled(updatedSource.id!);
 
   if (source.sourceCodeLanguage == SourceCodeLanguage.mihon &&
       mihonSourceMetadataMissing(updatedSource)) {

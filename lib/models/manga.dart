@@ -93,7 +93,7 @@ class Manga {
     customCoverImage = json['customCoverImage']?.cast<int>();
     dateAdded = json['dateAdded'];
     description = json['description'];
-    favorite = json['favorite']!;
+    favorite = json['favorite'] as bool? ?? false;
     genre = json['genre']?.cast<String>();
     id = json['id'];
     imageUrl = json['imageUrl'];

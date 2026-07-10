@@ -22,6 +22,7 @@ import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/models/track.dart';
 import 'package:mangayomi/models/track_preference.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
+import 'package:mangayomi/utils/path_preferences.dart';
 import 'package:mangayomi/utils/portable_paths.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -323,6 +324,7 @@ class StorageProvider {
       if (settings == null) {
         await isar.writeTxn(() async => isar.settings.put(Settings()));
       }
+      await PathPreferences.restoreIntoIsarIfNeeded();
       await ensureLibraryUpdatePreferences();
     } catch (_) {
       if (await requestPermission()) {
@@ -334,6 +336,7 @@ class StorageProvider {
           if (settings == null) {
             await isar.writeTxn(() async => isar.settings.put(Settings()));
           }
+          await PathPreferences.restoreIntoIsarIfNeeded();
           await ensureLibraryUpdatePreferences();
         } catch (e) {
           debugPrint("Failed after retry with permission: $e");

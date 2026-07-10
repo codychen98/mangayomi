@@ -10,6 +10,7 @@ import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.da
 import 'package:mangayomi/services/sync/sync_backend.dart';
 import 'package:mangayomi/services/sync/sync_merger.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
+import 'package:mangayomi/services/sync/sync_tombstone.dart';
 import 'package:mangayomi/services/sync/webdav_client.dart';
 
 /// Snapshot size above which a progress toast is shown before upload/download.
@@ -197,7 +198,11 @@ class WebDavSyncBackend implements SyncBackend {
   }) async {
     for (var attempt = 0; attempt < 3; attempt++) {
       final currentPrefs = ref.read(synchingProvider(syncId: syncId));
-      final localSnapshot = buildLocalSnapshot(currentPrefs);
+      final tombstones = await SyncTombstoneStore.loadAll();
+      final localSnapshot = buildLocalSnapshot(
+        currentPrefs,
+        tombstones: tombstones,
+      );
       final useConditionalPull = attempt == 0;
       final useConditionalPush = attempt < 2;
 
@@ -239,6 +244,11 @@ class WebDavSyncBackend implements SyncBackend {
       );
       _updateSyncTimestamps(syncNotifier, currentPrefs);
       ref.invalidate(synchingProvider(syncId: syncId));
+      if (pushSnapshot.tombstones.isNotEmpty) {
+        await SyncTombstoneStore.clearKeys(
+          pushSnapshot.tombstones.map((t) => '${t.entity.index}|${t.key}'),
+        );
+      }
 
       if (!silent) {
         botToast(l10n.sync_finished, second: 2);

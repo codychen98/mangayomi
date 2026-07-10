@@ -238,4 +238,20 @@ class SourcePreferenceStringValue {
     this.key,
     this.value,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'sourceId': sourceId,
+    'key': key,
+    'value': value,
+  };
+
+  factory SourcePreferenceStringValue.fromJson(Map<String, dynamic> json) {
+    return SourcePreferenceStringValue(
+      id: json['id'] ?? Isar.autoIncrement,
+      sourceId: json['sourceId'],
+      key: json['key'],
+      value: json['value'],
+    );
+  }
 }
