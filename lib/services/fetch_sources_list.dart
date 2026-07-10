@@ -440,7 +440,7 @@ List<dynamic>? parseDalvikPreferencesResponse(String body) {
   }
 }
 
-const minAnimeExtensionServerVersion = '1.0.4';
+const minAnimeExtensionServerVersion = '1.0.5';
 
 bool shouldShowAnimeExtensionServerVersionNudge(Source source) {
   if (source.itemType != ItemType.anime) return false;

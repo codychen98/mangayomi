@@ -6,6 +6,8 @@ import 'package:path/path.dart' as path;
 
 const extensionServerFallbackVersion = '1.0.0';
 const extensionServerJarPrefix = 'MExtensionServer-';
+const extensionServerInstalledReleaseFileName =
+    'extension_server_installed_release.txt';
 const extensionServerReleaseApiUrl =
     'https://api.github.com/repos/codychen98/M-Extension-Server/releases?page=1&per_page=10';
 const apkBridgeReleaseUrl =
@@ -127,8 +129,29 @@ String? extensionServerAssetNameForCurrentPlatform() {
 
 String resolveInstalledExtensionServerVersion(String extensionServerPath) {
   if (extensionServerPath.isEmpty) return '';
+  final installDir = path.dirname(extensionServerPath);
+  final versionFile = File(
+    path.join(installDir, extensionServerInstalledReleaseFileName),
+  );
+  if (versionFile.existsSync()) {
+    final fromFile = versionFile.readAsStringSync().trim();
+    if (fromFile.isNotEmpty) {
+      return extractExtensionServerVersion(fromFile) ?? fromFile;
+    }
+  }
   return extractExtensionServerVersion(path.basename(extensionServerPath)) ??
       extensionServerFallbackVersion;
+}
+
+Future<void> writeInstalledExtensionServerReleaseVersion(
+  String installDirectory,
+  String releaseVersion,
+) async {
+  if (installDirectory.isEmpty || releaseVersion.isEmpty) return;
+  final versionFile = File(
+    path.join(installDirectory, extensionServerInstalledReleaseFileName),
+  );
+  await versionFile.writeAsString(releaseVersion);
 }
 
 String resolveExtensionServerReleaseVersion(Map<String, dynamic> release) {

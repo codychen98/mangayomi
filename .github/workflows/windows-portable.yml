@@ -62,7 +62,7 @@ jobs:
           $releaseDir = "build/windows/x64/runner/Release"
           $extDir = "$releaseDir/extension_server"
           New-Item -ItemType Directory -Force -Path $extDir | Out-Null
-          $bundleUrl = "https://github.com/codychen98/M-Extension-Server/releases/download/v1.0.4/windows-x64-bundle.zip"
+          $bundleUrl = "https://github.com/codychen98/M-Extension-Server/releases/download/v1.0.5/windows-x64-bundle.zip"
           $bundleZip = "$extDir/windows-x64-bundle.zip"
           Invoke-WebRequest -Uri $bundleUrl -OutFile $bundleZip
           Expand-Archive -Path $bundleZip -DestinationPath $extDir -Force

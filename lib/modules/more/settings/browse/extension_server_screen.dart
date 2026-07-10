@@ -391,7 +391,12 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
       if (Platform.isWindows) {
         await Future.delayed(const Duration(seconds: 1));
       }
-      await _installDownloadedBundle(bundleZip, installDir, l10n);
+      await _installDownloadedBundle(
+        bundleZip,
+        installDir,
+        l10n,
+        release.version,
+      );
       await _startServerAndRefresh();
       botToast(l10n.extension_server_files_ready);
     } catch (e) {
@@ -748,6 +753,7 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
     File bundleZip,
     Directory installDir,
     dynamic l10n,
+    String releaseVersion,
   ) async {
     await _prepareInstallDirectory(installDir);
     await _extractArchive(bundleZip, installDir);
@@ -755,6 +761,10 @@ class _ExtensionServerScreenState extends ConsumerState<ExtensionServerScreen> {
     if (!_hasResolvedPaths(resolvedPaths)) {
       throw Exception(l10n.downloaded_bundle_missing_expected_files);
     }
+    await writeInstalledExtensionServerReleaseVersion(
+      installDir.path,
+      releaseVersion,
+    );
     await _persistResolvedPaths(resolvedPaths, installDir.path);
   }
 

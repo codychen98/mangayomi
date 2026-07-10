@@ -38,4 +38,26 @@ void main() {
       expect(resolvedJar, newJar.path);
     });
   });
+
+  group('resolveInstalledExtensionServerVersion', () {
+    test('prefers installed release file over jar filename', () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'extension-server-release-test-',
+      );
+      addTearDown(() async {
+        if (await tempDir.exists()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+
+      final jarPath = path.join(
+        tempDir.path,
+        'MExtensionServer-v1.0.1-r1.jar',
+      );
+      await File(jarPath).writeAsString('jar');
+      await writeInstalledExtensionServerReleaseVersion(tempDir.path, '1.0.5');
+
+      expect(resolveInstalledExtensionServerVersion(jarPath), '1.0.5');
+    });
+  });
 }
