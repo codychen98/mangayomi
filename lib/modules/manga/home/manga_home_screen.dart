@@ -162,7 +162,8 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
             });
           }
         });
-    if (_loadingMetadata) {
+    if (!isLocal && mihonSourceMetadataMissing(source)) {
+      _loadingMetadata = true;
       _loadMetadataIfNeeded();
     }
   }
@@ -207,7 +208,7 @@ class _MangaHomeScreenState extends ConsumerState<MangaHomeScreen> {
   int? _activeSavedSearchId;
   late bool supportsLatest = isLocal ? true : (source.supportLatest ?? false);
   late List<dynamic> filterList = isLocal ? [] : getFilterList(source: source);
-  bool _loadingMetadata = !isLocal && mihonSourceMetadataMissing(source);
+  bool _loadingMetadata = false;
   bool _showExtensionServerVersionNudge = false;
 
   Future<void> _loadMetadataIfNeeded() async {

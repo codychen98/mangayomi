@@ -12,6 +12,7 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
 import 'package:mangayomi/modules/more/settings/browse/extension_server/extension_server_utils.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/utils/log/logger.dart';
