@@ -72,6 +72,29 @@ void main() {
     });
   });
 
+  group('parseDalvikPreferencesResponse', () {
+    test('parses bare JSON array', () {
+      final result = parseDalvikPreferencesResponse(
+        '[{"key":"quality","listPreference":{"title":"Quality","entries":["1080p"],"entryValues":["1080p"],"valueIndex":0}}]',
+      );
+      expect(result, isNotNull);
+      expect(result, hasLength(1));
+    });
+
+    test('parses wrapped list object', () {
+      final result = parseDalvikPreferencesResponse(
+        '{"list":[{"key":"quality","listPreference":{"title":"Quality","entries":["1080p"],"entryValues":["1080p"],"valueIndex":0}}]}',
+      );
+      expect(result, isNotNull);
+      expect(result, hasLength(1));
+    });
+
+    test('returns null for error and invalid bodies', () {
+      expect(parseDalvikPreferencesResponse('{"error":"failed"}'), isNull);
+      expect(parseDalvikPreferencesResponse('not-json'), isNull);
+    });
+  });
+
   group('mihonSourceMetadataMissing', () {
     test('returns false for non-mihon or uninstalled sources', () {
       expect(

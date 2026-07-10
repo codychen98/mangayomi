@@ -41,11 +41,21 @@ class _ExtensionDetailState extends ConsumerState<ExtensionDetail> {
   }
 
   Future<void> _loadMetadataIfNeeded() async {
-    if (!mihonSourceMetadataMissing(source)) return;
+    if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return;
+    if (source.sourceCode == null || source.sourceCode!.isEmpty) return;
+
+    final needsFullMetadata = mihonSourceMetadataMissing(source);
+    final needsPreferences =
+        !hasPreferences || mihonSourcePreferenceListEmpty(source);
+    if (!needsFullMetadata && !needsPreferences) return;
 
     setState(() => _loadingMetadata = true);
     final proxy = ref.read(androidProxyServerStateProvider);
-    await refreshMihonSourceMetadata(source, proxy);
+    if (needsFullMetadata) {
+      await refreshMihonSourceMetadata(source, proxy);
+    } else {
+      await refreshMihonSourcePreferences(source, proxy);
+    }
     if (!mounted) return;
     setState(() {
       _loadingMetadata = false;

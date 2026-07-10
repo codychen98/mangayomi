@@ -393,6 +393,18 @@ FilterList? parseDalvikFilterResponse(String body) {
   }
 }
 
+bool mihonSourcePreferenceListEmpty(Source source) {
+  if (source.preferenceList == null || source.preferenceList!.isEmpty) {
+    return true;
+  }
+  try {
+    final decoded = jsonDecode(source.preferenceList!);
+    return decoded is! List || decoded.isEmpty;
+  } catch (_) {
+    return true;
+  }
+}
+
 bool mihonSourceMetadataMissing(Source source) {
   if (source.sourceCodeLanguage != SourceCodeLanguage.mihon) return false;
   if (source.isAdded != true) return false;
@@ -403,6 +415,20 @@ bool mihonSourceMetadataMissing(Source source) {
     return true;
   }
   return false;
+}
+
+List<dynamic>? parseDalvikPreferencesResponse(String body) {
+  try {
+    final decoded = jsonDecode(body);
+    if (decoded is Map && decoded.containsKey('error')) return null;
+    if (decoded is List) return decoded;
+    if (decoded is Map && decoded['list'] is List) {
+      return decoded['list'] as List;
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
 }
 
 const minAnimeExtensionServerVersion = '1.0.4';
@@ -668,14 +694,12 @@ Future<List<SourcePreference>?> fetchPreferencesDalvik(
       ),
     );
     if (res.statusCode != 200) return null;
-    final decoded = jsonDecode(res.body);
-    if (decoded is Map && decoded.containsKey('error')) return null;
-    if (decoded is! List) return null;
-    final data = decoded;
+    final data = parseDalvikPreferencesResponse(res.body);
+    if (data == null) return null;
     if (data.isEmpty) return [];
     return data
         .map(
-          (e) => SourcePreference.fromJson(e)
+          (e) => SourcePreference.fromJson(e as Map<String, dynamic>)
             ..id = null
             ..sourceId = source.id,
         )
