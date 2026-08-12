@@ -170,8 +170,8 @@ class _SourcePreferenceWidgetState extends State<SourcePreferenceWidget> {
                       setState(() {
                         pref.valueIndex = res;
                       });
+                      setPreferenceSetting(preference, widget.source);
                     }
-                    setPreferenceSetting(preference, widget.source);
                   },
                 );
               } else if (preference.multiSelectListPreference != null) {

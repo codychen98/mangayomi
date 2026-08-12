@@ -42,20 +42,118 @@ List<SourcePreference> mergeFetchedSourcePreferences(
   }).toList();
 }
 
+/// Deep-copies a preference for Isar/JSON persist, keeping [valueIndex] explicit.
+SourcePreference copyPreferenceForPersist(
+  SourcePreference sourcePreference, {
+  required int? sourceId,
+  Id? id,
+}) {
+  final list = sourcePreference.listPreference;
+  final multi = sourcePreference.multiSelectListPreference;
+  final checkBox = sourcePreference.checkBoxPreference;
+  final switchPref = sourcePreference.switchPreferenceCompat;
+  final editText = sourcePreference.editTextPreference;
+
+  return SourcePreference(
+    id: id ?? Isar.autoIncrement,
+    sourceId: sourceId,
+    key: sourcePreference.key,
+    checkBoxPreference: checkBox == null
+        ? null
+        : CheckBoxPreference(
+            title: checkBox.title,
+            summary: checkBox.summary,
+            value: checkBox.value,
+          ),
+    switchPreferenceCompat: switchPref == null
+        ? null
+        : SwitchPreferenceCompat(
+            title: switchPref.title,
+            summary: switchPref.summary,
+            value: switchPref.value,
+          ),
+    listPreference: list == null
+        ? null
+        : ListPreference(
+            title: list.title,
+            summary: list.summary,
+            valueIndex: list.valueIndex,
+            entries: list.entries == null
+                ? null
+                : List<String>.from(list.entries!),
+            entryValues: list.entryValues == null
+                ? null
+                : List<String>.from(list.entryValues!),
+          ),
+    multiSelectListPreference: multi == null
+        ? null
+        : MultiSelectListPreference(
+            title: multi.title,
+            summary: multi.summary,
+            entries: multi.entries == null
+                ? null
+                : List<String>.from(multi.entries!),
+            entryValues: multi.entryValues == null
+                ? null
+                : List<String>.from(multi.entryValues!),
+            values: multi.values == null
+                ? null
+                : List<String>.from(multi.values!),
+          ),
+    editTextPreference: editText == null
+        ? null
+        : EditTextPreference(
+            title: editText.title,
+            summary: editText.summary,
+            value: editText.value,
+            dialogTitle: editText.dialogTitle,
+            dialogMessage: editText.dialogMessage,
+            text: editText.text,
+          ),
+  );
+}
+
+/// Updates or appends [updated] in a Mihon `preferenceList` JSON array by key.
+String mergePreferenceIntoPreferenceListJson(
+  String preferenceListJson,
+  SourcePreference updated,
+) {
+  final prefs = (jsonDecode(preferenceListJson) as List)
+      .map((e) => SourcePreference.fromJson(e as Map<String, dynamic>))
+      .toList();
+  final idx = prefs.indexWhere((e) => e.key == updated.key);
+  // Prefer null id in preferenceList JSON so reloads do not reuse Isar ids.
+  final withoutId = copyPreferenceForPersist(
+    updated,
+    sourceId: updated.sourceId,
+  )..id = null;
+
+  if (idx != -1) {
+    prefs[idx] = withoutId;
+  } else {
+    prefs.add(withoutId);
+  }
+  return jsonEncode(prefs.map((e) => e.toJson()).toList());
+}
+
 void setPreferenceSetting(SourcePreference sourcePreference, Source source) {
   final matchingPrefs = isar.sourcePreferences
       .filter()
       .sourceIdEqualTo(source.id)
       .keyEqualTo(sourcePreference.key)
       .findAllSync();
+  matchingPrefs.sort((a, b) => (b.id ?? 0).compareTo(a.id ?? 0));
+  final existingId = matchingPrefs.isNotEmpty ? matchingPrefs.first.id : null;
 
-  final persistedPreference = SourcePreference.fromJson(
-    sourcePreference.toJson(),
-  )..sourceId = source.id;
+  final persistedPreference = copyPreferenceForPersist(
+    sourcePreference,
+    sourceId: source.id,
+    id: existingId,
+  );
 
   isar.writeTxnSync(() {
     for (final duplicate in matchingPrefs) {
-      if (duplicate.id != null) {
+      if (duplicate.id != null && duplicate.id != existingId) {
         isar.sourcePreferences.deleteSync(duplicate.id!);
       }
     }
@@ -63,21 +161,15 @@ void setPreferenceSetting(SourcePreference sourcePreference, Source source) {
 
     if (source.sourceCodeLanguage == SourceCodeLanguage.mihon) {
       final dbSource = isar.sources.getSync(source.id!);
-      if (dbSource?.preferenceList != null) {
-        final prefs = (jsonDecode(dbSource!.preferenceList!) as List)
-            .map((e) => SourcePreference.fromJson(e))
-            .toList();
-        final idx = prefs.indexWhere((e) => e.key == sourcePreference.key);
-        if (idx != -1) {
-          prefs[idx] = SourcePreference.fromJson(sourcePreference.toJson())
-            ..sourceId = source.id;
-          isar.sources.putSync(
-            dbSource
-              ..preferenceList = jsonEncode(
-                prefs.map((e) => e.toJson()).toList(),
-              ),
-          );
-        }
+      if (dbSource?.preferenceList != null &&
+          dbSource!.preferenceList!.isNotEmpty) {
+        isar.sources.putSync(
+          dbSource
+            ..preferenceList = mergePreferenceIntoPreferenceListJson(
+              dbSource.preferenceList!,
+              persistedPreference,
+            ),
+        );
       }
     }
   });
@@ -115,8 +207,12 @@ SourcePreference getSourcePreferenceEntry(String key, int sourceId) {
     (element) => element.key == key,
     orElse: () => throw "Error when getting source preference",
   );
-  setPreferenceSetting(sourcePreference, source);
-  return getSourcePreferenceEntry(key, sourceId);
+  // Return defaults without writing them — avoids clobbering a good Isar /
+  // preferenceList row via delete-all re-seed on read.
+  return copyPreferenceForPersist(
+    sourcePreference,
+    sourceId: sourceId,
+  )..id = null;
 }
 
 String getSourcePreferenceStringValue(
