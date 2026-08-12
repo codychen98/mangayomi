@@ -45,6 +45,7 @@ import 'package:mangayomi/services/torrent_server.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/language.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 import 'package:mangayomi/utils/system_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit/generated/libmpv/bindings.dart' as generated;
@@ -201,11 +202,13 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   );
   late final audioChannel = ref.read(audioChannelStateProvider);
   late final volumeBoostCap = ref.read(volumeBoostCapStateProvider);
+  late final _logsEnabled = isar.settings.getSync(227)?.enableLogs ?? false;
   late final Player _player = Player(
     configuration: PlayerConfiguration(
       libass: useLibass,
       config: true,
       configDir: useMpvConfig ? widget.mpvDirectory?.path ?? "" : "",
+      logLevel: _logsEnabled ? MPVLogLevel.warn : MPVLogLevel.error,
       options: {
         if (debandingType == DebandingType.cpu) "vf": "gradfun=radius=12",
         if (debandingType == DebandingType.gpu) "deband": "yes",
@@ -261,7 +264,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   late final ValueNotifier<VideoPrefs?> _video = ValueNotifier(
     VideoPrefs(
       videoTrack: VideoTrack(
-        _firstVid.originalUrl,
+        _firstVid.url,
         _firstVid.quality,
         _firstVid.quality,
       ),
@@ -277,7 +280,9 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   final ValueNotifier<bool> _showFitLabel = ValueNotifier(false);
   final ValueNotifier<bool> _isCompleted = ValueNotifier(false);
   final ValueNotifier<Duration?> _tempPosition = ValueNotifier(null);
-  final ValueNotifier<BoxFit> _fit = ValueNotifier(BoxFit.contain);
+  late final ValueNotifier<BoxFit> _fit = ValueNotifier(
+    ref.read(playerFitModeStateProvider),
+  );
   final ValueNotifier<List<(String, int)>> _chapterMarks = ValueNotifier([]);
   final ValueNotifier<int?> _currentChapterMark = ValueNotifier(null);
   final ValueNotifier<String> _selectedShader = ValueNotifier("");
@@ -292,6 +297,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   bool _hasEndingSkip = false;
   bool _initSubtitleAndAudio = true;
   bool _includeSubtitles = false;
+  bool _didClampResume = false;
   int _subDelay = 0;
   final _subDelayController = TextEditingController(text: "0");
   double _subSpeed = 1;
@@ -306,9 +312,13 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
       .listen((duration) {
         _currentTotalDuration.value = duration;
         discordRpc?.updateChapterTimestamp(_currentPosition.value, duration);
+        _clampResumeIfNearEnd(duration);
       });
 
   bool get hasNextEpisode => _streamController.hasNextEpisode;
+
+  StreamSubscription<String>? _playerErrorSub;
+  StreamSubscription<PlayerLog>? _playerLogSub;
 
   late final StreamSubscription<bool> _completed = _player.stream.completed
       .listen((val) {
@@ -861,6 +871,10 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _currentPositionSub = _player.stream.position.listen(
       _unifiedPositionHandler,
     );
+    _playerErrorSub = _player.stream.error.listen(_onPlayerError);
+    if (_logsEnabled) {
+      _playerLogSub = _player.stream.log.listen(_onPlayerLog);
+    }
     _completed;
     _currentTotalDurationSub;
     _loadAndroidFont().then((_) {
@@ -907,6 +921,38 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         start: position ?? _currentPosition.value,
       ),
     );
+  }
+
+  void _clampResumeIfNearEnd(Duration duration) {
+    if (_didClampResume) {
+      return;
+    }
+    if (duration <= Duration.zero) {
+      return;
+    }
+    final position = _currentPosition.value;
+    if (position <= Duration.zero) {
+      _didClampResume = true;
+      return;
+    }
+    if (position > duration && duration < const Duration(seconds: 30)) {
+      return;
+    }
+    _didClampResume = true;
+    if (!_isResumeAtEnd(position, duration)) {
+      return;
+    }
+    _currentPosition.value = Duration.zero;
+    _player.seek(Duration.zero);
+  }
+
+  bool _isResumeAtEnd(Duration position, Duration duration) {
+    final remaining = duration - position;
+    if (remaining <= const Duration(seconds: 15)) {
+      return true;
+    }
+    return position.inMilliseconds >=
+        (duration.inMilliseconds * 0.95).floor();
   }
 
   Future<void> _loadAndroidFont() async {
@@ -961,6 +1007,8 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     WidgetsBinding.instance.removeObserver(this);
     _setCurrentPosition(true, saveWatchTime: true);
     _player.stop();
+    _playerErrorSub?.cancel();
+    _playerLogSub?.cancel();
     _completed.cancel();
     _currentPositionSub.cancel();
     _currentTotalDurationSub.cancel();
@@ -982,6 +1030,51 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _streamController.keepAliveLink?.close();
     _player.dispose();
     super.dispose();
+  }
+
+  String get _playerLogContext {
+    final title = widget.episode.manga.value?.name ?? '';
+    final ep = widget.episode.name ?? '';
+    return '[${Platform.operatingSystem}] $title $ep';
+  }
+
+  void _onPlayerError(String error) {
+    AppLogger.log(
+      'mpv error $_playerLogContext: $error',
+      logLevel: LogLevel.error,
+    );
+    if (!mounted) {
+      return;
+    }
+    BotToast.showText(
+      onlyOne: true,
+      align: const Alignment(0, 0.90),
+      duration: const Duration(seconds: 3),
+      text: 'Playback error: $error',
+    );
+  }
+
+  void _onPlayerLog(PlayerLog log) {
+    AppLogger.log(
+      'mpv log $_playerLogContext [${log.level}] ${log.prefix}: ${log.text}',
+      logLevel: _logLevelFromMpv(log.level),
+    );
+  }
+
+  static LogLevel _logLevelFromMpv(String level) {
+    switch (level) {
+      case 'fatal':
+      case 'error':
+        return LogLevel.error;
+      case 'warn':
+        return LogLevel.warning;
+      case 'debug':
+      case 'trace':
+      case 'v':
+        return LogLevel.debug;
+      default:
+        return LogLevel.info;
+    }
   }
 
   void _setCurrentPosition(bool save, {bool saveWatchTime = false}) {
@@ -1471,6 +1564,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
       fit = fitList[0];
     }
     _fit.value = fit;
+    ref.read(playerFitModeStateProvider.notifier).set(fit);
     _key.currentState?.update(fit: fit);
     BotToast.showText(
       onlyOne: true,

@@ -3,6 +3,24 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/utils/constant.dart';
 part 'settings.g.dart';
 
+T _enumFromJson<T extends Enum>(List<T> values, dynamic index, T fallback) {
+  if (index is! num) {
+    return fallback;
+  }
+  final i = index.toInt();
+  if (i < 0 || i >= values.length) {
+    return fallback;
+  }
+  return values[i];
+}
+
+double? _doubleFromJson(dynamic value) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  return null;
+}
+
 @collection
 @Name("Settings")
 class Settings {
@@ -162,6 +180,8 @@ class Settings {
   int? defaultDoubleTapToSkipLength;
 
   double? defaultPlayBackSpeed;
+
+  int? playerFitMode;
 
   bool? fullScreenPlayer;
 
@@ -441,6 +461,7 @@ class Settings {
     this.defaultSkipIntroLength = 85,
     this.defaultDoubleTapToSkipLength = 10,
     this.defaultPlayBackSpeed = 1.0,
+    this.playerFitMode,
     this.fullScreenPlayer = false,
     this.forceLandscapePlayer = false,
     this.updateProgressAfterReading = true,
@@ -545,8 +566,11 @@ class Settings {
   Settings.fromJson(Map<String, dynamic> json) {
     updatedAt = json["updatedAt"];
     animatePageTransitions = json['animatePageTransitions'];
-    animeDisplayType = DisplayType
-        .values[json['animeDisplayType'] ?? DisplayType.compactGrid.index];
+    animeDisplayType = _enumFromJson(
+      DisplayType.values,
+      json['animeDisplayType'],
+      DisplayType.compactGrid,
+    );
     animeLibraryDownloadedChapters = json['animeLibraryDownloadedChapters'];
     animeLibraryLocalSource = json['animeLibraryLocalSource'];
     animeLibraryShowCategoryTabs = json['animeLibraryShowCategoryTabs'];
@@ -555,8 +579,11 @@ class Settings {
     animeLibraryShowLanguage = json['animeLibraryShowLanguage'];
     animeLibraryShowNumbersOfItems = json['animeLibraryShowNumbersOfItems'];
     autoExtensionsUpdates = json['autoExtensionsUpdates'];
-    backgroundColor = BackgroundColor
-        .values[json['backgroundColor'] ?? BackgroundColor.black.index];
+    backgroundColor = _enumFromJson(
+      BackgroundColor.values,
+      json['backgroundColor'],
+      BackgroundColor.black,
+    );
     if (json['chapterFilterBookmarkedList'] != null) {
       chapterFilterBookmarkedList =
           (json['chapterFilterBookmarkedList'] as List)
@@ -594,9 +621,16 @@ class Settings {
     }
     cropBorders = json['cropBorders'];
     dateFormat = json['dateFormat'];
-    defaultReaderMode = ReaderMode
-        .values[json['defaultReaderMode'] ?? ReaderMode.vertical.index];
-    displayType = DisplayType.values[json['displayType']];
+    defaultReaderMode = _enumFromJson(
+      ReaderMode.values,
+      json['defaultReaderMode'],
+      ReaderMode.vertical,
+    );
+    displayType = _enumFromJson(
+      DisplayType.values,
+      json['displayType'],
+      DisplayType.compactGrid,
+    );
     doubleTapAnimationSpeed = json['doubleTapAnimationSpeed'];
     downloadLocation = json['downloadLocation'];
     downloadOnlyOnWifi = json['downloadOnlyOnWifi'];
@@ -604,9 +638,9 @@ class Settings {
     filterScanlatorList = (json['filterScanlatorList'] as List?)
         ?.map((e) => FilterScanlator.fromJson(e))
         .toList();
-    flexColorSchemeBlendLevel = json['flexColorSchemeBlendLevel'] is double
-        ? json['flexColorSchemeBlendLevel']
-        : (json['flexColorSchemeBlendLevel'] as int).toDouble();
+    flexColorSchemeBlendLevel = _doubleFromJson(
+      json['flexColorSchemeBlendLevel'],
+    );
     flexSchemeColorIndex = json['flexSchemeColorIndex'];
     id = json['id'];
     incognitoMode = json['incognitoMode'];
@@ -647,8 +681,11 @@ class Settings {
     relativeTimesTamps = json['relativeTimesTamps'];
     saveAsCBZArchive = json['saveAsCBZArchive'];
     deleteDownloadAfterReading = json['deleteDownloadAfterReading'];
-    scaleType =
-        ScaleType.values[json['scaleType'] ?? ScaleType.fitScreen.index];
+    scaleType = _enumFromJson(
+      ScaleType.values,
+      json['scaleType'],
+      ScaleType.fitScreen,
+    );
     showPagesNumber = json['showPagesNumber'];
     if (json['sortChapterList'] != null) {
       sortChapterList = (json['sortChapterList'] as List)
@@ -677,9 +714,8 @@ class Settings {
     markEpisodeAsSeenType = json['markEpisodeAsSeenType'];
     defaultSkipIntroLength = json['defaultSkipIntroLength'];
     defaultDoubleTapToSkipLength = json['defaultDoubleTapToSkipLength'];
-    defaultPlayBackSpeed = json['defaultPlayBackSpeed'] is double
-        ? json['defaultPlayBackSpeed']
-        : (json['defaultPlayBackSpeed'] as int).toDouble();
+    defaultPlayBackSpeed = _doubleFromJson(json['defaultPlayBackSpeed']);
+    playerFitMode = (json['playerFitMode'] as num?)?.toInt();
     fullScreenPlayer = json['fullScreenPlayer'];
     forceLandscapePlayer = json['forceLandscapePlayer'];
     updateProgressAfterReading = json['updateProgressAfterReading'];
@@ -695,20 +731,27 @@ class Settings {
         ? CustomColorFilter.fromJson(json['customColorFilter'])
         : null;
     enableCustomColorFilter = json['enableCustomColorFilter'];
-    colorFilterBlendMode =
-        ColorFilterBlendMode.values[json['colorFilterBlendMode'] ??
-            ColorFilterBlendMode.none.index];
+    colorFilterBlendMode = _enumFromJson(
+      ColorFilterBlendMode.values,
+      json['colorFilterBlendMode'],
+      ColorFilterBlendMode.none,
+    );
     playerSubtitleSettings = json['playerSubtitleSettings'] != null
         ? PlayerSubtitleSettings.fromJson(json['playerSubtitleSettings'])
         : null;
-    mangaHomeDisplayType =
-        DisplayType.values[json['mangaHomeDisplayType'] ??
-            DisplayType.comfortableGrid.index];
+    mangaHomeDisplayType = _enumFromJson(
+      DisplayType.values,
+      json['mangaHomeDisplayType'],
+      DisplayType.comfortableGrid,
+    );
     appFontFamily = json['appFontFamily'];
     mangaGridSize = json['mangaGridSize'];
     animeGridSize = json['animeGridSize'];
-    disableSectionType =
-        SectionType.values[json['disableSectionType'] ?? SectionType.all.index];
+    disableSectionType = _enumFromJson(
+      SectionType.values,
+      json['disableSectionType'],
+      SectionType.all,
+    );
     useLibass = json['useLibass'];
     hwdecMode = json['hwdecMode'];
     enableHardwareAcceleration = json['enableHardwareAcceleration'];
@@ -726,13 +769,19 @@ class Settings {
     sortLibraryNovel = json['sortLibraryNovel'] != null
         ? SortLibraryManga.fromJson(json['sortLibraryNovel'])
         : null;
-    novelDisplayType = DisplayType
-        .values[json['novelDisplayType'] ?? DisplayType.comfortableGrid.index];
+    novelDisplayType = _enumFromJson(
+      DisplayType.values,
+      json['novelDisplayType'],
+      DisplayType.comfortableGrid,
+    );
     if (json['novelFontSize'] != null) {
       novelFontSize = json['novelFontSize'];
     }
-    novelTextAlign = NovelTextAlign
-        .values[json['novelTextAlign'] ?? NovelTextAlign.left.index];
+    novelTextAlign = _enumFromJson(
+      NovelTextAlign.values,
+      json['novelTextAlign'],
+      NovelTextAlign.left,
+    );
     if (json['novelReaderTheme'] != null) {
       novelReaderTheme = json['novelReaderTheme'];
     }
@@ -787,14 +836,20 @@ class Settings {
     rpcShowTitle = json['rpcShowTitle'];
     rpcShowCoverImage = json['rpcShowCoverImage'];
     useMpvConfig = json['useMpvConfig'];
-    debandingType =
-        DebandingType.values[json['debandingType'] ?? DebandingType.none.index];
+    debandingType = _enumFromJson(
+      DebandingType.values,
+      json['debandingType'],
+      DebandingType.none,
+    );
     enableGpuNext = json['enableGpuNext'];
     useYUV420P = json['useYUV420P'];
     audioPreferredLanguages = json['audioPreferredLanguages'];
     enableAudioPitchCorrection = json['enableAudioPitchCorrection'];
-    audioChannels = AudioChannel
-        .values[json['audioChannels'] ?? AudioChannel.autoSafe.index];
+    audioChannels = _enumFromJson(
+      AudioChannel.values,
+      json['audioChannels'],
+      AudioChannel.autoSafe,
+    );
     volumeBoostCap = json['volumeBoostCap'];
     downloadedOnlyMode = json['downloadedOnlyMode'];
     algorithmWeights = json['algorithmWeights'] != null
@@ -919,6 +974,7 @@ class Settings {
     'defaultSkipIntroLength': defaultSkipIntroLength,
     'defaultDoubleTapToSkipLength': defaultDoubleTapToSkipLength,
     'defaultPlayBackSpeed': defaultPlayBackSpeed,
+    'playerFitMode': playerFitMode,
     'fullScreenPlayer': fullScreenPlayer,
     'forceLandscapePlayer': forceLandscapePlayer,
     'updateProgressAfterReading': updateProgressAfterReading,
@@ -1191,7 +1247,11 @@ class PersonalReaderMode {
 
   PersonalReaderMode.fromJson(Map<String, dynamic> json) {
     mangaId = json['mangaId'];
-    readerMode = ReaderMode.values[json['readerMode']];
+    readerMode = _enumFromJson(
+      ReaderMode.values,
+      json['readerMode'],
+      ReaderMode.vertical,
+    );
   }
 
   Map<String, dynamic> toJson() => {
@@ -1269,7 +1329,11 @@ class PersonalPageMode {
 
   PersonalPageMode.fromJson(Map<String, dynamic> json) {
     mangaId = json['mangaId'];
-    pageMode = PageMode.values[json['pageMode']];
+    pageMode = _enumFromJson(
+      PageMode.values,
+      json['pageMode'],
+      PageMode.onePage,
+    );
   }
 
   Map<String, dynamic> toJson() => {

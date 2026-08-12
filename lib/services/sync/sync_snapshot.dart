@@ -181,13 +181,16 @@ class SyncSnapshot {
   }
 
   static List<Settings> _parseSettingsList(Object? raw) {
-    if (raw is Map<String, dynamic>) {
-      return [Settings.fromJson(raw)];
+    if (raw is Map) {
+      return [Settings.fromJson(Map<String, dynamic>.from(raw))];
     }
-    return (raw as List?)
-            ?.map((e) => Settings.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [];
+    if (raw is! List) {
+      return const [];
+    }
+    return [
+      for (final e in raw)
+        if (e is Map) Settings.fromJson(Map<String, dynamic>.from(e)),
+    ];
   }
 
   static List<SourcePreference> _parseExtensionsPreferencesList(Object? raw) {
@@ -316,9 +319,10 @@ SyncSnapshot buildLocalSnapshot(
             .toList()
       : <Update>[];
 
-  final settings = prefs.syncSettings
-      ? [_settingsToSnapshotJson()]
-      : <Settings>[];
+  final settingsSnapshot =
+      prefs.syncSettings ? _settingsToSnapshotJson() : null;
+  final settings =
+      settingsSnapshot != null ? [settingsSnapshot] : <Settings>[];
 
   final extensionsPreferences = isar.sourcePreferences
       .filter()
@@ -386,10 +390,12 @@ Map<String, dynamic> _mangaToSnapshotJson(Manga manga) {
   return json;
 }
 
-Settings _settingsToSnapshotJson() {
-  final settings = Settings.fromJson(
-    isar.settings.getSync(227)!.toJson(),
-  );
+Settings? _settingsToSnapshotJson() {
+  final stored = isar.settings.getSync(227);
+  if (stored == null) {
+    return null;
+  }
+  final settings = Settings.fromJson(stored.toJson());
   settings.updatedAt ??= DateTime.now().millisecondsSinceEpoch;
   settings.cookiesList = [];
   return stripDeviceLocalSettings(settings);

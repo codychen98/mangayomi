@@ -897,7 +897,11 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
 
     isar.chapters.clearSync();
     for (final chapter in merged.chapters) {
-      final manga = isar.mangas.getSync(chapter.mangaId!);
+      final mangaId = chapter.mangaId;
+      if (mangaId == null) {
+        continue;
+      }
+      final manga = isar.mangas.getSync(mangaId);
       if (manga != null) {
         isar.chapters.putSync(chapter..manga.value = manga);
         chapter.manga.saveSync();
@@ -911,7 +915,11 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
 
     isar.historys.clearSync();
     for (final history in merged.history) {
-      final chapter = isar.chapters.getSync(history.chapterId!);
+      final chapterId = history.chapterId;
+      if (chapterId == null) {
+        continue;
+      }
+      final chapter = isar.chapters.getSync(chapterId);
       if (chapter != null) {
         isar.historys.putSync(history..chapter.value = chapter);
         history.chapter.saveSync();

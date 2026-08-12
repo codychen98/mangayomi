@@ -12,6 +12,7 @@ import 'package:mangayomi/services/sync/sync_merger.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
 import 'package:mangayomi/services/sync/sync_tombstone.dart';
 import 'package:mangayomi/services/sync/webdav_client.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 
 /// Snapshot size above which a progress toast is shown before upload/download.
 const int webDavLargeSnapshotThresholdBytes = 1024 * 1024;
@@ -155,8 +156,13 @@ class WebDavSyncBackend implements SyncBackend {
       );
     } on WebDavException catch (error) {
       _showError(l10n, messageForWebDavException(l10n, error));
-    } catch (error) {
-      _showError(l10n, 'Network error: $error');
+    } catch (error, stackTrace) {
+      AppLogger.log(
+        'WebDAV sync failed: $error',
+        logLevel: LogLevel.error,
+      );
+      AppLogger.log(stackTrace.toString(), logLevel: LogLevel.error);
+      _showError(l10n, '${l10n.sync_failed}: $error');
     } finally {
       client.close();
     }

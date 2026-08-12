@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/painting.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -229,6 +230,30 @@ class UseMpvConfigState extends _$UseMpvConfigState {
     state = value;
     isar.writeTxnSync(
       () => isar.settings.putSync(settings!..useMpvConfig = value),
+    );
+  }
+}
+
+@riverpod
+class PlayerFitModeState extends _$PlayerFitModeState {
+  @override
+  BoxFit build() {
+    final index = isar.settings.getSync(227)!.playerFitMode;
+    if (index == null || index < 0 || index >= BoxFit.values.length) {
+      return BoxFit.contain;
+    }
+    return BoxFit.values[index];
+  }
+
+  void set(BoxFit value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..playerFitMode = value.index
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
     );
   }
 }

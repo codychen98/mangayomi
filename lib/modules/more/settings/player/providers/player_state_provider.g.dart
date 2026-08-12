@@ -647,3 +647,56 @@ abstract class _$ForceLandscapePlayerState extends $Notifier<bool> {
     element.handleCreate(ref, build);
   }
 }
+
+@ProviderFor(PlayerFitModeState)
+final playerFitModeStateProvider = PlayerFitModeStateProvider._();
+
+final class PlayerFitModeStateProvider
+    extends $NotifierProvider<PlayerFitModeState, BoxFit> {
+  PlayerFitModeStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'playerFitModeStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$playerFitModeStateHash();
+
+  @$internal
+  @override
+  PlayerFitModeState create() => PlayerFitModeState();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BoxFit value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BoxFit>(value),
+    );
+  }
+}
+
+String _$playerFitModeStateHash() =>
+    r'a1b2c3d4e5f6789012345678abcdef0123456789';
+
+abstract class _$PlayerFitModeState extends $Notifier<BoxFit> {
+  BoxFit build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<BoxFit, BoxFit>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<BoxFit, BoxFit>,
+              BoxFit,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

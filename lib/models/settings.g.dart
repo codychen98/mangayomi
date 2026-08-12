@@ -939,6 +939,11 @@ const SettingsSchema = CollectionSchema(
       name: r'useSourceFeedNavigation',
       type: IsarType.bool,
     ),
+    r'playerFitMode': PropertySchema(
+      id: 174,
+      name: r'playerFitMode',
+      type: IsarType.long,
+    ),
   },
 
   estimateSize: _settingsEstimateSize,
@@ -1742,6 +1747,7 @@ void _settingsSerialize(
   writer.writeBool(offsets[171], object.hideFeedTab);
   writer.writeBool(offsets[172], object.hideInLibraryFeedItems);
   writer.writeBool(offsets[173], object.useSourceFeedNavigation);
+  writer.writeLong(offsets[174], object.playerFitMode);
 }
 
 Settings _settingsDeserialize(
@@ -2043,6 +2049,7 @@ Settings _settingsDeserialize(
     hideFeedTab: reader.readBoolOrNull(offsets[171]),
     hideInLibraryFeedItems: reader.readBoolOrNull(offsets[172]),
     useSourceFeedNavigation: reader.readBoolOrNull(offsets[173]),
+    playerFitMode: reader.readLongOrNull(offsets[174]),
   );
   object.chapterFilterBookmarkedList = reader
       .readObjectList<ChapterFilterBookmarked>(
@@ -2600,6 +2607,8 @@ P _settingsDeserializeProp<P>(
       return (reader.readBoolOrNull(offset)) as P;
     case 173:
       return (reader.readBoolOrNull(offset)) as P;
+    case 174:
+      return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
