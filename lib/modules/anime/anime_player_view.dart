@@ -43,6 +43,7 @@ import 'package:mangayomi/services/fetch_subtitles.dart';
 import 'package:mangayomi/services/get_video_list.dart';
 import 'package:mangayomi/services/torrent_server.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
+import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/language.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/utils/log/logger.dart';
@@ -298,6 +299,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   bool _includeSubtitles = false;
   bool _didClampResume = false;
   bool _mediaOpened = false;
+  bool _loggedDemuxFatal = false;
   /// Blocks auto-next until resume seek has settled away from EOF.
   /// Opening near a saved end position can fire `completed` before seek(0).
   bool _allowAutoNextEpisode = false;
@@ -929,9 +931,20 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     // at 0, then seek once duration is known.
     _allowAutoNextEpisode = false;
     _didClampResume = false;
+    _loggedDemuxFatal = false;
     _pendingResumeOverride = resumeOverride;
+    final streamUri = prefs.videoTrack?.id ?? '';
+    final headerKeys = prefs.headers?.keys.toList() ?? const <String>[];
+    AppLogger.log(
+      'player open $_playerLogContext '
+      'uri=${streamUri.toLogSafeUri()} '
+      'quality=${prefs.videoTrack?.title ?? ''} '
+      'hls=${streamUri.looksLikeHls} '
+      'headerCount=${headerKeys.length} '
+      'headerKeys=${headerKeys.join(',')}',
+    );
     return _player.open(
-      Media(prefs.videoTrack!.id, httpHeaders: prefs.headers),
+      Media(streamUri, httpHeaders: prefs.headers),
     ).then((_) {
       if (!mounted) {
         return;
@@ -1157,6 +1170,16 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
       'mpv log $_playerLogContext [${log.level}] ${log.prefix}: ${log.text}',
       logLevel: _logLevelFromMpv(log.level),
     );
+    final text = log.text.toLowerCase();
+    final demuxFatal = text.contains('video: png') ||
+        (text.contains('lavf') && text.contains('fatal'));
+    if (demuxFatal && !_loggedDemuxFatal) {
+      _loggedDemuxFatal = true;
+      AppLogger.log(
+        'player demux fatal $_playerLogContext — see player open above',
+        logLevel: LogLevel.error,
+      );
+    }
   }
 
   static LogLevel _logLevelFromMpv(String level) {

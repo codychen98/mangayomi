@@ -322,7 +322,7 @@ class MihonExtensionService implements ExtensionService {
     );
     hasError(res, context: "getVideoList");
     final data = jsonDecode(res.body) as List;
-    return data.map((e) {
+    final videos = data.map((e) {
       final tempHeaders =
           e['headers']?['namesAndValues\$okhttp'] as List<dynamic>?;
       final Map<String, String> headers = {};
@@ -358,6 +358,21 @@ class MihonExtensionService implements ExtensionService {
             [],
       );
     }).toList();
+    for (final video in videos) {
+      final headerKeys = video.headers?.keys.toList() ?? const <String>[];
+      AppLogger.log(
+        '[MIHON] getVideoList result source=${source.name} '
+        'quality=${video.quality} '
+        'stream=${video.url.toLogSafeUri()} '
+        'original=${video.originalUrl.toLogSafeUri()} '
+        'hls=${video.url.looksLikeHls} '
+        'headerCount=${headerKeys.length} '
+        'headerKeys=${headerKeys.join(',')} '
+        'subs=${video.subtitles?.length ?? 0} '
+        'audios=${video.audios?.length ?? 0}',
+      );
+    }
+    return videos;
   }
 
   @override

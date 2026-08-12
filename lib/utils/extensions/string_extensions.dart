@@ -58,6 +58,37 @@ extension StringExtensions on String {
     return out;
   }
 
+  /// Scheme + host + path for logs; drops query/fragment (tokens, cookies).
+  String toLogSafeUri({int maxPathLength = 96}) {
+    final trimmed = trim();
+    if (trimmed.isEmpty) return '(empty)';
+    try {
+      final uri = Uri.parse(trimmed.replaceAll(' ', '%20'));
+      if (uri.host.isEmpty) {
+        final clipped = trimmed.length > maxPathLength
+            ? '${trimmed.substring(0, maxPathLength)}…'
+            : trimmed;
+        return clipped;
+      }
+      var path = uri.path;
+      if (path.length > maxPathLength) {
+        path = '${path.substring(0, maxPathLength)}…';
+      }
+      final scheme = uri.scheme.isEmpty ? 'https' : uri.scheme;
+      return '$scheme://${uri.host}$path';
+    } catch (_) {
+      return '(unparseable)';
+    }
+  }
+
+  bool get looksLikeHls {
+    final lower = toLowerCase();
+    return lower.contains('.m3u8') ||
+        lower.contains('m3u8') ||
+        lower.contains('/hls/') ||
+        lower.contains('application/vnd.apple.mpegurl');
+  }
+
   bool isMediaVideo() {
     // Match against the URL path only — query strings (e.g. AnimeGG's
     // `?for=...`) and fragments must not defeat the suffix check. Use a
