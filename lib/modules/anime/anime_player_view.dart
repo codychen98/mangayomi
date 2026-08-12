@@ -41,6 +41,7 @@ import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/aniskip.dart';
 import 'package:mangayomi/services/fetch_subtitles.dart';
 import 'package:mangayomi/services/get_video_list.dart';
+import 'package:mangayomi/services/hls/hls_png_strip_proxy.dart';
 import 'package:mangayomi/services/torrent_server.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
@@ -325,6 +326,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
 
   StreamSubscription<String>? _playerErrorSub;
   StreamSubscription<PlayerLog>? _playerLogSub;
+  final HlsPngStripProxy _hlsPngProxy = HlsPngStripProxy();
 
   late final StreamSubscription<bool> _completed = _player.stream.completed
       .listen((val) {
@@ -925,7 +927,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     }
   }
 
-  Future<void> _openMedia(VideoPrefs prefs, {Duration? resumeOverride}) {
+  Future<void> _openMedia(VideoPrefs prefs, {Duration? resumeOverride}) async {
     // Never pass Media.start for resume. Opening near EOF with keep-open
     // fires completed and can auto-skip before seek(0) lands. Always open
     // at 0, then seek once duration is known.
@@ -943,17 +945,41 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
       'headerCount=${headerKeys.length} '
       'headerKeys=${headerKeys.join(',')}',
     );
-    return _player.open(
-      Media(streamUri, httpHeaders: prefs.headers),
-    ).then((_) {
-      if (!mounted) {
-        return;
+
+    var openUri = streamUri;
+    Map<String, String>? openHeaders = prefs.headers;
+    // Desktop libmpv/ffmpeg often fails on CDN HLS segments disguised with a
+    // PNG header. Proxy rewrites playlists and strips the prefix.
+    if (isDesktop && streamUri.looksLikeHls) {
+      try {
+        openUri = await _hlsPngProxy.startFor(
+          streamUri,
+          headers: prefs.headers,
+        );
+        openHeaders = null;
+        AppLogger.log(
+          'player open proxy $_playerLogContext uri=$openUri',
+        );
+      } catch (e) {
+        AppLogger.log(
+          'player open proxy failed $_playerLogContext: $e',
+          logLevel: LogLevel.error,
+        );
+        openUri = streamUri;
+        openHeaders = prefs.headers;
       }
-      _mediaOpened = true;
-      _applyResumeAfterDuration(
-        _currentTotalDuration.value ?? _player.state.duration,
-      );
-    });
+    }
+
+    await _player.open(
+      Media(openUri, httpHeaders: openHeaders),
+    );
+    if (!mounted) {
+      return;
+    }
+    _mediaOpened = true;
+    _applyResumeAfterDuration(
+      _currentTotalDuration.value ?? _player.state.duration,
+    );
   }
 
   void _applyResumeAfterDuration(Duration duration) {
@@ -1103,6 +1129,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _player.stop();
     _playerErrorSub?.cancel();
     _playerLogSub?.cancel();
+    unawaited(_hlsPngProxy.stop());
     _completed.cancel();
     _currentPositionSub.cancel();
     _currentTotalDurationSub.cancel();
