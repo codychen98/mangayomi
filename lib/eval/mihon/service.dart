@@ -13,6 +13,7 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 
 import '../../models/manga.dart';
 import '../interface.dart';
@@ -46,9 +47,16 @@ class MihonExtensionService implements ExtensionService {
     return source.baseUrl!;
   }
 
+  void _logCall(String method, String detail) {
+    AppLogger.log(
+      '[MIHON] $method source=${source.name} base=${source.baseUrl} $detail',
+    );
+  }
+
   @override
   Future<MPages> getPopular(int page) async {
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
+    _logCall("getPopular$name", "page=${page + 1}");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
@@ -60,7 +68,7 @@ class MihonExtensionService implements ExtensionService {
       }),
       headers: getCookie(),
     );
-    hasError(res);
+    hasError(res, context: "getPopular$name");
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final pages = MangaPages.fromJson(data, source.itemType);
     return MPages(
@@ -86,6 +94,7 @@ class MihonExtensionService implements ExtensionService {
   @override
   Future<MPages> getLatestUpdates(int page) async {
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
+    _logCall("getLatest$name", "page=${page + 1}");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
@@ -97,7 +106,7 @@ class MihonExtensionService implements ExtensionService {
       }),
       headers: getCookie(),
     );
-    hasError(res);
+    hasError(res, context: "getLatest$name");
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final pages = MangaPages.fromJson(data, source.itemType);
     return MPages(
@@ -123,6 +132,7 @@ class MihonExtensionService implements ExtensionService {
   @override
   Future<MPages> search(String query, int page, List<dynamic> filters) async {
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
+    _logCall("getSearch$name", "page=${max(1, page)} query=$query");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
@@ -135,7 +145,7 @@ class MihonExtensionService implements ExtensionService {
       }),
       headers: getCookie(),
     );
-    hasError(res);
+    hasError(res, context: "getSearch$name");
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     final pages = MangaPages.fromJson(data, source.itemType);
     return MPages(
@@ -161,6 +171,7 @@ class MihonExtensionService implements ExtensionService {
   @override
   Future<MManga> getDetail(String url) async {
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
+    _logCall("getDetails$name", "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
@@ -172,8 +183,9 @@ class MihonExtensionService implements ExtensionService {
       }),
       headers: getCookie(),
     );
-    hasError(res);
+    hasError(res, context: "getDetails$name");
     final data = jsonDecode(res.body) as Map<String, dynamic>;
+    _logCall("getDetails$name", "responseUrl=${data['url']}");
     final chapters = await getChapterList(url);
     return MManga(
       name: data['title'],
@@ -196,6 +208,10 @@ class MihonExtensionService implements ExtensionService {
   }
 
   Future<List<MChapter>> getChapterList(String url) async {
+    final listMethod = source.itemType == ItemType.anime
+        ? "getEpisodeList"
+        : "getChapterList";
+    _logCall(listMethod, "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
@@ -209,7 +225,7 @@ class MihonExtensionService implements ExtensionService {
       }),
       headers: getCookie(),
     );
-    hasError(res);
+    hasError(res, context: listMethod);
     final data = jsonDecode(res.body) as List;
     return data
         .map(
@@ -227,6 +243,7 @@ class MihonExtensionService implements ExtensionService {
 
   @override
   Future<List<PageUrl>> getPageList(String url) async {
+    _logCall("getPageList", "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
@@ -237,13 +254,14 @@ class MihonExtensionService implements ExtensionService {
       }),
       headers: getCookie(),
     );
-    hasError(res);
+    hasError(res, context: "getPageList");
     final data = jsonDecode(res.body) as List;
     return data.map((e) => PageUrl(e['imageUrl'])).toList();
   }
 
   @override
   Future<List<Video>> getVideoList(String url) async {
+    _logCall("getVideoList", "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
@@ -254,7 +272,7 @@ class MihonExtensionService implements ExtensionService {
       }),
       headers: getCookie(),
     );
-    hasError(res);
+    hasError(res, context: "getVideoList");
     final data = jsonDecode(res.body) as List;
     return data.map((e) {
       final tempHeaders =
@@ -363,11 +381,15 @@ class MihonExtensionService implements ExtensionService {
   }
 }
 
-void hasError(Response response) {
+void hasError(Response response, {String? context}) {
   try {
     final errorMessage = jsonDecode(response.body)['error'];
     final code = jsonDecode(response.body)['code'];
     if (errorMessage != null && code != null) {
+      AppLogger.log(
+        '[MIHON] ${context ?? 'bridge'} failed code=$code body=${response.body}',
+        logLevel: LogLevel.error,
+      );
       if ((code as int) == 403) {
         throw "errorMessage: Failed to bypass Cloudflare.\n\n\nYou can try to bypass it manually in the webview \n\n\nstatusCode: 403";
       }
