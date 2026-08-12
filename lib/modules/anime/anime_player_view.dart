@@ -42,6 +42,8 @@ import 'package:mangayomi/services/aniskip.dart';
 import 'package:mangayomi/services/fetch_subtitles.dart';
 import 'package:mangayomi/services/get_video_list.dart';
 import 'package:mangayomi/services/hls/hls_png_strip_proxy.dart';
+import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/services/http/rhttp/src/model/settings.dart';
 import 'package:mangayomi/services/torrent_server.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
@@ -733,33 +735,88 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _currentPosition.value = position;
     if (_initSubtitleAndAudio) {
       _initSubtitleAndAudio = false;
-      if (_firstVid.subtitles?.isNotEmpty ?? false) {
-        try {
-          final defaultTrack = _firstVid.subtitles!.firstWhere(
-            (sub) => sub.label == widget.defaultSubtitle,
-            orElse: () => _firstVid.subtitles!.first,
-          );
-          final file = defaultTrack.file ?? "";
-          final label = defaultTrack.label;
-          final track = (file.startsWith("http") || file.startsWith("file"))
-              ? SubtitleTrack.uri(file, title: label, language: label)
-              : SubtitleTrack.data(file, title: label, language: label);
-          _player.setSubtitleTrack(track);
-        } catch (_) {}
-        if (_firstVid.audios?.isNotEmpty ?? false) {
-          try {
-            final at = _firstVid.audios!.first;
-            _player.setAudioTrack(
-              AudioTrack.uri(
-                at.file ?? "",
-                title: at.label,
-                language: at.label,
-              ),
-            );
-          } catch (_) {}
-        }
-      }
+      unawaited(_initDefaultSubtitleAndAudio());
     }
+  }
+
+  Future<void> _initDefaultSubtitleAndAudio() async {
+    if (_firstVid.subtitles?.isNotEmpty ?? false) {
+      try {
+        final defaultTrack = _firstVid.subtitles!.firstWhere(
+          (sub) => sub.label == widget.defaultSubtitle,
+          orElse: () => _firstVid.subtitles!.first,
+        );
+        final file = defaultTrack.file ?? "";
+        final label = defaultTrack.label;
+        final track = await _resolveSubtitleTrack(
+          file: file,
+          title: label,
+          language: label,
+          headers: _video.value?.headers ?? _firstVid.headers,
+        );
+        if (track != null && mounted) {
+          await _player.setSubtitleTrack(track);
+        }
+      } catch (_) {}
+    }
+    if (_firstVid.audios?.isNotEmpty ?? false) {
+      try {
+        final at = _firstVid.audios!.first;
+        if (!mounted) return;
+        await _player.setAudioTrack(
+          AudioTrack.uri(
+            at.file ?? "",
+            title: at.label,
+            language: at.label,
+          ),
+        );
+      } catch (_) {}
+    }
+  }
+
+  /// Loads remote subtitles with CDN headers into [SubtitleTrack.data].
+  /// Bare [SubtitleTrack.uri] omits Referer/UA and often gets HTTP 403.
+  Future<SubtitleTrack?> _resolveSubtitleTrack({
+    required String file,
+    String? title,
+    String? language,
+    Map<String, String>? headers,
+  }) async {
+    if (file.isEmpty) return null;
+    if (!(file.startsWith('http://') || file.startsWith('https://'))) {
+      if (file.startsWith('file')) {
+        return SubtitleTrack.uri(file, title: title, language: language);
+      }
+      return SubtitleTrack.data(file, title: title, language: language);
+    }
+    try {
+      final client = MClient.httpClient(
+        settings: const ClientSettings(
+          throwOnStatusCode: false,
+          tlsSettings: TlsSettings(verifyCertificates: false),
+        ),
+      );
+      final res = await client.get(
+        Uri.parse(file),
+        headers: headers ?? _video.value?.headers ?? _firstVid.headers,
+      );
+      if (res.statusCode >= 200 &&
+          res.statusCode < 300 &&
+          res.body.trim().isNotEmpty) {
+        return SubtitleTrack.data(res.body, title: title, language: language);
+      }
+      AppLogger.log(
+        'subtitle fetch failed $_playerLogContext '
+        'status=${res.statusCode} uri=${file.toLogSafeUri()}',
+        logLevel: LogLevel.warning,
+      );
+    } catch (e) {
+      AppLogger.log(
+        'subtitle fetch error $_playerLogContext: $e',
+        logLevel: LogLevel.warning,
+      );
+    }
+    return null;
   }
 
   void _setSkipPhase(int secs) {
@@ -1185,7 +1242,18 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
 
   static bool _isNonFatalPlayerError(String error) {
     final lower = error.toLowerCase();
-    return lower.contains('can not open external file') ||
+    final subtitleOpenFailure =
+        (lower.contains('failed to open') ||
+            lower.contains('can not open') ||
+            lower.contains('cannot open')) &&
+        (lower.contains('.vtt') ||
+            lower.contains('.srt') ||
+            lower.contains('.ass') ||
+            lower.contains('.ssa') ||
+            lower.contains('/subtitles/') ||
+            lower.contains('external file'));
+    return subtitleOpenFailure ||
+        lower.contains('can not open external file') ||
         lower.contains('cannot open external file') ||
         lower.contains('failed to add subtitle') ||
         lower.contains('sub-add') ||
@@ -1557,10 +1625,25 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
                         "None")) ||
                 (subtitle.id == "no" && title == "None");
             return GestureDetector(
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
                 try {
-                  _player.setSubtitleTrack(sub.subtitle!);
+                  final track = sub.subtitle!;
+                  if (track.uri &&
+                      (track.id.startsWith('http://') ||
+                          track.id.startsWith('https://'))) {
+                    final resolved = await _resolveSubtitleTrack(
+                      file: track.id,
+                      title: track.title,
+                      language: track.language,
+                      headers: _video.value?.headers ?? _firstVid.headers,
+                    );
+                    if (resolved != null && mounted) {
+                      await _player.setSubtitleTrack(resolved);
+                    }
+                  } else {
+                    await _player.setSubtitleTrack(track);
+                  }
                 } catch (_) {}
               },
               child: textWidget(title, selected),
