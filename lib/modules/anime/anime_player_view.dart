@@ -260,10 +260,6 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
     animeStreamControllerProvider(episode: widget.episode).notifier,
   );
   late final Duration _resumePosition = _streamController.getCurrentPosition();
-  late final Duration _openStart = _resolveOpenStart(
-    _resumePosition,
-    widget.episode.duration,
-  );
   final Stopwatch _watchStopwatch = Stopwatch();
   late final _firstVid = widget.videos.first;
   late final ValueNotifier<VideoPrefs?> _video = ValueNotifier(
@@ -278,9 +274,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   );
   final ValueNotifier<double> _playbackSpeed = ValueNotifier(1.0);
   final ValueNotifier<bool> _isDoubleSpeed = ValueNotifier(false);
-  late final ValueNotifier<Duration> _currentPosition = ValueNotifier(
-    _openStart,
-  );
+  final ValueNotifier<Duration> _currentPosition = ValueNotifier(Duration.zero);
   final ValueNotifier<Duration?> _currentTotalDuration = ValueNotifier(null);
   final ValueNotifier<bool> _showFitLabel = ValueNotifier(false);
   final ValueNotifier<bool> _isCompleted = ValueNotifier(false);
@@ -304,6 +298,10 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   bool _includeSubtitles = false;
   bool _didClampResume = false;
   bool _mediaOpened = false;
+  /// Blocks auto-next until resume seek has settled away from EOF.
+  /// Opening near a saved end position can fire `completed` before seek(0).
+  bool _allowAutoNextEpisode = false;
+  Duration? _pendingResumeOverride;
   int _subDelay = 0;
   final _subDelayController = TextEditingController(text: "0");
   double _subSpeed = 1;
@@ -328,7 +326,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
 
   late final StreamSubscription<bool> _completed = _player.stream.completed
       .listen((val) {
-        if (!_didClampResume) {
+        if (!_didClampResume || !_allowAutoNextEpisode) {
           return;
         }
         if (hasNextEpisode && val) {
@@ -887,19 +885,14 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _completed;
     _currentTotalDurationSub;
     _loadAndroidFont().then((_) {
-      _openMedia(_video.value!, _openStart).then((_) {
-        if (!mounted) {
-          return;
-        }
-        _mediaOpened = true;
-        _applyResumeAfterDuration(
-          _currentTotalDuration.value ?? _player.state.duration,
-        );
-      });
+      _openMedia(_video.value!);
       if (widget.isTorrent) {
         Future.delayed(const Duration(seconds: 10)).then((_) {
           if (mounted) {
-            _openMedia(_video.value!, _currentPosition.value);
+            _openMedia(
+              _video.value!,
+              resumeOverride: _currentPosition.value,
+            );
           }
         });
       }
@@ -930,14 +923,24 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     }
   }
 
-  Future<void> _openMedia(VideoPrefs prefs, [Duration? position]) {
+  Future<void> _openMedia(VideoPrefs prefs, {Duration? resumeOverride}) {
+    // Never pass Media.start for resume. Opening near EOF with keep-open
+    // fires completed and can auto-skip before seek(0) lands. Always open
+    // at 0, then seek once duration is known.
+    _allowAutoNextEpisode = false;
+    _didClampResume = false;
+    _pendingResumeOverride = resumeOverride;
     return _player.open(
-      Media(
-        prefs.videoTrack!.id,
-        httpHeaders: prefs.headers,
-        start: position ?? _currentPosition.value,
-      ),
-    );
+      Media(prefs.videoTrack!.id, httpHeaders: prefs.headers),
+    ).then((_) {
+      if (!mounted) {
+        return;
+      }
+      _mediaOpened = true;
+      _applyResumeAfterDuration(
+        _currentTotalDuration.value ?? _player.state.duration,
+      );
+    });
   }
 
   void _applyResumeAfterDuration(Duration duration) {
@@ -947,64 +950,81 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     if (duration <= Duration.zero) {
       return;
     }
-    if (_resumePosition > duration && duration < const Duration(seconds: 30)) {
+    final saved = _pendingResumeOverride ?? _resumePosition;
+    if (_pendingResumeOverride == null &&
+        _resumePosition > duration &&
+        duration < const Duration(seconds: 30)) {
+      return;
+    }
+    _pendingResumeOverride = null;
+    _applySeekAfterOpen(saved, duration);
+  }
+
+  void _applySeekAfterOpen(Duration saved, Duration duration) {
+    if (_didClampResume || !_mediaOpened) {
+      return;
+    }
+    if (duration <= Duration.zero) {
       return;
     }
     _didClampResume = true;
-    if (_resumePosition <= Duration.zero) {
-      return;
-    }
-    if (_isResumeAtEnd(_resumePosition, duration)) {
-      if (_currentPosition.value != Duration.zero) {
-        _currentPosition.value = Duration.zero;
-        _player.seek(Duration.zero);
-      }
-      return;
-    }
-    if (_openStart <= Duration.zero) {
-      _currentPosition.value = _resumePosition;
-      _player.seek(_resumePosition);
-    }
-  }
 
-  static Duration _resolveOpenStart(Duration saved, String? chapterDuration) {
-    if (saved <= Duration.zero) {
-      return Duration.zero;
-    }
-    final known = _parseChapterDuration(chapterDuration);
-    if (known == null || _isResumeAtEnd(saved, known)) {
-      return Duration.zero;
-    }
-    return saved;
-  }
+    final resumeAtEnd =
+        saved > Duration.zero && _isResumeAtEnd(saved, duration);
+    final target = (!resumeAtEnd && saved > Duration.zero)
+        ? saved
+        : Duration.zero;
 
-  static Duration? _parseChapterDuration(String? raw) {
-    if (raw == null) {
-      return null;
-    }
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) {
-      return null;
-    }
-    final asInt = int.tryParse(trimmed);
-    if (asInt != null) {
-      if (asInt >= 1000) {
-        return Duration(milliseconds: asInt);
-      }
-      return null;
-    }
-    final parts = trimmed.split(':');
-    if (parts.length != 2 && parts.length != 3) {
-      return null;
-    }
-    final nums = parts.map(int.tryParse).toList();
-    if (nums.contains(null)) {
-      return null;
-    }
-    if (parts.length == 2) {
-      return Duration(minutes: nums[0]!, seconds: nums[1]!);
-    }
-    return Duration(hours: nums[0]!, minutes: nums[1]!, seconds: nums[2]!);
+    AppLogger.log(
+      'player resume $_playerLogContext saved=${saved.inMilliseconds}ms '
+      'duration=${duration.inMilliseconds}ms target=${target.inMilliseconds}ms '
+      'atEnd=$resumeAtEnd',
+    );
+
+    _currentPosition.value = target;
+    _player
+        .seek(target)
+        .then((_) async {
+          if (!mounted) {
+            return;
+          }
+          await _player.play();
+          if (!mounted) {
+            return;
+          }
+          // Delay auto-next until we have left EOF; opening a watched
+          // episode can still report completed during the first seek.
+          Future.delayed(const Duration(milliseconds: 750), () {
+            if (!mounted) {
+              return;
+            }
+            final pos = _currentPosition.value;
+            final total = _currentTotalDuration.value ?? _player.state.duration;
+            if (total > Duration.zero && _isResumeAtEnd(pos, total)) {
+              _player.seek(Duration.zero).then((_) {
+                if (mounted) {
+                  _player.play();
+                }
+              });
+              Future.delayed(const Duration(milliseconds: 750), () {
+                if (mounted) {
+                  _allowAutoNextEpisode = true;
+                }
+              });
+            } else {
+              _allowAutoNextEpisode = true;
+            }
+          });
+        })
+        .catchError((Object e, StackTrace st) {
+          AppLogger.log(
+            'player resume seek failed $_playerLogContext: $e',
+            logLevel: LogLevel.error,
+          );
+          if (mounted) {
+            _allowAutoNextEpisode = true;
+          }
+        });
   }
 
   static bool _isResumeAtEnd(Duration position, Duration duration) {
@@ -1244,14 +1264,15 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
               }
               _video.value = quality;
               _player.stop();
+              final resumeAt = _currentPosition.value;
               if (quality.isLocal) {
                 if (widget.isLocal) {
                   _player.setVideoTrack(quality.videoTrack!);
                 } else {
-                  _openMedia(quality);
+                  _openMedia(quality, resumeOverride: resumeAt);
                 }
               } else {
-                _openMedia(quality);
+                _openMedia(quality, resumeOverride: resumeAt);
               }
               _initSubtitleAndAudio = true;
               Navigator.pop(context);
