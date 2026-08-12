@@ -58,13 +58,61 @@ jobs:
 
       - name: Bundle extension server (anime filter fix)
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $releaseDir = "build/windows/x64/runner/Release"
           $extDir = "$releaseDir/extension_server"
           New-Item -ItemType Directory -Force -Path $extDir | Out-Null
+          $bundleZip = Join-Path $extDir "windows-x64-bundle.zip"
           $bundleUrl = "https://github.com/codychen98/M-Extension-Server/releases/download/v1.0.5/windows-x64-bundle.zip"
-          $bundleZip = "$extDir/windows-x64-bundle.zip"
-          Invoke-WebRequest -Uri $bundleUrl -OutFile $bundleZip
+          $minBytes = 50MB
+          $maxAttempts = 5
+          $ok = $false
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+            try {
+              if (Test-Path $bundleZip) { Remove-Item $bundleZip -Force }
+              # Prefer gh (API); fall back to curl with retries for flaky CDN.
+              gh release download v1.0.5 `
+                --repo codychen98/M-Extension-Server `
+                --pattern windows-x64-bundle.zip `
+                --dir $extDir `
+                --clobber
+              if (-not (Test-Path $bundleZip)) {
+                throw "gh download did not create $bundleZip"
+              }
+              $size = (Get-Item $bundleZip).Length
+              if ($size -lt $minBytes) {
+                throw "Downloaded file too small ($size bytes)"
+              }
+              Write-Host "Downloaded windows-x64-bundle.zip ($size bytes) on attempt $i"
+              $ok = $true
+              break
+            } catch {
+              Write-Warning "gh download attempt $i/$maxAttempts failed: $_"
+              try {
+                if (Test-Path $bundleZip) { Remove-Item $bundleZip -Force }
+                & curl.exe -L --fail --retry 5 --retry-all-errors --retry-delay 5 `
+                  --connect-timeout 30 --max-time 600 `
+                  -o $bundleZip $bundleUrl
+                if (-not (Test-Path $bundleZip)) {
+                  throw "curl did not create $bundleZip"
+                }
+                $size = (Get-Item $bundleZip).Length
+                if ($size -lt $minBytes) {
+                  throw "Downloaded file too small ($size bytes)"
+                }
+                Write-Host "Downloaded via curl ($size bytes) on attempt $i"
+                $ok = $true
+                break
+              } catch {
+                Write-Warning "curl fallback attempt $i/$maxAttempts failed: $_"
+                if ($i -eq $maxAttempts) { throw }
+                Start-Sleep -Seconds ([Math]::Min(60, [Math]::Pow(2, $i) * 2))
+              }
+            }
+          }
+          if (-not $ok) { throw "Failed to download windows-x64-bundle.zip" }
           Expand-Archive -Path $bundleZip -DestinationPath $extDir -Force
           Remove-Item $bundleZip -Force
 
