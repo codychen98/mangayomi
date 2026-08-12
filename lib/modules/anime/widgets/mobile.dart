@@ -186,6 +186,31 @@ class _MobileControllerWidgetState
     });
   }
 
+  void _handleDoubleTap(
+    BuildContext context, {
+    required bool enableSeekLeft,
+    required bool enableSeekRight,
+    required bool enablePlayPause,
+  }) {
+    if (_tapPosition == null) return;
+
+    final width = MediaQuery.of(context).size.width;
+    final third = width / 3;
+    final x = _tapPosition!.dx;
+
+    if (x < third) {
+      if (enableSeekLeft) {
+        onDoubleTapSeekBackward();
+      }
+    } else if (x > third * 2) {
+      if (enableSeekRight) {
+        onDoubleTapSeekForward();
+      }
+    } else if (enablePlayPause) {
+      widget.videoController.player.playOrPause();
+    }
+  }
+
   void onHorizontalDragUpdate(DragUpdateDetails details) {
     if (_dragInitialDelta == Offset.zero) {
       _dragInitialDelta = details.localPosition;
@@ -295,6 +320,23 @@ class _MobileControllerWidgetState
 
   @override
   Widget build(BuildContext context) {
+    final enableBrightness = ref.watch(
+      enablePlayerBrightnessGestureStateProvider,
+    );
+    final enableVolume = ref.watch(enablePlayerVolumeGestureStateProvider);
+    final enableSeekLeft = ref.watch(
+      enablePlayerDoubleTapSeekLeftStateProvider,
+    );
+    final enableSeekRight = ref.watch(
+      enablePlayerDoubleTapSeekRightStateProvider,
+    );
+    final enablePlayPause = ref.watch(
+      enablePlayerDoubleTapPlayPauseStateProvider,
+    );
+    final hasDoubleTapGesture =
+        enableSeekLeft || enableSeekRight || enablePlayPause;
+    final hasVerticalGesture = enableBrightness || enableVolume;
+
     return Stack(
       children: [
         Consumer(
@@ -341,16 +383,17 @@ class _MobileControllerWidgetState
                       bottom: 16.0,
                       child: GestureDetector(
                         onTap: onTap,
-                        onDoubleTapDown: _handleTapDown,
-                        onDoubleTap: () {
-                          if (_tapPosition != null &&
-                              _tapPosition!.dx >
-                                  MediaQuery.of(context).size.width / 2) {
-                            onDoubleTapSeekForward();
-                          } else {
-                            onDoubleTapSeekBackward();
-                          }
-                        },
+                        onDoubleTapDown: hasDoubleTapGesture
+                            ? _handleTapDown
+                            : null,
+                        onDoubleTap: hasDoubleTapGesture
+                            ? () => _handleDoubleTap(
+                                context,
+                                enableSeekLeft: enableSeekLeft,
+                                enableSeekRight: enableSeekRight,
+                                enablePlayPause: enablePlayPause,
+                              )
+                            : null,
                         onLongPressStart: (e) {
                           previousPlaybackSpeed =
                               widget.videoController.player.state.rate;
@@ -374,29 +417,32 @@ class _MobileControllerWidgetState
                         onHorizontalDragEnd: (details) {
                           onHorizontalDragEnd();
                         },
-                        onVerticalDragUpdate: (e) async {
-                          final delta = e.delta.dy;
-                          final Offset position = e.localPosition;
+                        onVerticalDragUpdate: hasVerticalGesture
+                            ? (e) async {
+                                final delta = e.delta.dy;
+                                final Offset position = e.localPosition;
+                                final screenWidth =
+                                    MediaQuery.of(context).size.width;
 
-                          if (position.dx <=
-                              MediaQuery.of(context).size.width / 2) {
-                            // Left side of screen swiped
+                                if (position.dx <= screenWidth / 2) {
+                                  if (!enableBrightness) return;
 
-                            final brightness =
-                                _brightnessValue.value -
-                                delta / verticalGestureSensitivity;
-                            final result = brightness.clamp(0.0, 1.0);
-                            setBrightness(result);
-                          } else {
-                            // Right side of screen swiped
+                                  final brightness =
+                                      _brightnessValue.value -
+                                      delta / verticalGestureSensitivity;
+                                  final result = brightness.clamp(0.0, 1.0);
+                                  setBrightness(result);
+                                } else {
+                                  if (!enableVolume) return;
 
-                            final volume =
-                                _volumeValue.value -
-                                delta / verticalGestureSensitivity;
-                            final result = volume.clamp(0.0, 1.0);
-                            setVolume(result);
-                          }
-                        },
+                                  final volume =
+                                      _volumeValue.value -
+                                      delta / verticalGestureSensitivity;
+                                  final result = volume.clamp(0.0, 1.0);
+                                  setVolume(result);
+                                }
+                              }
+                            : null,
                         child: Container(color: const Color(0x00000000)),
                       ),
                     ),

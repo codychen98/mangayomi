@@ -390,6 +390,16 @@ class Settings {
 
   bool? useSourceFeedNavigation;
 
+  bool? enablePlayerBrightnessGesture;
+
+  bool? enablePlayerVolumeGesture;
+
+  bool? enablePlayerDoubleTapSeekLeft;
+
+  bool? enablePlayerDoubleTapSeekRight;
+
+  bool? enablePlayerDoubleTapPlayPause;
+
   Settings({
     this.id = 227,
     this.updatedAt = 0,
@@ -561,6 +571,11 @@ class Settings {
     this.feedTabInFront = false,
     this.hideInLibraryFeedItems = false,
     this.useSourceFeedNavigation = false,
+    this.enablePlayerBrightnessGesture = true,
+    this.enablePlayerVolumeGesture = true,
+    this.enablePlayerDoubleTapSeekLeft = true,
+    this.enablePlayerDoubleTapSeekRight = true,
+    this.enablePlayerDoubleTapPlayPause = true,
   });
 
   Settings.fromJson(Map<String, dynamic> json) {
@@ -883,6 +898,11 @@ class Settings {
     feedTabInFront = json['feedTabInFront'];
     hideInLibraryFeedItems = json['hideInLibraryFeedItems'];
     useSourceFeedNavigation = json['useSourceFeedNavigation'];
+    enablePlayerBrightnessGesture = json['enablePlayerBrightnessGesture'];
+    enablePlayerVolumeGesture = json['enablePlayerVolumeGesture'];
+    enablePlayerDoubleTapSeekLeft = json['enablePlayerDoubleTapSeekLeft'];
+    enablePlayerDoubleTapSeekRight = json['enablePlayerDoubleTapSeekRight'];
+    enablePlayerDoubleTapPlayPause = json['enablePlayerDoubleTapPlayPause'];
   }
 
   Map<String, dynamic> toJson() => {
@@ -1078,6 +1098,11 @@ class Settings {
     'feedTabInFront': feedTabInFront,
     'hideInLibraryFeedItems': hideInLibraryFeedItems,
     'useSourceFeedNavigation': useSourceFeedNavigation,
+    'enablePlayerBrightnessGesture': enablePlayerBrightnessGesture,
+    'enablePlayerVolumeGesture': enablePlayerVolumeGesture,
+    'enablePlayerDoubleTapSeekLeft': enablePlayerDoubleTapSeekLeft,
+    'enablePlayerDoubleTapSeekRight': enablePlayerDoubleTapSeekRight,
+    'enablePlayerDoubleTapPlayPause': enablePlayerDoubleTapPlayPause,
   };
 }
 

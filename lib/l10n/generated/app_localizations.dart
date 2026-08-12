@@ -1985,6 +1985,78 @@ abstract class AppLocalizations {
   /// **'Automatically use fullscreen when playing a video.'**
   String get full_screen_player_info;
 
+  /// No description provided for @player_gestures.
+  ///
+  /// In en, this message translates to:
+  /// **'Player gestures'**
+  String get player_gestures;
+
+  /// No description provided for @player_gestures_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Single tap always shows or hides controls. Choose which other gestures are active while playing video.'**
+  String get player_gestures_info;
+
+  /// No description provided for @player_gesture_brightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to adjust brightness'**
+  String get player_gesture_brightness;
+
+  /// No description provided for @player_gesture_brightness_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Vertical swipe on the left side of the screen.'**
+  String get player_gesture_brightness_info;
+
+  /// No description provided for @player_gesture_volume.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to adjust volume'**
+  String get player_gesture_volume;
+
+  /// No description provided for @player_gesture_volume_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Vertical swipe on the right side of the screen. On desktop, also applies to scroll and drag.'**
+  String get player_gesture_volume_info;
+
+  /// No description provided for @player_gesture_double_tap_seek_left.
+  ///
+  /// In en, this message translates to:
+  /// **'Double tap left to seek backward'**
+  String get player_gesture_double_tap_seek_left;
+
+  /// No description provided for @player_gesture_double_tap_seek_left_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Double tap the left third of the screen.'**
+  String get player_gesture_double_tap_seek_left_info;
+
+  /// No description provided for @player_gesture_double_tap_play_pause.
+  ///
+  /// In en, this message translates to:
+  /// **'Double tap center to play or pause'**
+  String get player_gesture_double_tap_play_pause;
+
+  /// No description provided for @player_gesture_double_tap_play_pause_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Double tap the center third of the screen.'**
+  String get player_gesture_double_tap_play_pause_info;
+
+  /// No description provided for @player_gesture_double_tap_seek_right.
+  ///
+  /// In en, this message translates to:
+  /// **'Double tap right to seek forward'**
+  String get player_gesture_double_tap_seek_right;
+
+  /// No description provided for @player_gesture_double_tap_seek_right_info.
+  ///
+  /// In en, this message translates to:
+  /// **'Double tap the right third of the screen.'**
+  String get player_gesture_double_tap_seek_right_info;
+
   /// No description provided for @episode_progress.
   ///
   /// In en, this message translates to:

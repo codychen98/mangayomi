@@ -21,6 +21,12 @@ class PlayerOverviewScreen extends StatelessWidget {
               onTap: () => context.push('/playerMode'),
             ),
             ListTileWidget(
+              title: l10n.player_gestures,
+              subtitle: l10n.player_gestures_info,
+              icon: Icons.touch_app_outlined,
+              onTap: () => context.push('/playerGesturesScreen'),
+            ),
+            ListTileWidget(
               title: l10n.decoder,
               subtitle: l10n.decoder_info,
               icon: Icons.memory_outlined,

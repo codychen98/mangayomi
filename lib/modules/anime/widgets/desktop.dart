@@ -67,8 +67,74 @@ class _DesktopControllerWidgetState
   final bottomButtonBarMargin = const EdgeInsets.only(left: 16.0, right: 8.0);
 
   final List<StreamSubscription> subscriptions = [];
-  DateTime last = DateTime.now();
-  Timer? _tapTimer;
+  Offset? _tapPosition;
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() {
+      _tapPosition = details.localPosition;
+    });
+  }
+
+  void onTap() {
+    if (!visible) {
+      setState(() {
+        mount = true;
+        visible = true;
+        cursorVisible = true;
+      });
+
+      _timer?.cancel();
+      _timer = Timer(controlsHoverDuration, () {
+        if (mounted) {
+          setState(() {
+            visible = false;
+            cursorVisible = false;
+          });
+        }
+      });
+    } else {
+      setState(() {
+        visible = false;
+      });
+      _timer?.cancel();
+    }
+  }
+
+  void _handleDoubleTap(
+    BuildContext context, {
+    required bool enableSeekLeft,
+    required bool enableSeekRight,
+    required bool enablePlayPause,
+  }) {
+    if (_tapPosition == null) return;
+
+    final width = MediaQuery.of(context).size.width;
+    final third = width / 3;
+    final x = _tapPosition!.dx;
+
+    if (x < third) {
+      if (enableSeekLeft) {
+        _seekByDoubleTap(forward: false);
+      }
+    } else if (x > third * 2) {
+      if (enableSeekRight) {
+        _seekByDoubleTap(forward: true);
+      }
+    } else if (enablePlayPause) {
+      widget.videoController.player.playOrPause();
+    }
+  }
+
+  void _seekByDoubleTap({required bool forward}) {
+    final skipDuration = ref.read(defaultDoubleTapToSkipLengthStateProvider);
+    final position = widget.videoController.player.state.position;
+    final duration = widget.videoController.player.state.duration;
+    final delta = Duration(seconds: skipDuration);
+    final target = forward ? position + delta : position - delta;
+    widget.videoController.player.seek(
+      target.clamp(Duration.zero, duration),
+    );
+  }
 
   @override
   void setState(VoidCallback fn) {
@@ -106,7 +172,6 @@ class _DesktopControllerWidgetState
     }
     subscriptions.clear();
     _timer?.cancel();
-    _tapTimer?.cancel();
     super.dispose();
   }
 
@@ -155,10 +220,21 @@ class _DesktopControllerWidgetState
     _timer?.cancel();
   }
 
-  final bool modifyVolumeOnScroll = true; // TODO. The variable is never changed
-  final bool toggleFullscreenOnDoublePress = true; // TODO. variable not changed
   @override
   Widget build(BuildContext context) {
+    final enableVolume = ref.watch(enablePlayerVolumeGestureStateProvider);
+    final enableSeekLeft = ref.watch(
+      enablePlayerDoubleTapSeekLeftStateProvider,
+    );
+    final enableSeekRight = ref.watch(
+      enablePlayerDoubleTapSeekRightStateProvider,
+    );
+    final enablePlayPause = ref.watch(
+      enablePlayerDoubleTapPlayPauseStateProvider,
+    );
+    final hasDoubleTapGesture =
+        enableSeekLeft || enableSeekRight || enablePlayPause;
+
     return CallbackShortcuts(
       bindings: {
         // Default key-board shortcuts.
@@ -292,7 +368,7 @@ class _DesktopControllerWidgetState
           Focus(
             autofocus: true,
             child: Listener(
-              onPointerSignal: modifyVolumeOnScroll
+              onPointerSignal: enableVolume
                   ? (e) {
                       if (e is PointerScrollEvent) {
                         if (e.delta.dy > 0) {
@@ -313,14 +389,16 @@ class _DesktopControllerWidgetState
                     }
                   : null,
               child: GestureDetector(
-                onTap: () {
-                  // use own timer with onTapUp instead of onDoubleTap.
-                  // onDoubleTap uses 300ms which feels laggy when pausing
-                  // https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/gestures/constants.dart#L35
-                  _tapTimer = Timer(const Duration(milliseconds: 100), () {
-                    widget.videoController.player.playOrPause();
-                  });
-                },
+                onTap: onTap,
+                onDoubleTapDown: hasDoubleTapGesture ? _handleTapDown : null,
+                onDoubleTap: hasDoubleTapGesture
+                    ? () => _handleDoubleTap(
+                        context,
+                        enableSeekLeft: enableSeekLeft,
+                        enableSeekRight: enableSeekRight,
+                        enablePlayPause: enablePlayPause,
+                      )
+                    : null,
                 onLongPressStart: (e) {
                   previousPlaybackSpeed =
                       widget.videoController.player.state.rate;
@@ -335,40 +413,27 @@ class _DesktopControllerWidgetState
                       previousPlaybackSpeed,
                     );
                     previousPlaybackSpeed = -1;
-                    widget.doubleSpeed(false);
-                  }
-                },
-                onTapUp: !toggleFullscreenOnDoublePress
-                    ? null
-                    : (e) async {
-                        final now = DateTime.now();
-                        final difference = now.difference(last);
-                        last = now;
-                        if (difference < const Duration(milliseconds: 400)) {
-                          _tapTimer?.cancel();
-                          _tapTimer = null;
-                          final fullScreen = widget.desktopFullScreenPlayer;
-                          await _changeFullScreen(ref, fullScreen);
-                        }
-                      },
-                onPanUpdate: modifyVolumeOnScroll
-                    ? (e) {
-                        if (e.delta.dy > 0) {
-                          final volume =
-                              widget.videoController.player.state.volume - 5.0;
-                          widget.videoController.player.setVolume(
-                            volume.clamp(0.0, 100.0),
-                          );
-                        }
-                        if (e.delta.dy < 0) {
-                          final volume =
-                              widget.videoController.player.state.volume + 5.0;
-                          widget.videoController.player.setVolume(
-                            volume.clamp(0.0, 100.0),
-                          );
-                        }
+                  widget.doubleSpeed(false);
+                }
+              },
+              onPanUpdate: enableVolume
+                  ? (e) {
+                      if (e.delta.dy > 0) {
+                        final volume =
+                            widget.videoController.player.state.volume - 5.0;
+                        widget.videoController.player.setVolume(
+                          volume.clamp(0.0, 100.0),
+                        );
                       }
-                    : null,
+                      if (e.delta.dy < 0) {
+                        final volume =
+                            widget.videoController.player.state.volume + 5.0;
+                        widget.videoController.player.setVolume(
+                          volume.clamp(0.0, 100.0),
+                        );
+                      }
+                    }
+                  : null,
                 child: MouseRegion(
                   onHover: (_) => onHover(),
                   onEnter: (_) => onEnter(),

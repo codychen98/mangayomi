@@ -700,3 +700,275 @@ abstract class _$PlayerFitModeState extends $Notifier<BoxFit> {
     element.handleCreate(ref, build);
   }
 }
+
+@ProviderFor(EnablePlayerBrightnessGestureState)
+final enablePlayerBrightnessGestureStateProvider =
+    EnablePlayerBrightnessGestureStateProvider._();
+
+final class EnablePlayerBrightnessGestureStateProvider
+    extends $NotifierProvider<EnablePlayerBrightnessGestureState, bool> {
+  EnablePlayerBrightnessGestureStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'enablePlayerBrightnessGestureStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$enablePlayerBrightnessGestureStateHash();
+
+  @$internal
+  @override
+  EnablePlayerBrightnessGestureState create() =>
+      EnablePlayerBrightnessGestureState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$enablePlayerBrightnessGestureStateHash() =>
+    r'a1b2c3d4e5f6012345678901234567890abcdef01';
+
+abstract class _$EnablePlayerBrightnessGestureState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(EnablePlayerVolumeGestureState)
+final enablePlayerVolumeGestureStateProvider =
+    EnablePlayerVolumeGestureStateProvider._();
+
+final class EnablePlayerVolumeGestureStateProvider
+    extends $NotifierProvider<EnablePlayerVolumeGestureState, bool> {
+  EnablePlayerVolumeGestureStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'enablePlayerVolumeGestureStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$enablePlayerVolumeGestureStateHash();
+
+  @$internal
+  @override
+  EnablePlayerVolumeGestureState create() => EnablePlayerVolumeGestureState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$enablePlayerVolumeGestureStateHash() =>
+    r'a1b2c3d4e5f6022345678901234567890abcdef02';
+
+abstract class _$EnablePlayerVolumeGestureState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(EnablePlayerDoubleTapSeekLeftState)
+final enablePlayerDoubleTapSeekLeftStateProvider =
+    EnablePlayerDoubleTapSeekLeftStateProvider._();
+
+final class EnablePlayerDoubleTapSeekLeftStateProvider
+    extends $NotifierProvider<EnablePlayerDoubleTapSeekLeftState, bool> {
+  EnablePlayerDoubleTapSeekLeftStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'enablePlayerDoubleTapSeekLeftStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$enablePlayerDoubleTapSeekLeftStateHash();
+
+  @$internal
+  @override
+  EnablePlayerDoubleTapSeekLeftState create() =>
+      EnablePlayerDoubleTapSeekLeftState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$enablePlayerDoubleTapSeekLeftStateHash() =>
+    r'a1b2c3d4e5f6032345678901234567890abcdef03';
+
+abstract class _$EnablePlayerDoubleTapSeekLeftState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(EnablePlayerDoubleTapSeekRightState)
+final enablePlayerDoubleTapSeekRightStateProvider =
+    EnablePlayerDoubleTapSeekRightStateProvider._();
+
+final class EnablePlayerDoubleTapSeekRightStateProvider
+    extends $NotifierProvider<EnablePlayerDoubleTapSeekRightState, bool> {
+  EnablePlayerDoubleTapSeekRightStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'enablePlayerDoubleTapSeekRightStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$enablePlayerDoubleTapSeekRightStateHash();
+
+  @$internal
+  @override
+  EnablePlayerDoubleTapSeekRightState create() =>
+      EnablePlayerDoubleTapSeekRightState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$enablePlayerDoubleTapSeekRightStateHash() =>
+    r'a1b2c3d4e5f6042345678901234567890abcdef04';
+
+abstract class _$EnablePlayerDoubleTapSeekRightState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+@ProviderFor(EnablePlayerDoubleTapPlayPauseState)
+final enablePlayerDoubleTapPlayPauseStateProvider =
+    EnablePlayerDoubleTapPlayPauseStateProvider._();
+
+final class EnablePlayerDoubleTapPlayPauseStateProvider
+    extends $NotifierProvider<EnablePlayerDoubleTapPlayPauseState, bool> {
+  EnablePlayerDoubleTapPlayPauseStateProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'enablePlayerDoubleTapPlayPauseStateProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$enablePlayerDoubleTapPlayPauseStateHash();
+
+  @$internal
+  @override
+  EnablePlayerDoubleTapPlayPauseState create() =>
+      EnablePlayerDoubleTapPlayPauseState();
+
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+}
+
+String _$enablePlayerDoubleTapPlayPauseStateHash() =>
+    r'a1b2c3d4e5f6052345678901234567890abcdef05';
+
+abstract class _$EnablePlayerDoubleTapPlayPauseState extends $Notifier<bool> {
+  bool build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

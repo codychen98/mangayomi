@@ -1056,6 +1056,51 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get full_screen_player_info => '動画再生時に自動的にフルスクリーンを使用します。';
+  @override
+  String get player_gestures => 'Player gestures';
+
+  @override
+  String get player_gestures_info =>
+      'Single tap always shows or hides controls. Choose which other gestures are active while playing video.';
+
+  @override
+  String get player_gesture_brightness => 'Swipe to adjust brightness';
+
+  @override
+  String get player_gesture_brightness_info =>
+      'Vertical swipe on the left side of the screen.';
+
+  @override
+  String get player_gesture_volume => 'Swipe to adjust volume';
+
+  @override
+  String get player_gesture_volume_info =>
+      'Vertical swipe on the right side of the screen. On desktop, also applies to scroll and drag.';
+
+  @override
+  String get player_gesture_double_tap_seek_left =>
+      'Double tap left to seek backward';
+
+  @override
+  String get player_gesture_double_tap_seek_left_info =>
+      'Double tap the left third of the screen.';
+
+  @override
+  String get player_gesture_double_tap_play_pause =>
+      'Double tap center to play or pause';
+
+  @override
+  String get player_gesture_double_tap_play_pause_info =>
+      'Double tap the center third of the screen.';
+
+  @override
+  String get player_gesture_double_tap_seek_right =>
+      'Double tap right to seek forward';
+
+  @override
+  String get player_gesture_double_tap_seek_right_info =>
+      'Double tap the right third of the screen.';
+
 
   @override
   String episode_progress(Object n) {

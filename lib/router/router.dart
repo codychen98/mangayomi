@@ -26,6 +26,7 @@ import 'package:mangayomi/modules/more/settings/appearance/custom_navigation_set
 import 'package:mangayomi/modules/more/settings/browse/source_repositories.dart';
 import 'package:mangayomi/modules/more/settings/player/custom_button_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_advanced_screen.dart';
+import 'package:mangayomi/modules/more/settings/player/player_gestures_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_audio_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_decoder_screen.dart';
 import 'package:mangayomi/modules/more/settings/player/player_overview_screen.dart';
@@ -270,6 +271,10 @@ class RouterNotifier extends ChangeNotifier {
       child: const PlayerDecoderScreen(),
     ),
     _genericRoute(name: "playerAudioScreen", child: const PlayerAudioScreen()),
+    _genericRoute(
+      name: "playerGesturesScreen",
+      child: const PlayerGesturesScreen(),
+    ),
     _genericRoute(
       name: "playerAdvancedScreen",
       child: const PlayerAdvancedScreen(),

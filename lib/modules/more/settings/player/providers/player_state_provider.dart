@@ -277,3 +277,107 @@ class ForceLandscapePlayerState extends _$ForceLandscapePlayerState {
     );
   }
 }
+
+@riverpod
+class EnablePlayerBrightnessGestureState
+    extends _$EnablePlayerBrightnessGestureState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.enablePlayerBrightnessGesture ?? true;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..enablePlayerBrightnessGesture = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
+class EnablePlayerVolumeGestureState extends _$EnablePlayerVolumeGestureState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.enablePlayerVolumeGesture ?? true;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..enablePlayerVolumeGesture = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
+class EnablePlayerDoubleTapSeekLeftState
+    extends _$EnablePlayerDoubleTapSeekLeftState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.enablePlayerDoubleTapSeekLeft ?? true;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..enablePlayerDoubleTapSeekLeft = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
+class EnablePlayerDoubleTapSeekRightState
+    extends _$EnablePlayerDoubleTapSeekRightState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.enablePlayerDoubleTapSeekRight ?? true;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..enablePlayerDoubleTapSeekRight = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}
+
+@riverpod
+class EnablePlayerDoubleTapPlayPauseState
+    extends _$EnablePlayerDoubleTapPlayPauseState {
+  @override
+  bool build() {
+    return isar.settings.getSync(227)!.enablePlayerDoubleTapPlayPause ?? true;
+  }
+
+  void set(bool value) {
+    final settings = isar.settings.getSync(227);
+    state = value;
+    isar.writeTxnSync(
+      () => isar.settings.putSync(
+        settings!
+          ..enablePlayerDoubleTapPlayPause = value
+          ..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+}

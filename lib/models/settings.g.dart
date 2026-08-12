@@ -944,6 +944,31 @@ const SettingsSchema = CollectionSchema(
       name: r'playerFitMode',
       type: IsarType.long,
     ),
+    r'enablePlayerBrightnessGesture': PropertySchema(
+      id: 175,
+      name: r'enablePlayerBrightnessGesture',
+      type: IsarType.bool,
+    ),
+    r'enablePlayerVolumeGesture': PropertySchema(
+      id: 176,
+      name: r'enablePlayerVolumeGesture',
+      type: IsarType.bool,
+    ),
+    r'enablePlayerDoubleTapSeekLeft': PropertySchema(
+      id: 177,
+      name: r'enablePlayerDoubleTapSeekLeft',
+      type: IsarType.bool,
+    ),
+    r'enablePlayerDoubleTapSeekRight': PropertySchema(
+      id: 178,
+      name: r'enablePlayerDoubleTapSeekRight',
+      type: IsarType.bool,
+    ),
+    r'enablePlayerDoubleTapPlayPause': PropertySchema(
+      id: 179,
+      name: r'enablePlayerDoubleTapPlayPause',
+      type: IsarType.bool,
+    ),
   },
 
   estimateSize: _settingsEstimateSize,
@@ -1748,6 +1773,11 @@ void _settingsSerialize(
   writer.writeBool(offsets[172], object.hideInLibraryFeedItems);
   writer.writeBool(offsets[173], object.useSourceFeedNavigation);
   writer.writeLong(offsets[174], object.playerFitMode);
+  writer.writeBool(offsets[175], object.enablePlayerBrightnessGesture);
+  writer.writeBool(offsets[176], object.enablePlayerVolumeGesture);
+  writer.writeBool(offsets[177], object.enablePlayerDoubleTapSeekLeft);
+  writer.writeBool(offsets[178], object.enablePlayerDoubleTapSeekRight);
+  writer.writeBool(offsets[179], object.enablePlayerDoubleTapPlayPause);
 }
 
 Settings _settingsDeserialize(
@@ -2050,6 +2080,11 @@ Settings _settingsDeserialize(
     hideInLibraryFeedItems: reader.readBoolOrNull(offsets[172]),
     useSourceFeedNavigation: reader.readBoolOrNull(offsets[173]),
     playerFitMode: reader.readLongOrNull(offsets[174]),
+    enablePlayerBrightnessGesture: reader.readBoolOrNull(offsets[175]),
+    enablePlayerVolumeGesture: reader.readBoolOrNull(offsets[176]),
+    enablePlayerDoubleTapSeekLeft: reader.readBoolOrNull(offsets[177]),
+    enablePlayerDoubleTapSeekRight: reader.readBoolOrNull(offsets[178]),
+    enablePlayerDoubleTapPlayPause: reader.readBoolOrNull(offsets[179]),
   );
   object.chapterFilterBookmarkedList = reader
       .readObjectList<ChapterFilterBookmarked>(
@@ -2609,6 +2644,12 @@ P _settingsDeserializeProp<P>(
       return (reader.readBoolOrNull(offset)) as P;
     case 174:
       return (reader.readLongOrNull(offset)) as P;
+    case 175:
+    case 176:
+    case 177:
+    case 178:
+    case 179:
+      return (reader.readBoolOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
