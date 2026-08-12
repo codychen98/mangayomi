@@ -13,6 +13,7 @@ import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 
 import '../../models/manga.dart';
@@ -51,6 +52,49 @@ class MihonExtensionService implements ExtensionService {
     AppLogger.log(
       '[MIHON] $method source=${source.name} base=${source.baseUrl} $detail',
     );
+  }
+
+  /// Strip a stored absolute or doubled-host URL down to path+query so Mihon
+  /// extensions that do `GET(baseUrl + url)` do not produce `hosthttps://host`.
+  String _urlForMihon(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return trimmed;
+
+    final base = (source.baseUrl ?? '').trim();
+    final baseNoSlash = base.endsWith('/')
+        ? base.substring(0, base.length - 1)
+        : base;
+
+    var candidate = trimmed;
+    if (baseNoSlash.isNotEmpty && candidate.startsWith(baseNoSlash)) {
+      candidate = candidate.substring(baseNoSlash.length);
+      if (candidate.isEmpty) return trimmed;
+      if (!candidate.startsWith('http://') &&
+          !candidate.startsWith('https://')) {
+        if (!candidate.startsWith('/')) {
+          candidate = '/$candidate';
+        }
+        _logNormalized(trimmed, candidate);
+        return candidate;
+      }
+    }
+
+    if (candidate.startsWith('http://') || candidate.startsWith('https://')) {
+      try {
+        final path = candidate.getUrlWithoutDomain;
+        if (path.isNotEmpty) {
+          _logNormalized(trimmed, path);
+          return path;
+        }
+      } catch (_) {}
+    }
+
+    return trimmed;
+  }
+
+  void _logNormalized(String from, String to) {
+    if (from == to) return;
+    AppLogger.log('[MIHON] normalized url from=$from to=$to');
   }
 
   @override
@@ -170,6 +214,7 @@ class MihonExtensionService implements ExtensionService {
 
   @override
   Future<MManga> getDetail(String url) async {
+    url = _urlForMihon(url);
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
     _logCall("getDetails$name", "url=$url");
     final res = await client.post(
@@ -208,6 +253,7 @@ class MihonExtensionService implements ExtensionService {
   }
 
   Future<List<MChapter>> getChapterList(String url) async {
+    url = _urlForMihon(url);
     final listMethod = source.itemType == ItemType.anime
         ? "getEpisodeList"
         : "getChapterList";
@@ -243,6 +289,7 @@ class MihonExtensionService implements ExtensionService {
 
   @override
   Future<List<PageUrl>> getPageList(String url) async {
+    url = _urlForMihon(url);
     _logCall("getPageList", "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
@@ -261,6 +308,7 @@ class MihonExtensionService implements ExtensionService {
 
   @override
   Future<List<Video>> getVideoList(String url) async {
+    url = _urlForMihon(url);
     _logCall("getVideoList", "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
@@ -391,9 +439,9 @@ void hasError(Response response, {String? context}) {
         logLevel: LogLevel.error,
       );
       if ((code as int) == 403) {
-        throw "errorMessage: Failed to bypass Cloudflare.\n\n\nYou can try to bypass it manually in the webview \n\n\nstatusCode: 403";
+        throw "errorMessage: ${context ?? 'bridge'}: Failed to bypass Cloudflare.\n\n\nYou can try to bypass it manually in the webview \n\n\nstatusCode: 403";
       }
-      throw "errorMessage: $errorMessage \n\n\nstatusCode: $code";
+      throw "errorMessage: ${context ?? 'bridge'}: $errorMessage \n\n\nstatusCode: $code";
     }
   } catch (e) {
     if (e.toString().startsWith('errorMessage:')) {

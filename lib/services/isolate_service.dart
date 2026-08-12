@@ -9,6 +9,7 @@ import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/utils/log/log.dart';
+import 'package:mangayomi/utils/log/logger.dart';
 
 class _IsolateData {
   final SendPort sendPort;
@@ -23,6 +24,7 @@ class GetIsolateService {
   ReceivePort? _receivePort;
   StreamSubscription? _receiveSub;
   SendPort? _sendPort;
+  Future<void> _inFlight = Future.value();
 
   Future<void> start() async {
     if (!_isRunning) {
@@ -53,6 +55,9 @@ class GetIsolateService {
         completer.complete(message);
       }
       if (message is String) {
+        if (AppLogger.tryHandleIsolateMessage(message)) {
+          return;
+        }
         if (message.startsWith('LoggerLevel.warning:')) {
           Logger.add(
             LoggerLevel.warning,
@@ -96,55 +101,70 @@ class GetIsolateService {
         )
         .run(() async {
           isolateData.sendPort.send(receivePort.sendPort);
-          receivePort.listen((message) async {
-            if (message is Map<String, dynamic>) {
-              final responsePort = message['responsePort'] as SendPort;
-              try {
-                final url = message['url'] as String?;
-                final page = message['page'] as int?;
-                final query = message['query'] as String?;
-                final filterList = message['filterList'] as List?;
-                final source = message['source'] as Source?;
-                final proxyServer = message['proxyServer'] as String?;
-                final serviceType = message['serviceType'] as String?;
-                final useLoggerValue = message['useLogger'] as bool?;
-                cfPort = message['cfPort'] as int;
-                if (useLoggerValue != null) {
-                  useLogger = useLoggerValue;
-                }
-                final result = await withExtensionService(
-                  source!,
-                  proxyServer ?? '',
-                  (service) async {
-                    switch (serviceType) {
-                      case 'getDetail':
-                        return await service.getDetail(url!);
-                      case 'getPopular':
-                        return await service.getPopular(page!);
-                      case 'getLatestUpdates':
-                        return await service.getLatestUpdates(page!);
-                      case 'search':
-                        return await service.search(query!, page!, filterList!);
-                      case 'getVideoList':
-                        return await service.getVideoList(url!);
-                      case 'getPageList':
-                        return await service.getPageList(url!);
-                      case 'getHeaders':
-                        return Future.value(service.getHeaders());
-                      default:
-                        throw Exception('Unknown service type: $serviceType');
+          AppLogger.isolateLogPort = isolateData.sendPort;
+          var work = Future<void>.value();
+          receivePort.listen((message) {
+            work = work
+                .then((_) async {
+                  if (message is Map<String, dynamic>) {
+                    final responsePort = message['responsePort'] as SendPort;
+                    try {
+                      final url = message['url'] as String?;
+                      final page = message['page'] as int?;
+                      final query = message['query'] as String?;
+                      final filterList = message['filterList'] as List?;
+                      final source = message['source'] as Source?;
+                      final proxyServer = message['proxyServer'] as String?;
+                      final serviceType = message['serviceType'] as String?;
+                      final useLoggerValue = message['useLogger'] as bool?;
+                      cfPort = message['cfPort'] as int;
+                      if (useLoggerValue != null) {
+                        useLogger = useLoggerValue;
+                      }
+                      final result = await withExtensionService(
+                        source!,
+                        proxyServer ?? '',
+                        (service) async {
+                          switch (serviceType) {
+                            case 'getDetail':
+                              return await service.getDetail(url!);
+                            case 'getPopular':
+                              return await service.getPopular(page!);
+                            case 'getLatestUpdates':
+                              return await service.getLatestUpdates(page!);
+                            case 'search':
+                              return await service.search(
+                                query!,
+                                page!,
+                                filterList!,
+                              );
+                            case 'getVideoList':
+                              return await service.getVideoList(url!);
+                            case 'getPageList':
+                              return await service.getPageList(url!);
+                            case 'getHeaders':
+                              return Future.value(service.getHeaders());
+                            default:
+                              throw Exception(
+                                'Unknown service type: $serviceType',
+                              );
+                          }
+                        },
+                      );
+                      responsePort.send({'success': true, 'data': result});
+                    } catch (e) {
+                      responsePort.send({
+                        'success': false,
+                        'error': e.toString(),
+                      });
+                    } finally {
+                      useLogger = false;
                     }
-                  },
-                );
-                responsePort.send({'success': true, 'data': result});
-              } catch (e) {
-                responsePort.send({'success': false, 'error': e.toString()});
-              } finally {
-                useLogger = false;
-              }
-            } else if (message == 'dispose') {
-              receivePort.close();
-            }
+                  } else if (message == 'dispose') {
+                    receivePort.close();
+                  }
+                })
+                .catchError((_) {});
           });
         });
   }
@@ -161,51 +181,58 @@ class GetIsolateService {
     String? androidProxyServer,
     bool? useLogger,
   }) async {
-    if (_sendPort == null) {
-      throw Exception('Isolate not running');
-    }
+    final gate = Completer<void>();
+    final previous = _inFlight;
+    _inFlight = gate.future;
+    try {
+      await previous;
+      if (_sendPort == null) {
+        throw Exception('Isolate not running');
+      }
 
-    final responsePort = ReceivePort();
-    final completer = Completer<T>();
-    late final StreamSubscription sub;
+      final responsePort = ReceivePort();
+      final completer = Completer<T>();
+      late final StreamSubscription sub;
 
-    // Timeout safeguard
-    final timer = Timer(const Duration(seconds: 40), () {
-      if (!completer.isCompleted) {
+      final timer = Timer(const Duration(seconds: 40), () {
+        if (!completer.isCompleted) {
+          sub.cancel();
+          responsePort.close();
+          completer.completeError('Isolate response timeout');
+        }
+      });
+      sub = responsePort.listen((response) {
+        timer.cancel();
         sub.cancel();
         responsePort.close();
-        completer.completeError('Isolate response timeout');
-      }
-    });
-    sub = responsePort.listen((response) {
-      timer.cancel();
-      sub.cancel();
-      responsePort.close();
-      if (response is Map<String, dynamic>) {
-        if (response['success'] == true) {
-          completer.complete(response['data'] as T);
+        if (response is Map<String, dynamic>) {
+          if (response['success'] == true) {
+            completer.complete(response['data'] as T);
+          } else {
+            completer.completeError(response['error']);
+          }
         } else {
-          completer.completeError(response['error']);
+          completer.completeError('Invalid isolate response: $response');
         }
-      } else {
-        completer.completeError('Invalid isolate response: $response');
-      }
-    });
+      });
 
-    _sendPort!.send({
-      'url': ?url,
-      'page': ?page,
-      'query': ?query,
-      'filterList': ?filterList,
-      'serviceType': ?serviceType,
-      'source': ?source,
-      'proxyServer': ?proxyServer,
-      'responsePort': responsePort.sendPort,
-      'useLogger': ?useLogger,
-      'cfPort': cfPort,
-    });
+      _sendPort!.send({
+        'url': ?url,
+        'page': ?page,
+        'query': ?query,
+        'filterList': ?filterList,
+        'serviceType': ?serviceType,
+        'source': ?source,
+        'proxyServer': ?proxyServer,
+        'responsePort': responsePort.sendPort,
+        'useLogger': ?useLogger,
+        'cfPort': cfPort,
+      });
 
-    return completer.future;
+      return await completer.future;
+    } finally {
+      gate.complete();
+    }
   }
 
   Future<void> stop() async {
@@ -222,6 +249,7 @@ class GetIsolateService {
     _getIsolateService = null;
     _receivePort = null;
     _isRunning = false;
+    _inFlight = Future.value();
   }
 }
 

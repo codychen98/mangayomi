@@ -259,6 +259,11 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   late final _streamController = ref.read(
     animeStreamControllerProvider(episode: widget.episode).notifier,
   );
+  late final Duration _resumePosition = _streamController.getCurrentPosition();
+  late final Duration _openStart = _resolveOpenStart(
+    _resumePosition,
+    widget.episode.duration,
+  );
   final Stopwatch _watchStopwatch = Stopwatch();
   late final _firstVid = widget.videos.first;
   late final ValueNotifier<VideoPrefs?> _video = ValueNotifier(
@@ -274,7 +279,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   final ValueNotifier<double> _playbackSpeed = ValueNotifier(1.0);
   final ValueNotifier<bool> _isDoubleSpeed = ValueNotifier(false);
   late final ValueNotifier<Duration> _currentPosition = ValueNotifier(
-    _streamController.getCurrentPosition(),
+    _openStart,
   );
   final ValueNotifier<Duration?> _currentTotalDuration = ValueNotifier(null);
   final ValueNotifier<bool> _showFitLabel = ValueNotifier(false);
@@ -298,6 +303,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   bool _initSubtitleAndAudio = true;
   bool _includeSubtitles = false;
   bool _didClampResume = false;
+  bool _mediaOpened = false;
   int _subDelay = 0;
   final _subDelayController = TextEditingController(text: "0");
   double _subSpeed = 1;
@@ -312,7 +318,7 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
       .listen((duration) {
         _currentTotalDuration.value = duration;
         discordRpc?.updateChapterTimestamp(_currentPosition.value, duration);
-        _clampResumeIfNearEnd(duration);
+        _applyResumeAfterDuration(duration);
       });
 
   bool get hasNextEpisode => _streamController.hasNextEpisode;
@@ -322,6 +328,9 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
 
   late final StreamSubscription<bool> _completed = _player.stream.completed
       .listen((val) {
+        if (!_didClampResume) {
+          return;
+        }
         if (hasNextEpisode && val) {
           if (mounted) {
             pushToNewEpisode(context, _streamController.getNextEpisode());
@@ -878,11 +887,19 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     _completed;
     _currentTotalDurationSub;
     _loadAndroidFont().then((_) {
-      _openMedia(_video.value!, _streamController.getCurrentPosition());
+      _openMedia(_video.value!, _openStart).then((_) {
+        if (!mounted) {
+          return;
+        }
+        _mediaOpened = true;
+        _applyResumeAfterDuration(
+          _currentTotalDuration.value ?? _player.state.duration,
+        );
+      });
       if (widget.isTorrent) {
         Future.delayed(const Duration(seconds: 10)).then((_) {
           if (mounted) {
-            _openMedia(_video.value!, _streamController.getCurrentPosition());
+            _openMedia(_video.value!, _currentPosition.value);
           }
         });
       }
@@ -923,30 +940,74 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     );
   }
 
-  void _clampResumeIfNearEnd(Duration duration) {
-    if (_didClampResume) {
+  void _applyResumeAfterDuration(Duration duration) {
+    if (_didClampResume || !_mediaOpened) {
       return;
     }
     if (duration <= Duration.zero) {
       return;
     }
-    final position = _currentPosition.value;
-    if (position <= Duration.zero) {
-      _didClampResume = true;
-      return;
-    }
-    if (position > duration && duration < const Duration(seconds: 30)) {
+    if (_resumePosition > duration && duration < const Duration(seconds: 30)) {
       return;
     }
     _didClampResume = true;
-    if (!_isResumeAtEnd(position, duration)) {
+    if (_resumePosition <= Duration.zero) {
       return;
     }
-    _currentPosition.value = Duration.zero;
-    _player.seek(Duration.zero);
+    if (_isResumeAtEnd(_resumePosition, duration)) {
+      if (_currentPosition.value != Duration.zero) {
+        _currentPosition.value = Duration.zero;
+        _player.seek(Duration.zero);
+      }
+      return;
+    }
+    if (_openStart <= Duration.zero) {
+      _currentPosition.value = _resumePosition;
+      _player.seek(_resumePosition);
+    }
   }
 
-  bool _isResumeAtEnd(Duration position, Duration duration) {
+  static Duration _resolveOpenStart(Duration saved, String? chapterDuration) {
+    if (saved <= Duration.zero) {
+      return Duration.zero;
+    }
+    final known = _parseChapterDuration(chapterDuration);
+    if (known == null || _isResumeAtEnd(saved, known)) {
+      return Duration.zero;
+    }
+    return saved;
+  }
+
+  static Duration? _parseChapterDuration(String? raw) {
+    if (raw == null) {
+      return null;
+    }
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final asInt = int.tryParse(trimmed);
+    if (asInt != null) {
+      if (asInt >= 1000) {
+        return Duration(milliseconds: asInt);
+      }
+      return null;
+    }
+    final parts = trimmed.split(':');
+    if (parts.length != 2 && parts.length != 3) {
+      return null;
+    }
+    final nums = parts.map(int.tryParse).toList();
+    if (nums.contains(null)) {
+      return null;
+    }
+    if (parts.length == 2) {
+      return Duration(minutes: nums[0]!, seconds: nums[1]!);
+    }
+    return Duration(hours: nums[0]!, minutes: nums[1]!, seconds: nums[2]!);
+  }
+
+  static bool _isResumeAtEnd(Duration position, Duration duration) {
     final remaining = duration - position;
     if (remaining <= const Duration(seconds: 15)) {
       return true;
@@ -1046,12 +1107,29 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     if (!mounted) {
       return;
     }
+    if (_isNonFatalPlayerError(error) || _hasPlaybackStarted) {
+      return;
+    }
     BotToast.showText(
       onlyOne: true,
       align: const Alignment(0, 0.90),
       duration: const Duration(seconds: 3),
       text: 'Playback error: $error',
     );
+  }
+
+  bool get _hasPlaybackStarted {
+    final duration = _currentTotalDuration.value ?? _player.state.duration;
+    return duration > Duration.zero;
+  }
+
+  static bool _isNonFatalPlayerError(String error) {
+    final lower = error.toLowerCase();
+    return lower.contains('can not open external file') ||
+        lower.contains('cannot open external file') ||
+        lower.contains('failed to add subtitle') ||
+        lower.contains('sub-add') ||
+        (lower.contains('demuxer') && lower.contains('attachment'));
   }
 
   void _onPlayerLog(PlayerLog log) {

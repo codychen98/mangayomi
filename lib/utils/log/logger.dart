@@ -1,15 +1,21 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:path/path.dart' as path;
 
 class AppLogger {
+  static const isolateLogPrefix = 'AppLog:';
+
   static File? _logFile;
   static IOSink? _sink;
   static bool _initialized = false;
   static bool _busy = false;
+
+  /// Set in the extension isolate so [log] can forward lines to the root isolate.
+  static SendPort? isolateLogPort;
 
   /// Initialize the logger
   static Future<void> init() async {
@@ -41,6 +47,11 @@ class AppLogger {
   }
 
   static void log(String message, {LogLevel logLevel = LogLevel.info}) {
+    final port = isolateLogPort;
+    if (port != null) {
+      port.send('$isolateLogPrefix${logLevel.toString()}:$message');
+      return;
+    }
     if (!_initialized || _sink == null) return;
 
     final now = DateTime.now();
@@ -50,6 +61,25 @@ class AppLogger {
 
     final logMessage = '[$timestamp][${logLevel.toString()}] $message';
     _sink!.writeln(logMessage);
+  }
+
+  /// Returns true when [message] is an isolate-forwarded log line.
+  static bool tryHandleIsolateMessage(String message) {
+    if (!message.startsWith(isolateLogPrefix)) return false;
+    final payload = message.substring(isolateLogPrefix.length);
+    final sep = payload.indexOf(':');
+    if (sep == -1) {
+      log(payload);
+      return true;
+    }
+    final levelName = payload.substring(0, sep);
+    final body = payload.substring(sep + 1);
+    final level = LogLevel.values.firstWhere(
+      (l) => l.toString() == levelName,
+      orElse: () => LogLevel.info,
+    );
+    log(body, logLevel: level);
+    return true;
   }
 
   static Future<void> dispose() async {
