@@ -63,6 +63,11 @@ jobs:
       - name: flutter pub get
         run: flutter pub get
 
+      - name: Prefetch media_kit Android jars
+        run: |
+          chmod +x .github/scripts/prefetch_media_kit_android_jars.sh
+          .github/scripts/prefetch_media_kit_android_jars.sh
+
       - name: build android apks (split per ABI)
         run: |
           export GRADLE_OPTS="-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC"

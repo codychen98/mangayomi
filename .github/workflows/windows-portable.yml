@@ -227,6 +227,11 @@ jobs:
           version=$(grep '^version:' pubspec.yaml | sed 's/version: //; s/+.*//')
           echo "APP_VERSION=$version" >> "$GITHUB_ENV"
 
+      - name: Prefetch media_kit Android jars
+        run: |
+          chmod +x .github/scripts/prefetch_media_kit_android_jars.sh
+          .github/scripts/prefetch_media_kit_android_jars.sh
+
       - name: Build Android arm64 APK
         run: |
           export GRADLE_OPTS="-Xmx4096m -XX:MaxMetaspaceSize=512m -XX:+UseG1GC"
