@@ -17,7 +17,8 @@ import 'package:mangayomi/modules/browse/extension/widgets/create_extension.dart
 import 'package:mangayomi/modules/browse/sources/sources_filter_screen.dart';
 import 'package:mangayomi/modules/calendar/calendar_screen.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/migrate_screen.dart';
-import 'package:mangayomi/modules/mass_migration/mass_migration_source_selection_screen.dart';
+import 'package:mangayomi/modules/mass_migration/mass_migration_destination_screen.dart';
+import 'package:mangayomi/modules/mass_migration/models/mass_migration_models.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/recommendation_screen.dart';
 import 'package:mangayomi/modules/manga/detail/widgets/watch_order_screen.dart';
 import 'package:mangayomi/modules/more/data_and_storage/create_backup.dart';
@@ -287,10 +288,17 @@ class RouterNotifier extends ChangeNotifier {
       name: "migrate",
       builder: (manga) => MigrationScreen(manga: manga),
     ),
-    _genericRoute<Manga>(
+    _genericRoute<List<int>>(
       name: "massMigration",
-      builder: (manga) =>
-          MassMigrationSourceSelectionScreen(initialManga: manga),
+      builder: (mangaIds) {
+        final sourceGroup = buildMassMigrationGroupFromSelectedIds(mangaIds);
+        if (sourceGroup == null) {
+          return const Scaffold(
+            body: Center(child: Text('No anime selected for migration.')),
+          );
+        }
+        return MassMigrationDestinationScreen(sourceGroup: sourceGroup);
+      },
     ),
     _genericRoute<(Manga, TrackSearch)>(
       name: "migrate/tracker",

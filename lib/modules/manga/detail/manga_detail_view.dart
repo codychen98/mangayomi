@@ -526,10 +526,6 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
                                   value: 3,
                                   child: Text(l10n.migrate),
                                 ),
-                                PopupMenuItem<int>(
-                                  value: 6,
-                                  child: const Text('Mass migration'),
-                                ),
                                 if (!isLocalArchive)
                                   PopupMenuItem<int>(
                                     value: 4,
@@ -640,12 +636,6 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
                                   } catch (e) {
                                     botToast("Failed to export metadata: $e");
                                   }
-                                  break;
-                                case 6:
-                                  context.push(
-                                    "/massMigration",
-                                    extra: widget.manga,
-                                  );
                                   break;
                               }
                             },

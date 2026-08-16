@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
@@ -14,6 +15,7 @@ import 'package:mangayomi/modules/library/widgets/library_app_bar.dart';
 import 'package:mangayomi/modules/library/widgets/library_body.dart';
 import 'package:mangayomi/modules/library/widgets/library_dialogs.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
+import 'package:mangayomi/modules/mass_migration/models/mass_migration_models.dart';
 import 'package:mangayomi/modules/more/categories/providers/isar_providers.dart';
 import 'package:mangayomi/modules/more/providers/downloaded_only_state_provider.dart';
 import 'package:mangayomi/modules/widgets/bottom_select_bar.dart';
@@ -499,6 +501,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                     .queue();
               },
             ),
+            if (widget.itemType == ItemType.anime)
+              BottomSelectButton(
+                icon: Icon(Icons.swap_horiz, color: color),
+                onPressed: () => _startMassMigrationForSelection(mangaIds),
+              ),
             BottomSelectButton(
               icon: Icon(Icons.delete_outline_outlined, color: color),
               onPressed: () => showDeleteMangaDialog(
@@ -511,6 +518,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
         );
       },
     );
+  }
+
+  void _startMassMigrationForSelection(Set<int> mangaIds) {
+    final sourceGroup = buildMassMigrationGroupFromSelectedIds(mangaIds);
+    if (sourceGroup == null) return;
+
+    final selectedIds = sourceGroup.items
+        .map((manga) => manga.id)
+        .whereType<int>()
+        .toList();
+    if (selectedIds.isEmpty) return;
+
+    ref.read(mangasListStateProvider.notifier).clear();
+    ref.read(isLongPressedStateProvider.notifier).update(false);
+    context.push('/massMigration', extra: selectedIds);
   }
 
   void _invalidateStreams() {

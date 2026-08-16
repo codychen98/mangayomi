@@ -12,6 +12,7 @@ class MassMigrationSourceGroup {
     this.source,
     this.lang,
     this.sourceId,
+    this.fromLibrarySelection = false,
   });
 
   final String sourceName;
@@ -20,6 +21,7 @@ class MassMigrationSourceGroup {
   final int? sourceId;
   final ItemType itemType;
   final List<Manga> items;
+  final bool fromLibrarySelection;
 
   int get count => items.length;
 }
@@ -89,6 +91,58 @@ class MassMigrationResolvedItem {
   }
 }
 
+/// Builds a migration group from Library multi-select IDs (anime favorites only).
+MassMigrationSourceGroup? buildMassMigrationGroupFromSelectedIds(
+  Iterable<int> mangaIds,
+) {
+  final items = mangaIds
+      .map((id) => isar.mangas.getSync(id))
+      .whereType<Manga>()
+      .where(
+        (manga) =>
+            manga.itemType == ItemType.anime &&
+            (manga.favorite ?? false) &&
+            (manga.source ?? '').trim().isNotEmpty,
+      )
+      .toList();
+
+  if (items.isEmpty) return null;
+
+  final sortedItems = [...items]
+    ..sort(
+      (left, right) => (left.name ?? '').toLowerCase().compareTo(
+        (right.name ?? '').toLowerCase(),
+      ),
+    );
+
+  final distinctSources = sortedItems
+      .map((manga) => '${manga.source?.trim()}|${manga.lang ?? ''}')
+      .toSet();
+  final first = sortedItems.first;
+  final isSingleSource = distinctSources.length == 1;
+  final source = isSingleSource
+      ? (first.sourceId != null
+            ? isar.sources.getSync(first.sourceId!)
+            : isar.sources
+                  .filter()
+                  .nameEqualTo(first.source)
+                  .langEqualTo(first.lang)
+                  .findFirstSync())
+      : null;
+
+  return MassMigrationSourceGroup(
+    sourceName: isSingleSource
+        ? (first.source ?? '').trim()
+        : 'Selected (${sortedItems.length})',
+    source: source,
+    lang: isSingleSource ? first.lang : null,
+    sourceId: isSingleSource ? first.sourceId : null,
+    itemType: ItemType.anime,
+    items: sortedItems,
+    fromLibrarySelection: true,
+  );
+}
+
 List<MassMigrationSourceGroup> buildMassMigrationSourceGroups({
   required ItemType itemType,
   Manga? prioritizedManga,
@@ -156,12 +210,19 @@ List<Source> buildMassMigrationDestinationSources({
       .isAddedEqualTo(true)
       .itemTypeEqualTo(sourceGroup.itemType)
       .findAllSync()
-      .where(
-        (source) =>
-            source.sourceCode != null &&
-            !(source.name == sourceGroup.sourceName &&
-                source.lang == sourceGroup.lang),
-      )
+      .where((source) {
+        if (source.sourceCode == null) return false;
+        if (sourceGroup.fromLibrarySelection &&
+            sourceGroup.sourceId == null &&
+            sourceGroup.lang == null) {
+          return true;
+        }
+        if (sourceGroup.sourceId != null) {
+          return source.id != sourceGroup.sourceId;
+        }
+        return !(source.name == sourceGroup.sourceName &&
+            source.lang == sourceGroup.lang);
+      })
       .toList();
 
   sources.sort((left, right) {
