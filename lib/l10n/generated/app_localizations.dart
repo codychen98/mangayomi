@@ -833,6 +833,18 @@ abstract class AppLocalizations {
   /// **'Unknown chapter'**
   String get mass_migration_unknown_chapter;
 
+  /// No description provided for @mass_migration_title_mismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Title differs — review recommended'**
+  String get mass_migration_title_mismatch;
+
+  /// No description provided for @mass_migration_title_mismatch_count.
+  ///
+  /// In en, this message translates to:
+  /// **'Title differs: {count}'**
+  String mass_migration_title_mismatch_count(int count);
+
   /// No description provided for @migrate_confirm.
   ///
   /// In en, this message translates to:

@@ -459,6 +459,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get mass_migration_unknown_chapter => 'Capítulo desconocido';
 
   @override
+  String get mass_migration_title_mismatch => 'Title differs — review recommended';
+
+  @override
+  String mass_migration_title_mismatch_count(int count) {
+    return 'Title differs: $count';
+  }
+
+  @override
   String get migrate_confirm => 'Migrar a otra fuente';
 
   @override
@@ -3126,6 +3134,14 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get mass_migration_unknown_chapter => 'Capítulo desconocido';
+
+  @override
+  String get mass_migration_title_mismatch => 'Title differs — review recommended';
+
+  @override
+  String mass_migration_title_mismatch_count(int count) {
+    return 'Title differs: $count';
+  }
 
   @override
   String get migrate_confirm => 'Migrar a otra fuente';

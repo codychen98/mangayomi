@@ -50,6 +50,7 @@ class MassMigrationResolvedItem {
     this.destinationPreview,
     this.errorMessage,
     this.shouldMigrate = false,
+    this.titleMismatch = false,
   });
 
   final Manga sourceItem;
@@ -58,6 +59,10 @@ class MassMigrationResolvedItem {
   final MManga? destinationPreview;
   final String? errorMessage;
   final bool shouldMigrate;
+
+  /// True when the matched destination title differs from the library title
+  /// (case/whitespace-insensitive). Signals that manual review is recommended.
+  final bool titleMismatch;
 
   bool get hasMatch => selectedCandidate != null;
   bool get canMigrate =>
@@ -70,16 +75,18 @@ class MassMigrationResolvedItem {
     MManga? destinationPreview,
     String? errorMessage,
     bool? shouldMigrate,
+    bool? titleMismatch,
     bool keepSelectedCandidate = true,
     bool keepDestinationPreview = true,
     bool keepErrorMessage = true,
   }) {
+    final nextSelected = keepSelectedCandidate
+        ? selectedCandidate ?? this.selectedCandidate
+        : selectedCandidate;
     return MassMigrationResolvedItem(
       sourceItem: sourceItem,
       searchResult: searchResult,
-      selectedCandidate: keepSelectedCandidate
-          ? selectedCandidate ?? this.selectedCandidate
-          : selectedCandidate,
+      selectedCandidate: nextSelected,
       destinationPreview: keepDestinationPreview
           ? destinationPreview ?? this.destinationPreview
           : destinationPreview,
@@ -87,8 +94,21 @@ class MassMigrationResolvedItem {
           ? errorMessage ?? this.errorMessage
           : errorMessage,
       shouldMigrate: shouldMigrate ?? this.shouldMigrate,
+      titleMismatch:
+          titleMismatch ??
+          massMigrationTitlesDiffer(sourceItem.name, nextSelected?.name),
     );
   }
+}
+
+/// Case- and whitespace-insensitive title comparison for review warnings.
+bool massMigrationTitlesDiffer(String? sourceTitle, String? destinationTitle) {
+  return _normalizeReviewTitle(sourceTitle) !=
+      _normalizeReviewTitle(destinationTitle);
+}
+
+String _normalizeReviewTitle(String? value) {
+  return value?.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ') ?? '';
 }
 
 /// Builds a migration group from Library multi-select IDs (anime favorites only).

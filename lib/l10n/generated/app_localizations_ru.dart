@@ -468,6 +468,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mass_migration_unknown_chapter => 'Неизвестная глава';
 
   @override
+  String get mass_migration_title_mismatch => 'Title differs — review recommended';
+
+  @override
+  String mass_migration_title_mismatch_count(int count) {
+    return 'Title differs: $count';
+  }
+
+  @override
   String get migrate_confirm => 'Перенести на другой источник';
 
   @override

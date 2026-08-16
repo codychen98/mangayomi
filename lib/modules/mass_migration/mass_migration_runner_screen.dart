@@ -180,6 +180,14 @@ class _MassMigrationRunnerScreenState
                   Text(l10n.mass_migration_found_matches(matchedCount)),
                   Text(l10n.mass_migration_no_matches(noMatchCount)),
                   Text(l10n.mass_migration_selected_to_migrate(selectedCount)),
+                  if (_resolvedItems.any((item) => item.titleMismatch))
+                    Text(
+                      l10n.mass_migration_title_mismatch_count(
+                        _resolvedItems
+                            .where((item) => item.titleMismatch)
+                            .length,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -501,6 +509,30 @@ class _MassMigrationRunnerScreenState
                                   l10n.mass_migration_unknown_match)
                             : l10n.mass_migration_no_destination_match,
                       ),
+                      if (item.titleMismatch) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                l10n.mass_migration_title_mismatch,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 6),
                       Text(
                         [
@@ -665,6 +697,10 @@ class _MassMigrationRunnerScreenState
           errorMessage: null,
           shouldMigrate: true,
           keepErrorMessage: false,
+          titleMismatch: massMigrationTitlesDiffer(
+            item.sourceItem.name,
+            selected.name,
+          ),
         );
       });
     } catch (error) {
@@ -677,6 +713,10 @@ class _MassMigrationRunnerScreenState
           shouldMigrate: false,
           keepDestinationPreview: false,
           keepErrorMessage: false,
+          titleMismatch: massMigrationTitlesDiffer(
+            item.sourceItem.name,
+            selected.name,
+          ),
         );
       });
     } finally {

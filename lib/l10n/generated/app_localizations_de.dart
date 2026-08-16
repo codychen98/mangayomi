@@ -456,6 +456,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get mass_migration_unknown_chapter => 'Unbekanntes Kapitel';
 
   @override
+  String get mass_migration_title_mismatch => 'Title differs — review recommended';
+
+  @override
+  String mass_migration_title_mismatch_count(int count) {
+    return 'Title differs: $count';
+  }
+
+  @override
   String get migrate_confirm => 'Zu einer anderen Erweiterung migrieren';
 
   @override

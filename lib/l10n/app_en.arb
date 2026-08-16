@@ -257,6 +257,15 @@
   "mass_migration_unknown_match": "Unknown match",
   "mass_migration_unknown_source": "Unknown source",
   "mass_migration_unknown_chapter": "Unknown chapter",
+  "mass_migration_title_mismatch": "Title differs — review recommended",
+  "mass_migration_title_mismatch_count": "Title differs: {count}",
+  "@mass_migration_title_mismatch_count": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "migrate_confirm": "Migrate to another source",
   "clean_database": "Clean database",
   "cleaned_database": "Database cleaned! {x} entries removed",

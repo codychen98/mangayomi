@@ -456,6 +456,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get mass_migration_unknown_chapter => 'अज्ञात अध्याय';
 
   @override
+  String get mass_migration_title_mismatch => 'Title differs — review recommended';
+
+  @override
+  String mass_migration_title_mismatch_count(int count) {
+    return 'Title differs: $count';
+  }
+
+  @override
   String get migrate_confirm => 'दूसरे स्रोत में माइग्रेट करें';
 
   @override

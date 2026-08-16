@@ -7,7 +7,6 @@ import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/source.dart';
-import 'package:mangayomi/models/track.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/modules/mass_migration/models/mass_migration_models.dart';
 import 'package:mangayomi/modules/manga/detail/providers/isar_providers.dart';
@@ -234,32 +233,34 @@ Future<MassMigrationSearchResult> findBestMassMigrationMatch({
   required Manga manga,
   required Source destinationSource,
 }) async {
-  final queries = buildMassMigrationQueries(manga);
+  // Match single-anime migrate: search the exact library title and keep the
+  // source's first result (source ranking), without alternate queries/re-rank.
+  final query = (manga.name ?? manga.author ?? '').trim();
+  final queries = query.isEmpty ? const <String>[] : <String>[query];
 
-  for (final query in queries) {
-    final pages = await ref.read(
-      searchProvider(
-        source: destinationSource,
-        page: 1,
-        query: query,
-        filterList: const [],
-      ).future,
-    );
-    final candidates = pages?.list ?? const <MManga>[];
-    if (candidates.isEmpty) continue;
-    return MassMigrationSearchResult(
-      queries: queries,
-      usedQuery: query,
-      candidates: candidates,
-      selected: _selectBestCandidate(
-        manga: manga,
-        queries: queries,
-        candidates: candidates,
-      ),
-    );
+  if (query.isEmpty) {
+    return const MassMigrationSearchResult(queries: [], candidates: []);
   }
 
-  return MassMigrationSearchResult(queries: queries, candidates: const []);
+  final pages = await ref.read(
+    searchProvider(
+      source: destinationSource,
+      page: 1,
+      query: query,
+      filterList: const [],
+    ).future,
+  );
+  final candidates = pages?.list ?? const <MManga>[];
+  if (candidates.isEmpty) {
+    return MassMigrationSearchResult(queries: queries, candidates: const []);
+  }
+
+  return MassMigrationSearchResult(
+    queries: queries,
+    usedQuery: query,
+    candidates: candidates,
+    selected: candidates.first,
+  );
 }
 
 Future<MassMigrationResolvedItem> resolveMassMigrationItem({
@@ -313,6 +314,11 @@ Future<MassMigrationResolvedItem> _resolveMatchedPreview({
     );
   }
 
+  final titleMismatch = massMigrationTitlesDiffer(
+    manga.name,
+    selectedCandidate.name,
+  );
+
   try {
     final preview = await ref.read(
       getDetailProvider(
@@ -326,6 +332,7 @@ Future<MassMigrationResolvedItem> _resolveMatchedPreview({
       selectedCandidate: selectedCandidate,
       destinationPreview: preview,
       shouldMigrate: true,
+      titleMismatch: titleMismatch,
     );
   } catch (error) {
     return MassMigrationResolvedItem(
@@ -333,6 +340,7 @@ Future<MassMigrationResolvedItem> _resolveMatchedPreview({
       searchResult: searchResult,
       selectedCandidate: selectedCandidate,
       errorMessage: error.toString(),
+      titleMismatch: titleMismatch,
     );
   }
 }
@@ -352,34 +360,8 @@ MassMigrationResolvedItem _buildErroredResolvedItem({
 }
 
 List<String> buildMassMigrationQueries(Manga manga) {
-  final queries = <String>{};
-
-  void addQuery(String? value) {
-    final cleaned = value?.trim();
-    if (cleaned == null || cleaned.isEmpty) return;
-    queries.add(cleaned);
-  }
-
-  addQuery(manga.name);
-  for (final track
-      in isar.tracks.filter().mangaIdEqualTo(manga.id).findAllSync()) {
-    addQuery(track.title);
-  }
-
-  final name = manga.name?.trim();
-  if (name != null && name.isNotEmpty) {
-    addQuery(name.split(RegExp(r'\s*[:\-|/]\s*')).first);
-    final beforeParenthesis = name.split('(').first.trim();
-    if (beforeParenthesis.isNotEmpty && beforeParenthesis != name) {
-      addQuery(beforeParenthesis);
-    }
-    final matches = RegExp(r'\(([^)]+)\)').allMatches(name);
-    for (final match in matches) {
-      addQuery(match.group(1));
-    }
-  }
-
-  return queries.toList();
+  final query = (manga.name ?? manga.author ?? '').trim();
+  return query.isEmpty ? const [] : [query];
 }
 
 String? extractMigrationChapterNumber(String chapterName) {
@@ -388,89 +370,4 @@ String? extractMigrationChapterNumber(String chapterName) {
         multiLine: true,
       ).firstMatch(chapterName)?.group(0) ??
       RegExp(r'\s*(\d+)\s*', multiLine: true).firstMatch(chapterName)?.group(0);
-}
-
-MManga _selectBestCandidate({
-  required Manga manga,
-  required List<String> queries,
-  required List<MManga> candidates,
-}) {
-  candidates.sort((left, right) {
-    final leftScore = _scoreCandidate(
-      manga: manga,
-      queries: queries,
-      candidate: left,
-    );
-    final rightScore = _scoreCandidate(
-      manga: manga,
-      queries: queries,
-      candidate: right,
-    );
-    return rightScore.compareTo(leftScore);
-  });
-  return candidates.first;
-}
-
-double _scoreCandidate({
-  required Manga manga,
-  required List<String> queries,
-  required MManga candidate,
-}) {
-  final candidateName = _normalizeTitle(candidate.name);
-  if (candidateName.isEmpty) return 0;
-
-  var score = 0.0;
-  for (final query in queries) {
-    final normalizedQuery = _normalizeTitle(query);
-    if (normalizedQuery.isEmpty) continue;
-    if (normalizedQuery == candidateName) {
-      score = score < 100 ? 100 : score;
-      continue;
-    }
-    if (candidateName.contains(normalizedQuery) ||
-        normalizedQuery.contains(candidateName)) {
-      final ratio = normalizedQuery.length < candidateName.length
-          ? normalizedQuery.length / candidateName.length
-          : candidateName.length / normalizedQuery.length;
-      score = score < (80 * ratio) ? 80 * ratio : score;
-    }
-    final tokenScore = _tokenOverlapScore(normalizedQuery, candidateName);
-    score = score < tokenScore ? tokenScore : score;
-  }
-
-  final sourceAuthor = _normalizeTitle(manga.author);
-  final sourceArtist = _normalizeTitle(manga.artist);
-  final candidateAuthor = _normalizeTitle(candidate.author);
-  final candidateArtist = _normalizeTitle(candidate.artist);
-  if (sourceAuthor.isNotEmpty &&
-      (sourceAuthor == candidateAuthor || sourceAuthor == candidateArtist)) {
-    score += 15;
-  }
-  if (sourceArtist.isNotEmpty &&
-      (sourceArtist == candidateArtist || sourceArtist == candidateAuthor)) {
-    score += 10;
-  }
-
-  return score;
-}
-
-double _tokenOverlapScore(String left, String right) {
-  final leftTokens = left.split(' ').where((token) => token.isNotEmpty).toSet();
-  final rightTokens = right
-      .split(' ')
-      .where((token) => token.isNotEmpty)
-      .toSet();
-  if (leftTokens.isEmpty || rightTokens.isEmpty) return 0;
-  final overlap = leftTokens.intersection(rightTokens).length;
-  return (overlap / leftTokens.union(rightTokens).length) * 70;
-}
-
-String _normalizeTitle(String? value) {
-  return value
-          ?.toLowerCase()
-          .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
-          .replaceAll(RegExp(r'\b(the|a|an)\b'), ' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim() ??
-      '';
 }

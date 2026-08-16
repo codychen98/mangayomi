@@ -458,6 +458,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get mass_migration_unknown_chapter => 'Bab tidak dikenal';
 
   @override
+  String get mass_migration_title_mismatch => 'Title differs — review recommended';
+
+  @override
+  String mass_migration_title_mismatch_count(int count) {
+    return 'Title differs: $count';
+  }
+
+  @override
   String get migrate_confirm => 'Migrasi ke sumber lain';
 
   @override
