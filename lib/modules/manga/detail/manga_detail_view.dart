@@ -1841,6 +1841,14 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
         SelectableText(
           widget.manga!.name!,
           style: const TextStyle(fontSize: 20),
+          onTap: () {
+            final name = widget.manga?.name;
+            if (name == null || name.isEmpty) return;
+            context.push(
+              '/globalSearch',
+              extra: (name, widget.itemType),
+            );
+          },
         ),
         widget.titleDescription!,
       ],

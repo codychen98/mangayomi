@@ -769,6 +769,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reset => 'Redefinir';
 
   @override
+  String get by_category => 'Por categoria';
+
+  @override
   String get by_source => 'Por fonte';
 
   @override
@@ -3412,6 +3415,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get reset => 'Redefinir';
+
+  @override
+  String get by_category => 'Por categoria';
 
   @override
   String get by_source => 'Por fonte';

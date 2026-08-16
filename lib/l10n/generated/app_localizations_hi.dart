@@ -764,6 +764,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get reset => 'रीसेट';
 
   @override
+  String get by_category => 'श्रेणी के अनुसार';
+
+  @override
   String get by_source => 'स्रोत के अनुसार';
 
   @override

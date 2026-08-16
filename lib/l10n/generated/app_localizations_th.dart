@@ -765,6 +765,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get reset => 'คืนค่า';
 
   @override
+  String get by_category => 'ตามหมวดหมู่';
+
+  @override
   String get by_source => 'ตามแหล่งที่มา';
 
   @override

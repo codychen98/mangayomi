@@ -1421,6 +1421,12 @@ abstract class AppLocalizations {
   /// **'Reset'**
   String get reset;
 
+  /// No description provided for @by_category.
+  ///
+  /// In en, this message translates to:
+  /// **'By category'**
+  String get by_category;
+
   /// No description provided for @by_source.
   ///
   /// In en, this message translates to:

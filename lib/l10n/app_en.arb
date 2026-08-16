@@ -355,6 +355,7 @@
   "in_library": "In library",
   "filter_scanlator_groups": "Filter scanlator groups",
   "reset": "Reset",
+  "by_category": "By category",
   "by_source": "By source",
   "by_chapter_number": "By chapter number",
   "by_episode_number": "By episode number",

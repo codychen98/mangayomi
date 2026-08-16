@@ -41,6 +41,10 @@ class Settings {
 
   bool? libraryShowCategoryTabs;
 
+  /// Null means migrate from [libraryShowCategoryTabs] on read.
+  @Enumerated(EnumType.ordinal32)
+  LibraryGroupMode? libraryGroupMode;
+
   bool? libraryDownloadedChapters;
 
   bool? libraryShowLanguage;
@@ -50,6 +54,9 @@ class Settings {
   bool? libraryShowContinueReadingButton;
 
   bool? libraryLocalSource;
+
+  /// Show source name badge on library covers/list. Null → default true.
+  bool? libraryShowSource;
 
   SortLibraryManga? sortLibraryManga;
 
@@ -133,6 +140,10 @@ class Settings {
 
   bool? animeLibraryShowCategoryTabs;
 
+  /// Null means migrate from [animeLibraryShowCategoryTabs] on read.
+  @Enumerated(EnumType.ordinal32)
+  LibraryGroupMode? animeLibraryGroupMode;
+
   bool? animeLibraryDownloadedChapters;
 
   bool? animeLibraryShowLanguage;
@@ -142,6 +153,9 @@ class Settings {
   bool? animeLibraryShowContinueReadingButton;
 
   bool? animeLibraryLocalSource;
+
+  /// Null → default true.
+  bool? animeLibraryShowSource;
 
   late SortLibraryManga? sortLibraryAnime;
 
@@ -258,6 +272,10 @@ class Settings {
 
   bool? novelLibraryShowCategoryTabs;
 
+  /// Null means migrate from [novelLibraryShowCategoryTabs] on read.
+  @Enumerated(EnumType.ordinal32)
+  LibraryGroupMode? novelLibraryGroupMode;
+
   bool? novelLibraryDownloadedChapters;
 
   bool? novelLibraryShowLanguage;
@@ -267,6 +285,9 @@ class Settings {
   bool? novelLibraryShowContinueReadingButton;
 
   bool? novelLibraryLocalSource;
+
+  /// Null → default true.
+  bool? novelLibraryShowSource;
 
   late SortLibraryManga? sortLibraryNovel;
 
@@ -409,6 +430,7 @@ class Settings {
     this.libraryFilterMangasStartedType = 0,
     this.libraryFilterMangasBookMarkedType = 0,
     this.libraryShowCategoryTabs = false,
+    this.libraryGroupMode,
     this.libraryDownloadedChapters = false,
     this.libraryShowLanguage = false,
     this.libraryShowNumbersOfItems = false,
@@ -441,6 +463,7 @@ class Settings {
     this.downloadLocation = "",
     this.cropBorders = false,
     this.libraryLocalSource,
+    this.libraryShowSource = true,
     this.autoExtensionsUpdates = false,
     this.animeDisplayType = DisplayType.compactGrid,
     this.libraryFilterAnimeDownloadType = 0,
@@ -448,11 +471,13 @@ class Settings {
     this.libraryFilterAnimeStartedType = 0,
     this.libraryFilterAnimeBookMarkedType = 0,
     this.animeLibraryShowCategoryTabs = false,
+    this.animeLibraryGroupMode,
     this.animeLibraryDownloadedChapters = false,
     this.animeLibraryShowLanguage = false,
     this.animeLibraryShowNumbersOfItems = false,
     this.animeLibraryShowContinueReadingButton = false,
     this.animeLibraryLocalSource,
+    this.animeLibraryShowSource = true,
     this.sortLibraryAnime,
     this.pagePreloadAmount = 6,
     this.scaleType = ScaleType.fitScreen,
@@ -501,11 +526,13 @@ class Settings {
     this.libraryFilterNovelStartedType = 0,
     this.libraryFilterNovelBookMarkedType = 0,
     this.novelLibraryShowCategoryTabs = false,
+    this.novelLibraryGroupMode,
     this.novelLibraryDownloadedChapters = false,
     this.novelLibraryShowLanguage = false,
     this.novelLibraryShowNumbersOfItems = false,
     this.novelLibraryShowContinueReadingButton = false,
     this.novelLibraryLocalSource,
+    this.novelLibraryShowSource = true,
     this.sortLibraryNovel,
     this.novelDisplayType = DisplayType.comfortableGrid,
     this.novelFontSize = 14,
@@ -588,7 +615,15 @@ class Settings {
     );
     animeLibraryDownloadedChapters = json['animeLibraryDownloadedChapters'];
     animeLibraryLocalSource = json['animeLibraryLocalSource'];
+    animeLibraryShowSource = json['animeLibraryShowSource'];
     animeLibraryShowCategoryTabs = json['animeLibraryShowCategoryTabs'];
+    animeLibraryGroupMode = json['animeLibraryGroupMode'] == null
+        ? null
+        : _enumFromJson(
+            LibraryGroupMode.values,
+            json['animeLibraryGroupMode'],
+            LibraryGroupMode.off,
+          );
     animeLibraryShowContinueReadingButton =
         json['animeLibraryShowContinueReadingButton'];
     animeLibraryShowLanguage = json['animeLibraryShowLanguage'];
@@ -670,7 +705,15 @@ class Settings {
     libraryFilterMangasStartedType = json['libraryFilterMangasStartedType'];
     libraryFilterMangasUnreadType = json['libraryFilterMangasUnreadType'];
     libraryLocalSource = json['libraryLocalSource'];
+    libraryShowSource = json['libraryShowSource'];
     libraryShowCategoryTabs = json['libraryShowCategoryTabs'];
+    libraryGroupMode = json['libraryGroupMode'] == null
+        ? null
+        : _enumFromJson(
+            LibraryGroupMode.values,
+            json['libraryGroupMode'],
+            LibraryGroupMode.off,
+          );
     libraryShowContinueReadingButton = json['libraryShowContinueReadingButton'];
     libraryShowLanguage = json['libraryShowLanguage'];
     libraryShowNumbersOfItems = json['libraryShowNumbersOfItems'];
@@ -775,12 +818,20 @@ class Settings {
     libraryFilterNovelStartedType = json['libraryFilterNovelStartedType'];
     libraryFilterNovelUnreadType = json['libraryFilterNovelUnreadType'];
     novelLibraryShowCategoryTabs = json['novelLibraryShowCategoryTabs'];
+    novelLibraryGroupMode = json['novelLibraryGroupMode'] == null
+        ? null
+        : _enumFromJson(
+            LibraryGroupMode.values,
+            json['novelLibraryGroupMode'],
+            LibraryGroupMode.off,
+          );
     novelLibraryDownloadedChapters = json['novelLibraryDownloadedChapters'];
     novelLibraryShowLanguage = json['novelLibraryShowLanguage'];
     novelLibraryShowNumbersOfItems = json['novelLibraryShowNumbersOfItems'];
     novelLibraryShowContinueReadingButton =
         json['novelLibraryShowContinueReadingButton'];
     novelLibraryLocalSource = json['novelLibraryLocalSource'];
+    novelLibraryShowSource = json['novelLibraryShowSource'];
     sortLibraryNovel = json['sortLibraryNovel'] != null
         ? SortLibraryManga.fromJson(json['sortLibraryNovel'])
         : null;
@@ -911,7 +962,9 @@ class Settings {
     'animeDisplayType': animeDisplayType.index,
     'animeLibraryDownloadedChapters': animeLibraryDownloadedChapters,
     'animeLibraryLocalSource': animeLibraryLocalSource,
+    'animeLibraryShowSource': animeLibraryShowSource,
     'animeLibraryShowCategoryTabs': animeLibraryShowCategoryTabs,
+    'animeLibraryGroupMode': animeLibraryGroupMode?.index,
     'animeLibraryShowContinueReadingButton':
         animeLibraryShowContinueReadingButton,
     'animeLibraryShowLanguage': animeLibraryShowLanguage,
@@ -958,7 +1011,9 @@ class Settings {
     'libraryFilterMangasStartedType': libraryFilterMangasStartedType,
     'libraryFilterMangasUnreadType': libraryFilterMangasUnreadType,
     'libraryLocalSource': libraryLocalSource,
+    'libraryShowSource': libraryShowSource,
     'libraryShowCategoryTabs': libraryShowCategoryTabs,
+    'libraryGroupMode': libraryGroupMode?.index,
     'libraryShowContinueReadingButton': libraryShowContinueReadingButton,
     'libraryShowLanguage': libraryShowLanguage,
     'libraryShowNumbersOfItems': libraryShowNumbersOfItems,
@@ -1026,12 +1081,14 @@ class Settings {
     'libraryFilterNovelStartedType': libraryFilterNovelStartedType,
     'libraryFilterNovelUnreadType': libraryFilterNovelUnreadType,
     'novelLibraryShowCategoryTabs': novelLibraryShowCategoryTabs,
+    'novelLibraryGroupMode': novelLibraryGroupMode?.index,
     'novelLibraryDownloadedChapters': novelLibraryDownloadedChapters,
     'novelLibraryShowLanguage': novelLibraryShowLanguage,
     'novelLibraryShowNumbersOfItems': novelLibraryShowNumbersOfItems,
     'novelLibraryShowContinueReadingButton':
         novelLibraryShowContinueReadingButton,
     'novelLibraryLocalSource': novelLibraryLocalSource,
+    'novelLibraryShowSource': novelLibraryShowSource,
     'sortLibraryNovel': sortLibraryNovel?.toJson(),
     'novelDisplayType': novelDisplayType.index,
     'novelFontSize': novelFontSize,
@@ -1123,6 +1180,9 @@ enum AudioChannel {
 enum SectionType { all, anime, manga }
 
 enum DisplayType { compactGrid, comfortableGrid, coverOnlyGrid, list }
+
+/// How the library list is grouped into tabs.
+enum LibraryGroupMode { off, category, source }
 
 enum ScaleType {
   fitScreen,

@@ -677,6 +677,66 @@ class LibraryShowCategoryTabsState extends _$LibraryShowCategoryTabsState {
   }
 }
 
+LibraryGroupMode _libraryGroupModeFromSettings({
+  required ItemType itemType,
+  required Settings settings,
+}) {
+  switch (itemType) {
+    case ItemType.manga:
+      final mode = settings.libraryGroupMode;
+      if (mode != null) return mode;
+      return settings.libraryShowCategoryTabs == true
+          ? LibraryGroupMode.category
+          : LibraryGroupMode.off;
+    case ItemType.anime:
+      final mode = settings.animeLibraryGroupMode;
+      if (mode != null) return mode;
+      return settings.animeLibraryShowCategoryTabs == true
+          ? LibraryGroupMode.category
+          : LibraryGroupMode.off;
+    default:
+      final mode = settings.novelLibraryGroupMode;
+      if (mode != null) return mode;
+      return settings.novelLibraryShowCategoryTabs == true
+          ? LibraryGroupMode.category
+          : LibraryGroupMode.off;
+  }
+}
+
+@riverpod
+class LibraryGroupModeState extends _$LibraryGroupModeState {
+  @override
+  LibraryGroupMode build({
+    required ItemType itemType,
+    required Settings settings,
+  }) {
+    return _libraryGroupModeFromSettings(
+      itemType: itemType,
+      settings: settings,
+    );
+  }
+
+  void set(LibraryGroupMode value) {
+    final Settings appSettings;
+    switch (itemType) {
+      case ItemType.manga:
+        appSettings = settings..libraryGroupMode = value;
+        break;
+      case ItemType.anime:
+        appSettings = settings..animeLibraryGroupMode = value;
+        break;
+      default:
+        appSettings = settings..novelLibraryGroupMode = value;
+    }
+    state = value;
+    isar.writeTxnSync(() {
+      isar.settings.putSync(
+        appSettings..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      );
+    });
+  }
+}
+
 @riverpod
 class LibraryDownloadedChaptersState extends _$LibraryDownloadedChaptersState {
   @override
@@ -772,6 +832,41 @@ class LibraryLocalSourceState extends _$LibraryLocalSourceState {
         break;
       default:
         appSettings = settings..novelLibraryLocalSource = value;
+    }
+    state = value;
+    isar.writeTxnSync(() {
+      isar.settings.putSync(
+        appSettings..updatedAt = DateTime.now().millisecondsSinceEpoch,
+      );
+    });
+  }
+}
+
+@riverpod
+class LibraryShowSourceState extends _$LibraryShowSourceState {
+  @override
+  bool build({required ItemType itemType, required Settings settings}) {
+    switch (itemType) {
+      case ItemType.manga:
+        return settings.libraryShowSource ?? true;
+      case ItemType.anime:
+        return settings.animeLibraryShowSource ?? true;
+      default:
+        return settings.novelLibraryShowSource ?? true;
+    }
+  }
+
+  void set(bool value) {
+    Settings appSettings = Settings();
+    switch (itemType) {
+      case ItemType.manga:
+        appSettings = settings..libraryShowSource = value;
+        break;
+      case ItemType.anime:
+        appSettings = settings..animeLibraryShowSource = value;
+        break;
+      default:
+        appSettings = settings..novelLibraryShowSource = value;
     }
     state = value;
     isar.writeTxnSync(() {

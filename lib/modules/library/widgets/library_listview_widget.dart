@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/modules/library/library_source_group.dart';
 import 'package:mangayomi/modules/library/widgets/continue_reader_button.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/library/widgets/library_entry_utils.dart';
@@ -14,6 +15,7 @@ class LibraryListViewWidget extends StatelessWidget {
   final Set<int> mangaIdsList;
   final bool continueReaderBtn;
   final bool localSource;
+  final bool showSource;
   const LibraryListViewWidget({
     super.key,
     required this.entriesManga,
@@ -22,6 +24,7 @@ class LibraryListViewWidget extends StatelessWidget {
     required this.continueReaderBtn,
     required this.mangaIdsList,
     required this.localSource,
+    required this.showSource,
   });
 
   @override
@@ -113,6 +116,16 @@ class LibraryListViewWidget extends StatelessWidget {
                                   children: [
                                     if (localSource && isLocalArchive)
                                       const EntryBadgeChip(label: 'Local'),
+                                    if (showSource &&
+                                        !(localSource && isLocalArchive))
+                                      EntryBadgeChip(
+                                        label: LibrarySourceGroup.fromManga(
+                                          entry,
+                                        ).coverBadgeLabel(
+                                          languageBadgeVisible: language,
+                                        ),
+                                        maxWidth: 90,
+                                      ),
                                     if (downloadedChapter)
                                       DownloadCountBadge(entry: entry),
                                     Padding(

@@ -766,6 +766,9 @@ class AppLocalizationsAs extends AppLocalizations {
   String get reset => 'ৰিছেট';
 
   @override
+  String get by_category => 'শ্ৰেণী অনুসৰি';
+
+  @override
   String get by_source => 'উৎস অনুসৰি';
 
   @override

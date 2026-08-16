@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
+import 'package:mangayomi/modules/library/library_source_group.dart';
 import 'package:mangayomi/modules/library/providers/isar_providers.dart';
 import 'package:mangayomi/modules/library/providers/library_filter_provider.dart';
 import 'package:mangayomi/modules/library/providers/library_state_provider.dart';
@@ -23,6 +24,7 @@ class LibraryBody extends ConsumerWidget {
   final ItemType itemType;
   final int? categoryId;
   final bool withoutCategories;
+  final LibrarySourceGroup? sourceGroup;
   final int downloadFilterType;
   final int unreadFilterType;
   final int startedFilterType;
@@ -45,6 +47,7 @@ class LibraryBody extends ConsumerWidget {
     required this.itemType,
     this.categoryId,
     this.withoutCategories = false,
+    this.sourceGroup,
     required this.downloadFilterType,
     required this.unreadFilterType,
     required this.startedFilterType,
@@ -66,7 +69,8 @@ class LibraryBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = l10nLocalizations(context)!;
-    final sortState = categoryId != null
+    final useCategorySort = sourceGroup == null && categoryId != null;
+    final sortState = useCategorySort
         ? ref.watch(
             sortLibraryCategoryStateProvider(
               categoryId: categoryId!,
@@ -83,9 +87,19 @@ class LibraryBody extends ConsumerWidget {
     final sortType = sortState.index;
     final reverse = sortState.reverse ?? false;
     final mangaIdsList = ref.watch(mangasListStateProvider);
+    final showSource = ref.watch(
+      libraryShowSourceStateProvider(itemType: itemType, settings: settings),
+    );
 
-    // Choose the right data stream based on whether this is a category tab
-    final mangaStream = withoutCategories
+    // Choose the right data stream: source tab, uncategorized, or category/all
+    final mangaStream = sourceGroup != null
+        ? ref.watch(
+            getMangaByLibrarySourceStreamProvider(
+              itemType: itemType,
+              sourceGroup: sourceGroup!,
+            ),
+          )
+        : withoutCategories
         ? ref.watch(
             getAllMangaWithoutCategoriesStreamProvider(itemType: itemType),
           )
@@ -141,6 +155,7 @@ class LibraryBody extends ConsumerWidget {
                         language: language,
                         mangaIdsList: mangaIdsList,
                         localSource: localSource,
+                        showSource: showSource,
                       )
                     : LibraryGridViewWidget(
                         entriesManga: entriesManga,
@@ -153,6 +168,7 @@ class LibraryBody extends ConsumerWidget {
                         language: language,
                         mangaIdsList: mangaIdsList,
                         localSource: localSource,
+                        showSource: showSource,
                         itemType: itemType,
                       ),
               );
@@ -220,6 +236,85 @@ class CategoryBadge extends ConsumerWidget {
         itemType: itemType,
         settings: settings,
       ),
+    );
+    final sortType = sortState.index;
+
+    return mangas.when(
+      data: (data) {
+        final filtered = ref.watch(
+          filteredLibraryMangaProvider(
+            data: data,
+            downloadFilterType: downloadFilterType,
+            unreadFilterType: unreadFilterType,
+            startedFilterType: startedFilterType,
+            bookmarkedFilterType: bookmarkedFilterType,
+            completedFilterType: completedFilterType,
+            trackingFilterType: trackingFilterType,
+            sortType: sortType ?? 0,
+            downloadedOnly: downloadedOnly,
+            searchQuery: searchQuery,
+            ignoreFiltersOnSearch: ignoreFiltersOnSearch,
+          ),
+        );
+        return CircleAvatar(
+          backgroundColor: Theme.of(context).focusColor,
+          radius: 8,
+          child: Text(
+            filtered.length.toString(),
+            style: TextStyle(
+              fontSize: 10,
+              color: Theme.of(context).textTheme.bodySmall!.color,
+            ),
+          ),
+        );
+      },
+      error: (error, _) => ErrorText(error),
+      loading: () => const ProgressCenter(),
+    );
+  }
+}
+
+/// Badge showing the number of filtered items in a source tab.
+class SourceBadge extends ConsumerWidget {
+  final ItemType itemType;
+  final LibrarySourceGroup sourceGroup;
+  final int downloadFilterType;
+  final int unreadFilterType;
+  final int startedFilterType;
+  final int bookmarkedFilterType;
+  final int completedFilterType;
+  final int trackingFilterType;
+  final Settings settings;
+  final bool downloadedOnly;
+  final String searchQuery;
+  final bool ignoreFiltersOnSearch;
+
+  const SourceBadge({
+    super.key,
+    required this.itemType,
+    required this.sourceGroup,
+    required this.downloadFilterType,
+    required this.unreadFilterType,
+    required this.startedFilterType,
+    required this.bookmarkedFilterType,
+    required this.completedFilterType,
+    required this.trackingFilterType,
+    required this.settings,
+    required this.downloadedOnly,
+    required this.searchQuery,
+    required this.ignoreFiltersOnSearch,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mangas = ref.watch(
+      getMangaByLibrarySourceStreamProvider(
+        itemType: itemType,
+        sourceGroup: sourceGroup,
+      ),
+    );
+    final sortState = ref.watch(
+      sortLibraryMangaStateProvider(itemType: itemType, settings: settings),
     );
     final sortType = sortState.index;
 

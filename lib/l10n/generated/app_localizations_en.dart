@@ -764,6 +764,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reset => 'Reset';
 
   @override
+  String get by_category => 'By category';
+
+  @override
   String get by_source => 'By source';
 
   @override

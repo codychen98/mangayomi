@@ -758,6 +758,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get reset => 'リセット';
 
   @override
+  String get by_category => 'カテゴリ別';
+
+  @override
   String get by_source => 'ソース別';
 
   @override

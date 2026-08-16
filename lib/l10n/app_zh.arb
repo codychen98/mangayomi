@@ -144,6 +144,7 @@
     "in_library": "在图书馆",
     "filter_scanlator_groups": "筛选扫描翻译组",
     "reset": "重置",
+    "by_category": "按类别",
     "by_source": "按来源",
     "by_chapter_number": "按章节号",
     "by_upload_date": "按上传日期",

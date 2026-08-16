@@ -83,7 +83,7 @@ Future<void> onTapEntry({
 
 /// A small rounded chip using the theme's hint colour as its background.
 ///
-/// Used for the Local, download-count, and language badges.
+/// Used for the Local, download-count, language, and source badges.
 class EntryBadgeChip extends StatelessWidget {
   const EntryBadgeChip({
     super.key,
@@ -92,23 +92,31 @@ class EntryBadgeChip extends StatelessWidget {
       topLeft: Radius.circular(3),
       bottomLeft: Radius.circular(3),
     ),
+    this.maxWidth,
   });
 
   final String label;
   final BorderRadius borderRadius;
+  final double? maxWidth;
 
   @override
   Widget build(BuildContext context) {
+    final text = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(color: context.dynamicBlackWhiteColor),
+    );
     return Container(
+      constraints: maxWidth == null
+          ? null
+          : BoxConstraints(maxWidth: maxWidth!),
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         color: Theme.of(context).hintColor,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 3),
-      child: Text(
-        label,
-        style: TextStyle(color: context.dynamicBlackWhiteColor),
-      ),
+      child: text,
     );
   }
 }

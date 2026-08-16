@@ -180,6 +180,99 @@ final class GetAllMangaWithoutCategoriesStreamFamily extends $Family
   String toString() => r'getAllMangaWithoutCategoriesStreamProvider';
 }
 
+@ProviderFor(getMangaByLibrarySourceStream)
+final getMangaByLibrarySourceStreamProvider =
+    GetMangaByLibrarySourceStreamFamily._();
+
+final class GetMangaByLibrarySourceStreamProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Manga>>,
+          List<Manga>,
+          Stream<List<Manga>>
+        >
+    with $FutureModifier<List<Manga>>, $StreamProvider<List<Manga>> {
+  GetMangaByLibrarySourceStreamProvider._({
+    required GetMangaByLibrarySourceStreamFamily super.from,
+    required ({ItemType itemType, LibrarySourceGroup sourceGroup})
+    super.argument,
+  }) : super(
+         retry: null,
+         name: r'getMangaByLibrarySourceStreamProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$getMangaByLibrarySourceStreamHash();
+
+  @override
+  String toString() {
+    return r'getMangaByLibrarySourceStreamProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<Manga>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<Manga>> create(Ref ref) {
+    final argument =
+        this.argument as ({ItemType itemType, LibrarySourceGroup sourceGroup});
+    return getMangaByLibrarySourceStream(
+      ref,
+      itemType: argument.itemType,
+      sourceGroup: argument.sourceGroup,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is GetMangaByLibrarySourceStreamProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$getMangaByLibrarySourceStreamHash() =>
+    r'a1b2c3d4e5f6789012345678abcdef0123456789';
+
+final class GetMangaByLibrarySourceStreamFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<List<Manga>>,
+          ({ItemType itemType, LibrarySourceGroup sourceGroup})
+        > {
+  GetMangaByLibrarySourceStreamFamily._()
+    : super(
+        retry: null,
+        name: r'getMangaByLibrarySourceStreamProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  GetMangaByLibrarySourceStreamProvider call({
+    required ItemType itemType,
+    required LibrarySourceGroup sourceGroup,
+  }) => GetMangaByLibrarySourceStreamProvider._(
+    argument: (itemType: itemType, sourceGroup: sourceGroup),
+    from: this,
+  );
+
+  @override
+  String toString() => r'getMangaByLibrarySourceStreamProvider';
+}
+
 @ProviderFor(getSettingsStream)
 final getSettingsStreamProvider = GetSettingsStreamProvider._();
 

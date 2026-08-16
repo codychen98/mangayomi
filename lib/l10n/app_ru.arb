@@ -141,6 +141,7 @@
     "in_library": "В библиотеке",
     "filter_scanlator_groups": "Фильтр групп переводчиков",
     "reset": "Сброс",
+    "by_category": "По категории",
     "by_source": "По источнику",
     "by_chapter_number": "По номеру главы",
     "by_upload_date": "По дате загрузки",

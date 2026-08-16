@@ -763,6 +763,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get reset => 'Sıfırla';
 
   @override
+  String get by_category => 'Kategoriye Göre';
+
+  @override
   String get by_source => 'Kaynağa Göre';
 
   @override

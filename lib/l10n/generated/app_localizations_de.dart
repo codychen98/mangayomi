@@ -766,6 +766,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reset => 'Zurücksetzen';
 
   @override
+  String get by_category => 'Nach Kategorie';
+
+  @override
   String get by_source => 'Nach Quelle';
 
   @override

@@ -776,6 +776,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reset => 'إعادة تعيين';
 
   @override
+  String get by_category => 'حسب الفئة';
+
+  @override
   String get by_source => 'حسب المصدر';
 
   @override

@@ -290,11 +290,8 @@ class _DisplayTab extends ConsumerWidget {
         settings: settings,
       ).notifier,
     );
-    final showCategoryTabs = ref.watch(
-      libraryShowCategoryTabsStateProvider(
-        itemType: itemType,
-        settings: settings,
-      ),
+    final groupMode = ref.watch(
+      libraryGroupModeStateProvider(itemType: itemType, settings: settings),
     );
     final continueReaderBtn = ref.watch(
       libraryShowContinueReadingButtonStateProvider(
@@ -319,6 +316,9 @@ class _DisplayTab extends ConsumerWidget {
     );
     final localSource = ref.watch(
       libraryLocalSourceStateProvider(itemType: itemType, settings: settings),
+    );
+    final showSource = ref.watch(
+      libraryShowSourceStateProvider(itemType: itemType, settings: settings),
     );
     return SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
@@ -431,6 +431,20 @@ class _DisplayTab extends ConsumerWidget {
                   },
                 ),
                 ListTileChapterFilter(
+                  label: l10n.sources,
+                  type: showSource ? 1 : 0,
+                  onTap: () {
+                    ref
+                        .read(
+                          libraryShowSourceStateProvider(
+                            itemType: itemType,
+                            settings: settings,
+                          ).notifier,
+                        )
+                        .set(!showSource);
+                  },
+                ),
+                ListTileChapterFilter(
                   label: itemType != ItemType.anime
                       ? l10n.show_continue_reading_buttons
                       : l10n.show_continue_watching_buttons,
@@ -456,38 +470,74 @@ class _DisplayTab extends ConsumerWidget {
             child: Row(children: [Text(l10n.tabs)]),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 5),
-            child: Column(
+            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 20),
+            child: Wrap(
               children: [
-                ListTileChapterFilter(
-                  label: l10n.show_category_tabs,
-                  type: showCategoryTabs ? 1 : 0,
-                  onTap: () {
-                    ref
-                        .read(
-                          libraryShowCategoryTabsStateProvider(
-                            itemType: itemType,
-                            settings: settings,
-                          ).notifier,
-                        )
-                        .set(!showCategoryTabs);
-                  },
-                ),
-                ListTileChapterFilter(
-                  label: l10n.show_numbers_of_items,
-                  type: showNumbersOfItems ? 1 : 0,
-                  onTap: () {
-                    ref
-                        .read(
-                          libraryShowNumbersOfItemsStateProvider(
-                            itemType: itemType,
-                            settings: settings,
-                          ).notifier,
-                        )
-                        .set(!showNumbersOfItems);
-                  },
-                ),
-              ],
+                (LibraryGroupMode.off, l10n.off),
+                (LibraryGroupMode.category, l10n.by_category),
+                (LibraryGroupMode.source, l10n.by_source),
+              ].map((option) {
+                final selected = option.$1 == groupMode;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 5, bottom: 5),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      surfaceTintColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      side: selected
+                          ? null
+                          : BorderSide(
+                              color: context.isLight
+                                  ? Colors.black
+                                  : Colors.white,
+                              width: 0.8,
+                            ),
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
+                      backgroundColor: selected
+                          ? context.primaryColor.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                    ),
+                    onPressed: () {
+                      ref
+                          .read(
+                            libraryGroupModeStateProvider(
+                              itemType: itemType,
+                              settings: settings,
+                            ).notifier,
+                          )
+                          .set(option.$1);
+                    },
+                    child: Text(
+                      option.$2,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyLarge!.color,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: ListTileChapterFilter(
+              label: l10n.show_numbers_of_items,
+              type: showNumbersOfItems ? 1 : 0,
+              onTap: () {
+                ref
+                    .read(
+                      libraryShowNumbersOfItemsStateProvider(
+                        itemType: itemType,
+                        settings: settings,
+                      ).notifier,
+                    )
+                    .set(!showNumbersOfItems);
+              },
             ),
           ),
         ],

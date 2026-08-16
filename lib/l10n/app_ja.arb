@@ -604,6 +604,7 @@
   "canceled": "キャンセル",
   "publishing_finished": "出版が終了",
   "filter_scanlator_groups": "スキャンレータグループをフィルター",
+  "by_category": "カテゴリ別",
   "by_source": "ソース別",
   "by_chapter_number": "チャプター番号別",
   "by_upload_date": "アップロード日時別",

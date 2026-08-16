@@ -969,6 +969,39 @@ const SettingsSchema = CollectionSchema(
       name: r'enablePlayerDoubleTapPlayPause',
       type: IsarType.bool,
     ),
+    r'animeLibraryGroupMode': PropertySchema(
+      id: 180,
+      name: r'animeLibraryGroupMode',
+      type: IsarType.int,
+      enumMap: _SettingsanimeLibraryGroupModeEnumValueMap,
+    ),
+    r'libraryGroupMode': PropertySchema(
+      id: 181,
+      name: r'libraryGroupMode',
+      type: IsarType.int,
+      enumMap: _SettingslibraryGroupModeEnumValueMap,
+    ),
+    r'novelLibraryGroupMode': PropertySchema(
+      id: 182,
+      name: r'novelLibraryGroupMode',
+      type: IsarType.int,
+      enumMap: _SettingsnovelLibraryGroupModeEnumValueMap,
+    ),
+    r'animeLibraryShowSource': PropertySchema(
+      id: 183,
+      name: r'animeLibraryShowSource',
+      type: IsarType.bool,
+    ),
+    r'libraryShowSource': PropertySchema(
+      id: 184,
+      name: r'libraryShowSource',
+      type: IsarType.bool,
+    ),
+    r'novelLibraryShowSource': PropertySchema(
+      id: 185,
+      name: r'novelLibraryShowSource',
+      type: IsarType.bool,
+    ),
   },
 
   estimateSize: _settingsEstimateSize,
@@ -1778,6 +1811,12 @@ void _settingsSerialize(
   writer.writeBool(offsets[177], object.enablePlayerDoubleTapSeekLeft);
   writer.writeBool(offsets[178], object.enablePlayerDoubleTapSeekRight);
   writer.writeBool(offsets[179], object.enablePlayerDoubleTapPlayPause);
+  writer.writeInt(offsets[180], object.animeLibraryGroupMode?.index);
+  writer.writeInt(offsets[181], object.libraryGroupMode?.index);
+  writer.writeInt(offsets[182], object.novelLibraryGroupMode?.index);
+  writer.writeBool(offsets[183], object.animeLibraryShowSource);
+  writer.writeBool(offsets[184], object.libraryShowSource);
+  writer.writeBool(offsets[185], object.novelLibraryShowSource);
 }
 
 Settings _settingsDeserialize(
@@ -2085,6 +2124,21 @@ Settings _settingsDeserialize(
     enablePlayerDoubleTapSeekLeft: reader.readBoolOrNull(offsets[177]),
     enablePlayerDoubleTapSeekRight: reader.readBoolOrNull(offsets[178]),
     enablePlayerDoubleTapPlayPause: reader.readBoolOrNull(offsets[179]),
+    animeLibraryGroupMode:
+        _SettingsanimeLibraryGroupModeValueEnumMap[reader.readIntOrNull(
+          offsets[180],
+        )],
+    libraryGroupMode:
+        _SettingslibraryGroupModeValueEnumMap[reader.readIntOrNull(
+          offsets[181],
+        )],
+    novelLibraryGroupMode:
+        _SettingsnovelLibraryGroupModeValueEnumMap[reader.readIntOrNull(
+          offsets[182],
+        )],
+    animeLibraryShowSource: reader.readBoolOrNull(offsets[183]),
+    libraryShowSource: reader.readBoolOrNull(offsets[184]),
+    novelLibraryShowSource: reader.readBoolOrNull(offsets[185]),
   );
   object.chapterFilterBookmarkedList = reader
       .readObjectList<ChapterFilterBookmarked>(
@@ -2650,6 +2704,25 @@ P _settingsDeserializeProp<P>(
     case 178:
     case 179:
       return (reader.readBoolOrNull(offset)) as P;
+    case 180:
+      return (_SettingsanimeLibraryGroupModeValueEnumMap[reader.readIntOrNull(
+            offset,
+          )])
+          as P;
+    case 181:
+      return (_SettingslibraryGroupModeValueEnumMap[reader.readIntOrNull(
+            offset,
+          )])
+          as P;
+    case 182:
+      return (_SettingsnovelLibraryGroupModeValueEnumMap[reader.readIntOrNull(
+            offset,
+          )])
+          as P;
+    case 183:
+    case 184:
+    case 185:
+      return (reader.readBoolOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -2666,6 +2739,36 @@ const _SettingsanimeDisplayTypeValueEnumMap = {
   1: DisplayType.comfortableGrid,
   2: DisplayType.coverOnlyGrid,
   3: DisplayType.list,
+};
+const _SettingsanimeLibraryGroupModeEnumValueMap = {
+  'off': 0,
+  'category': 1,
+  'source': 2,
+};
+const _SettingsanimeLibraryGroupModeValueEnumMap = {
+  0: LibraryGroupMode.off,
+  1: LibraryGroupMode.category,
+  2: LibraryGroupMode.source,
+};
+const _SettingslibraryGroupModeEnumValueMap = {
+  'off': 0,
+  'category': 1,
+  'source': 2,
+};
+const _SettingslibraryGroupModeValueEnumMap = {
+  0: LibraryGroupMode.off,
+  1: LibraryGroupMode.category,
+  2: LibraryGroupMode.source,
+};
+const _SettingsnovelLibraryGroupModeEnumValueMap = {
+  'off': 0,
+  'category': 1,
+  'source': 2,
+};
+const _SettingsnovelLibraryGroupModeValueEnumMap = {
+  0: LibraryGroupMode.off,
+  1: LibraryGroupMode.category,
+  2: LibraryGroupMode.source,
 };
 const _SettingsaudioChannelsEnumValueMap = {
   'auto': 0,

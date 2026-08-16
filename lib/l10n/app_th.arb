@@ -144,6 +144,7 @@
   "in_library": "ในชั้นหนังสือ",
   "filter_scanlator_groups": "ตังกรองกลุ่มนักสแกน",
   "reset": "คืนค่า",
+  "by_category": "ตามหมวดหมู่",
   "by_source": "ตามแหล่งที่มา",
   "by_chapter_number": "ตามหมายเลขตอน",
   "by_upload_date": "ตามวันที่อัพโหลด",

@@ -768,6 +768,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get reset => 'Atur ulang';
 
   @override
+  String get by_category => 'Berdasarkan kategori';
+
+  @override
   String get by_source => 'Berdasarkan sumber';
 
   @override

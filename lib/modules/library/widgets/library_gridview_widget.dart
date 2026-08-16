@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mangayomi/modules/library/library_source_group.dart';
 import 'package:mangayomi/modules/library/providers/library_state_provider.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/modules/library/widgets/continue_reader_button.dart';
@@ -19,6 +20,7 @@ class LibraryGridViewWidget extends StatefulWidget {
   final bool downloadedChapter;
   final bool continueReaderBtn;
   final bool localSource;
+  final bool showSource;
   final ItemType itemType;
   const LibraryGridViewWidget({
     super.key,
@@ -30,6 +32,7 @@ class LibraryGridViewWidget extends StatefulWidget {
     required this.continueReaderBtn,
     required this.mangaIdsList,
     required this.localSource,
+    required this.showSource,
     required this.itemType,
   });
 
@@ -145,6 +148,25 @@ class _LibraryGridViewWidgetState extends State<LibraryGridViewWidget> {
 
                   if (!widget.isComfortableGrid && !widget.isCoverOnlyGrid)
                     BottomTextWidget(text: entry.name!),
+
+                  // Bottom-left: Source (outer Stack so bottom anchors to cover)
+                  if (widget.showSource &&
+                      !(widget.localSource && isLocalArchive))
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      child: Padding(
+                        padding: const EdgeInsets.all(5),
+                        child: EntryBadgeChip(
+                          label: LibrarySourceGroup.fromManga(entry)
+                              .coverBadgeLabel(
+                                languageBadgeVisible: widget.language,
+                              ),
+                          borderRadius: BorderRadius.circular(3),
+                          maxWidth: 90,
+                        ),
+                      ),
+                    ),
 
                   if (widget.continueReaderBtn)
                     Positioned(

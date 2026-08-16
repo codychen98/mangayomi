@@ -747,6 +747,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reset => '重置';
 
   @override
+  String get by_category => '按类别';
+
+  @override
   String get by_source => '按来源';
 
   @override

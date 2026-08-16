@@ -780,6 +780,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reset => 'Сброс';
 
   @override
+  String get by_category => 'По категории';
+
+  @override
   String get by_source => 'По источнику';
 
   @override

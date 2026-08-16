@@ -1165,6 +1165,116 @@ abstract class _$LibraryShowCategoryTabsState extends $Notifier<bool> {
   }
 }
 
+@ProviderFor(LibraryGroupModeState)
+final libraryGroupModeStateProvider = LibraryGroupModeStateFamily._();
+
+final class LibraryGroupModeStateProvider
+    extends $NotifierProvider<LibraryGroupModeState, LibraryGroupMode> {
+  LibraryGroupModeStateProvider._({
+    required LibraryGroupModeStateFamily super.from,
+    required ({ItemType itemType, Settings settings}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'libraryGroupModeStateProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$libraryGroupModeStateHash();
+
+  @override
+  String toString() {
+    return r'libraryGroupModeStateProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  LibraryGroupModeState create() => LibraryGroupModeState();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LibraryGroupMode value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LibraryGroupMode>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LibraryGroupModeStateProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$libraryGroupModeStateHash() =>
+    r'a1b2c3d4e5f6789012345678librarygroupmode01';
+
+final class LibraryGroupModeStateFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          LibraryGroupModeState,
+          LibraryGroupMode,
+          LibraryGroupMode,
+          LibraryGroupMode,
+          ({ItemType itemType, Settings settings})
+        > {
+  LibraryGroupModeStateFamily._()
+    : super(
+        retry: null,
+        name: r'libraryGroupModeStateProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  LibraryGroupModeStateProvider call({
+    required ItemType itemType,
+    required Settings settings,
+  }) => LibraryGroupModeStateProvider._(
+    argument: (itemType: itemType, settings: settings),
+    from: this,
+  );
+
+  @override
+  String toString() => r'libraryGroupModeStateProvider';
+}
+
+abstract class _$LibraryGroupModeState extends $Notifier<LibraryGroupMode> {
+  late final _$args = ref.$arg as ({ItemType itemType, Settings settings});
+  ItemType get itemType => _$args.itemType;
+  Settings get settings => _$args.settings;
+
+  LibraryGroupMode build({
+    required ItemType itemType,
+    required Settings settings,
+  });
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<LibraryGroupMode, LibraryGroupMode>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<LibraryGroupMode, LibraryGroupMode>,
+              LibraryGroupMode,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(
+      ref,
+      () => build(itemType: _$args.itemType, settings: _$args.settings),
+    );
+  }
+}
+
 @ProviderFor(LibraryDownloadedChaptersState)
 final libraryDownloadedChaptersStateProvider =
     LibraryDownloadedChaptersStateFamily._();
@@ -1465,6 +1575,113 @@ final class LibraryLocalSourceStateFamily extends $Family
 }
 
 abstract class _$LibraryLocalSourceState extends $Notifier<bool> {
+  late final _$args = ref.$arg as ({ItemType itemType, Settings settings});
+  ItemType get itemType => _$args.itemType;
+  Settings get settings => _$args.settings;
+
+  bool build({required ItemType itemType, required Settings settings});
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<bool, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<bool, bool>,
+              bool,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(
+      ref,
+      () => build(itemType: _$args.itemType, settings: _$args.settings),
+    );
+  }
+}
+
+@ProviderFor(LibraryShowSourceState)
+final libraryShowSourceStateProvider = LibraryShowSourceStateFamily._();
+
+final class LibraryShowSourceStateProvider
+    extends $NotifierProvider<LibraryShowSourceState, bool> {
+  LibraryShowSourceStateProvider._({
+    required LibraryShowSourceStateFamily super.from,
+    required ({ItemType itemType, Settings settings}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'libraryShowSourceStateProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$libraryShowSourceStateHash();
+
+  @override
+  String toString() {
+    return r'libraryShowSourceStateProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  LibraryShowSourceState create() => LibraryShowSourceState();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(bool value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<bool>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is LibraryShowSourceStateProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$libraryShowSourceStateHash() =>
+    r'a3c8e1f2b4d6078910abcdef1234567890fedcba';
+
+final class LibraryShowSourceStateFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          LibraryShowSourceState,
+          bool,
+          bool,
+          bool,
+          ({ItemType itemType, Settings settings})
+        > {
+  LibraryShowSourceStateFamily._()
+    : super(
+        retry: null,
+        name: r'libraryShowSourceStateProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  LibraryShowSourceStateProvider call({
+    required ItemType itemType,
+    required Settings settings,
+  }) => LibraryShowSourceStateProvider._(
+    argument: (itemType: itemType, settings: settings),
+    from: this,
+  );
+
+  @override
+  String toString() => r'libraryShowSourceStateProvider';
+}
+
+abstract class _$LibraryShowSourceState extends $Notifier<bool> {
   late final _$args = ref.$arg as ({ItemType itemType, Settings settings});
   ItemType get itemType => _$args.itemType;
   Settings get settings => _$args.settings;

@@ -11,9 +11,11 @@ import 'package:mangayomi/modules/library/providers/add_torrent.dart';
 import 'package:mangayomi/modules/library/providers/isar_providers.dart';
 import 'package:mangayomi/modules/library/providers/library_filter_provider.dart';
 import 'package:mangayomi/modules/library/providers/library_state_provider.dart';
+import 'package:mangayomi/modules/library/library_source_group.dart';
 import 'package:mangayomi/modules/library/widgets/library_app_bar.dart';
 import 'package:mangayomi/modules/library/widgets/library_body.dart';
 import 'package:mangayomi/modules/library/widgets/library_dialogs.dart';
+import 'package:mangayomi/modules/library/widgets/library_source_tabs.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/mass_migration/models/mass_migration_models.dart';
 import 'package:mangayomi/modules/more/categories/providers/isar_providers.dart';
@@ -58,6 +60,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   TabController? tabBarController;
   int _tabIndex = 0;
   Timer? _searchDebounce;
+  LibraryGroupMode? _lastGroupMode;
 
   @override
   void initState() {
@@ -131,9 +134,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     }
 
-    final showCategoryTabs = watchWithSettings(
-      libraryShowCategoryTabsStateProvider.call,
-    );
+    final groupMode = watchWithSettings(libraryGroupModeStateProvider.call);
+    if (_lastGroupMode != null &&
+        _lastGroupMode != groupMode &&
+        _lastGroupMode == LibraryGroupMode.category &&
+        tabBarController != null) {
+      final oldController = tabBarController;
+      tabBarController = null;
+      _tabIndex = 0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        oldController?.dispose();
+      });
+    }
+    _lastGroupMode = groupMode;
     final continueReaderBtn = watchWithSettings(
       libraryShowContinueReadingButtonStateProvider.call,
     );
@@ -173,11 +186,16 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     final searchQuery = _textEditingController.text;
 
     // Common body params
-    Widget bodyForCategory({int? categoryId, bool withoutCategories = false}) {
+    Widget bodyForCategory({
+      int? categoryId,
+      bool withoutCategories = false,
+      LibrarySourceGroup? sourceGroup,
+    }) {
       return LibraryBody(
         itemType: widget.itemType,
         categoryId: categoryId,
         withoutCategories: withoutCategories,
+        sourceGroup: sourceGroup,
         downloadFilterType: downloadFilterType,
         unreadFilterType: unreadFilterType,
         startedFilterType: startedFilterType,
@@ -214,6 +232,30 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     }
 
+    Widget badgeForSource(LibrarySourceGroup sourceGroup) {
+      return SourceBadge(
+        itemType: widget.itemType,
+        sourceGroup: sourceGroup,
+        downloadFilterType: downloadFilterType,
+        unreadFilterType: unreadFilterType,
+        startedFilterType: startedFilterType,
+        bookmarkedFilterType: bookmarkedFilterType,
+        completedFilterType: completedFilterType,
+        trackingFilterType: trackingFilterType,
+        settings: settings,
+        downloadedOnly: downloadedOnly,
+        searchQuery: searchQuery,
+        ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
+      );
+    }
+
+    void onSearchClear() {
+      _searchDebounce?.cancel();
+      _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+        if (mounted) setState(() {});
+      });
+    }
+
     return Scaffold(
       body: mangaAll.when(
         data: (man) {
@@ -238,7 +280,33 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                     ),
                   );
 
-                  if (data.isNotEmpty && showCategoryTabs) {
+                  if (groupMode == LibraryGroupMode.source) {
+                    return LibrarySourceTabsView(
+                      itemType: widget.itemType,
+                      favorites: man,
+                      settings: settings,
+                      showNumbersOfItems: showNumbersOfItems,
+                      isNotFiltering: isNotFiltering,
+                      numberOfItems: numberOfItemsList.length,
+                      entries: _entries,
+                      isSearch: _isSearch,
+                      ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
+                      textEditingController: _textEditingController,
+                      onSearchToggle: () =>
+                          setState(() => _isSearch = !_isSearch),
+                      onSearchClear: onSearchClear,
+                      onIgnoreFiltersChanged: (val) =>
+                          setState(() => _ignoreFiltersOnSearch = val),
+                      vsync: this,
+                      bodyForSource: (sourceGroup) =>
+                          bodyForCategory(sourceGroup: sourceGroup),
+                      badgeForSource: badgeForSource,
+                      flatBody: () => bodyForCategory(),
+                    );
+                  }
+
+                  if (groupMode == LibraryGroupMode.category &&
+                      data.isNotEmpty) {
                     return _buildWithCategories(
                       data: data,
                       withoutCategory: withoutCategory,
@@ -268,15 +336,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       textEditingController: _textEditingController,
                       onSearchToggle: () =>
                           setState(() => _isSearch = !_isSearch),
-                      onSearchClear: () {
-                        _searchDebounce?.cancel();
-                        _searchDebounce = Timer(
-                          const Duration(milliseconds: 300),
-                          () {
-                            if (mounted) setState(() {});
-                          },
-                        );
-                      },
+                      onSearchClear: onSearchClear,
                       onIgnoreFiltersChanged: (val) =>
                           setState(() => _ignoreFiltersOnSearch = val),
                       vsync: this,
@@ -306,7 +366,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     required bool showNumbersOfItems,
     required bool isNotFiltering,
     required int numberOfItems,
-    required Widget Function({int? categoryId, bool withoutCategories})
+    required Widget Function({
+      int? categoryId,
+      bool withoutCategories,
+      LibrarySourceGroup? sourceGroup,
+    })
     bodyForCategory,
     required Widget Function(int categoryId) badgeForCategory,
     required int downloadFilterType,
@@ -430,7 +494,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
   List<Widget> _buildCategoryBodies({
     required List entr,
     required List<Manga> withoutCategory,
-    required Widget Function({int? categoryId, bool withoutCategories})
+    required Widget Function({
+      int? categoryId,
+      bool withoutCategories,
+      LibrarySourceGroup? sourceGroup,
+    })
     bodyForCategory,
   }) {
     return [

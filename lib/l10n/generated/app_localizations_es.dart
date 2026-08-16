@@ -769,6 +769,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get reset => 'Reiniciar';
 
   @override
+  String get by_category => 'Por categoría';
+
+  @override
   String get by_source => 'Por fuente';
 
   @override
@@ -3417,6 +3420,9 @@ class AppLocalizationsEs419 extends AppLocalizationsEs {
 
   @override
   String get reset => 'Reiniciar';
+
+  @override
+  String get by_category => 'Por categoría';
 
   @override
   String get by_source => 'Por fuente';
