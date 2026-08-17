@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mangayomi/services/hls/hls_aes.dart';
 import 'package:mangayomi/services/hls/hls_png_strip_proxy.dart';
 
 Uint8List _tsPair() {
@@ -180,6 +182,15 @@ void main() {
         isFalse,
       );
     });
+
+    test('finds EXTM3U after a jpeg prefix', () {
+      final wrapped = Uint8List.fromList([
+        ..._jpegPrefix(),
+        ...utf8.encode('#EXTM3U\n#EXTINF:1,\nseg.jpg\n'),
+      ]);
+      expect(hlsPlaylistOffset(wrapped), _jpegPrefix().length);
+      expect(isHlsPlaylist(wrapped), isTrue);
+    });
   });
 
   group('rewritePlaylist', () {
@@ -189,32 +200,102 @@ void main() {
 #EXT-X-KEY:METHOD=AES-128,URI="key.key"
 #EXTINF:4.0,
 seg1.ts
-https://cdn.example/seg2.ts
+https://cdn.example/seg2.jpg
 ''';
       final out = rewritePlaylist(
         body,
         'https://cdn.example/path/index.m3u8',
-        'http://127.0.0.1:9/p',
+        'http://127.0.0.1:9',
       );
       expect(
         out,
         contains(
-          'URI="http://127.0.0.1:9/p?u=${Uri.encodeQueryComponent('https://cdn.example/path/key.key')}"',
+          'URI="${proxiedUrl(
+            'https://cdn.example/path/key.key',
+            'http://127.0.0.1:9',
+            name: 'key.bin',
+          )}"',
         ),
       );
       expect(
         out,
         contains(
-          'http://127.0.0.1:9/p?u=${Uri.encodeQueryComponent('https://cdn.example/path/seg1.ts')}',
+          proxiedUrl(
+            'https://cdn.example/path/seg1.ts',
+            'http://127.0.0.1:9',
+            name: 'seg.ts',
+            sequence: 0,
+          ),
         ),
       );
       expect(
         out,
         contains(
-          'http://127.0.0.1:9/p?u=${Uri.encodeQueryComponent('https://cdn.example/seg2.ts')}',
+          proxiedUrl(
+            'https://cdn.example/seg2.jpg',
+            'http://127.0.0.1:9',
+            name: 'seg.ts',
+            sequence: 1,
+          ),
         ),
       );
       expect(out.contains('\nseg1.ts\n'), isFalse);
+      expect(out.trim().split('\n').last.endsWith('n=seg.ts'), isTrue);
+      expect(out.contains('#EXT-X-KEY'), isTrue);
+    });
+
+    test('drops AES key tags when decrypting in the proxy', () {
+      const body = '''
+#EXTM3U
+#EXT-X-KEY:METHOD=AES-128,URI="key.key"
+#EXTINF:4.0,
+seg.jpg
+''';
+      final out = rewritePlaylist(
+        body,
+        'https://cdn.example/index.m3u8',
+        'http://127.0.0.1:9',
+        stripAesKey: true,
+      );
+      expect(out.contains('#EXT-X-KEY'), isFalse);
+      expect(out, contains('n=seg.ts'));
+    });
+  });
+
+  group('parseHlsAes128', () {
+    test('reads key URI, IV, and media sequence', () {
+      const body = '''
+#EXTM3U
+#EXT-X-MEDIA-SEQUENCE:7
+#EXT-X-KEY:METHOD=AES-128,URI="key.key",IV=0x00000000000000000000000000000007
+#EXTINF:4.0,
+seg.jpg
+''';
+      final parsed = parseHlsAes128(body, 'https://cdn.example/path/index.m3u8');
+      expect(parsed, isNotNull);
+      expect(parsed!.keyUrl, 'https://cdn.example/path/key.key');
+      expect(parsed.mediaSequence, 7);
+      expect(parsed.iv, isNotNull);
+      expect(parsed.iv!.length, 16);
+      expect(parsed.iv![15], 7);
+    });
+  });
+
+  group('decryptHlsAes128', () {
+    test('round-trips AES-128-CBC', () {
+      final key = Uint8List.fromList(List<int>.generate(16, (i) => i));
+      final iv = Uint8List(16);
+      final plain = Uint8List.fromList([..._jpegPrefix(), ..._tsPair()]);
+      final encrypter = encrypt.Encrypter(
+        encrypt.AES(encrypt.Key(key), mode: encrypt.AESMode.cbc),
+      );
+      final encrypted = Uint8List.fromList(
+        encrypter.encryptBytes(plain, iv: encrypt.IV(iv)).bytes,
+      );
+      expect(hlsImageDisguiseKind(encrypted), isNull);
+      final decrypted = decryptHlsAes128(encrypted, key, iv: iv);
+      expect(decrypted, plain);
+      expect(stripImagePrefix(decrypted).first, 0x47);
     });
   });
 }

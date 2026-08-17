@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:mangayomi/services/hls/hls_aes.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/http/rhttp/src/model/settings.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
@@ -17,7 +19,10 @@ class HlsPngStripProxy {
   Map<String, String> _headers = const {};
   StreamSubscription<HttpRequest>? _subscription;
   final http.Client _client;
-  String? _loggedStripKind;
+  bool _loggedPlaylist = false;
+  bool _loggedSegment = false;
+  Uint8List? _aesKey;
+  Uint8List? _aesIv;
 
   HlsPngStripProxy({http.Client? client})
     : _client =
@@ -38,7 +43,10 @@ class HlsPngStripProxy {
   }) async {
     await stop();
     _headers = Map<String, String>.from(headers ?? const {});
-    _loggedStripKind = null;
+    _loggedPlaylist = false;
+    _loggedSegment = false;
+    _aesKey = null;
+    _aesIv = null;
     _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     _subscription = _server!.listen(_handleRequest);
     final proxyUrl = proxyUriFor(m3u8Url);
@@ -61,7 +69,11 @@ class HlsPngStripProxy {
     if (port == null) {
       throw StateError('HlsPngStripProxy is not running');
     }
-    return 'http://127.0.0.1:$port/p?u=${Uri.encodeQueryComponent(upstreamUrl)}';
+    return proxiedUrl(
+      upstreamUrl,
+      'http://127.0.0.1:$port',
+      name: 'index.m3u8',
+    );
   }
 
   Future<void> _handleRequest(HttpRequest request) async {
@@ -87,13 +99,27 @@ class HlsPngStripProxy {
         await request.response.close();
         return;
       }
-      final bytes = response.bodyBytes;
-      if (isHlsPlaylist(bytes)) {
-        final rewritten = rewritePlaylist(
-          utf8.decode(bytes, allowMalformed: true),
-          upstream,
-          'http://127.0.0.1:${_server!.port}/p',
+      var bytes = response.bodyBytes;
+      final playlistOff = hlsPlaylistOffset(bytes);
+      if (playlistOff != null) {
+        final text = utf8.decode(
+          bytes.sublist(playlistOff),
+          allowMalformed: true,
         );
+        await _loadAesFromPlaylist(text, upstream);
+        final rewritten = rewritePlaylist(
+          text,
+          upstream,
+          'http://127.0.0.1:${_server!.port}',
+          stripAesKey: _aesKey != null,
+        );
+        if (!_loggedPlaylist) {
+          _loggedPlaylist = true;
+          AppLogger.log(
+            '[HLS-PNG] playlist in=${bytes.length} off=$playlistOff '
+            'aes=${_aesKey != null} ${_playlistSummary(text)}',
+          );
+        }
         request.response.headers.contentType = ContentType(
           'application',
           'vnd.apple.mpegurl',
@@ -101,17 +127,37 @@ class HlsPngStripProxy {
         );
         request.response.write(rewritten);
       } else {
+        final resource = request.uri.queryParameters['n'] ?? '';
+        final seq = int.tryParse(request.uri.queryParameters['s'] ?? '');
+        if (_aesKey != null &&
+            seq != null &&
+            resource != 'index.m3u8' &&
+            resource != 'key.bin') {
+          try {
+            bytes = decryptHlsAes128(
+              bytes,
+              _aesKey!,
+              iv: _aesIv,
+              sequence: seq,
+            );
+          } catch (e) {
+            AppLogger.log(
+              '[HLS-PNG] AES decrypt failed seq=$seq: $e',
+              logLevel: LogLevel.error,
+            );
+          }
+        }
         final kind = hlsImageDisguiseKind(bytes);
         final stripped = stripImagePrefix(bytes);
-        if (kind != null && _loggedStripKind == null) {
-          _loggedStripKind = kind;
+        if (!_loggedSegment) {
+          _loggedSegment = true;
           AppLogger.log(
-            '[HLS-PNG] stripped $kind prefix '
+            '[HLS-PNG] segment magic=${_hexPrefix(bytes)} kind=${kind ?? 'none'} '
             'in=${bytes.length} out=${stripped.length}',
           );
         }
-        request.response.headers.contentType = stripped.isNotEmpty &&
-                stripped[0] == 0x47
+        request.response.headers.contentType =
+            stripped.isNotEmpty && stripped[0] == 0x47
             ? ContentType('video', 'mp2t')
             : ContentType('application', 'octet-stream');
         request.response.add(stripped);
@@ -128,68 +174,152 @@ class HlsPngStripProxy {
       } catch (_) {}
     }
   }
+
+  Future<void> _loadAesFromPlaylist(String body, String playlistUrl) async {
+    if (_aesKey != null) return;
+    final parsed = parseHlsAes128(body, playlistUrl);
+    if (parsed == null) return;
+    try {
+      final response = await _client.get(
+        Uri.parse(parsed.keyUrl),
+        headers: _headers,
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        AppLogger.log(
+          '[HLS-PNG] AES key fetch status=${response.statusCode} '
+          'uri=${parsed.keyUrl.toLogSafeUri()}',
+          logLevel: LogLevel.error,
+        );
+        return;
+      }
+      _aesKey = Uint8List.fromList(response.bodyBytes);
+      _aesIv = parsed.iv;
+      AppLogger.log(
+        '[HLS-PNG] AES-128 keyBytes=${_aesKey!.length} '
+        'iv=${parsed.iv != null} seq=${parsed.mediaSequence}',
+      );
+    } catch (e) {
+      AppLogger.log(
+        '[HLS-PNG] AES key fetch failed: $e',
+        logLevel: LogLevel.error,
+      );
+    }
+  }
+}
+
+String _playlistSummary(String body) {
+  var segs = 0;
+  String? first;
+  var hasKey = false;
+  for (final raw in body.split('\n')) {
+    final line = raw.trim();
+    if (line.contains('#EXT-X-KEY')) hasKey = true;
+    if (line.isEmpty || line.startsWith('#')) continue;
+    segs++;
+    first ??= line.length > 80 ? '${line.substring(0, 80)}...' : line;
+  }
+  return 'key=$hasKey segs=$segs first=${first ?? 'none'}';
+}
+
+String _hexPrefix(Uint8List data) {
+  final n = min(data.length, 8);
+  final out = StringBuffer();
+  for (var i = 0; i < n; i++) {
+    out.write(data[i].toRadixString(16).padLeft(2, '0'));
+  }
+  return out.toString();
+}
+
+/// Offset of `#EXTM3U` in the first 8KiB, or null.
+int? hlsPlaylistOffset(List<int> bytes) {
+  if (bytes.isEmpty) return null;
+  const needle = [0x23, 0x45, 0x58, 0x54, 0x4D, 0x33, 0x55]; // #EXTM3U
+  final last = min(bytes.length, 8192) - needle.length;
+  for (var i = 0; i <= last; i++) {
+    var match = true;
+    for (var j = 0; j < needle.length; j++) {
+      if (bytes[i + j] != needle[j]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return i;
+  }
+  return null;
 }
 
 /// True when [bytes] look like an HLS playlist (`#EXTM3U`).
-bool isHlsPlaylist(List<int> bytes) {
-  if (bytes.isEmpty) return false;
-  final start = utf8
-      .decode(
-        bytes.take(16).toList(),
-        allowMalformed: true,
-      )
-      .trimLeft();
-  return start.startsWith('#EXTM3U');
-}
+bool isHlsPlaylist(List<int> bytes) => hlsPlaylistOffset(bytes) != null;
 
-/// Image disguise on [data], or null when the payload is not PNG/JPEG/GIF/WebP.
-String? hlsImageDisguiseKind(Uint8List data) {
-  if (_startsWith(data, const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) {
+/// Image disguise on [data] at [start], or null.
+String? hlsImageDisguiseKind(Uint8List data, [int start = 0]) {
+  bool at(List<int> prefix) {
+    if (data.length < start + prefix.length) return false;
+    for (var i = 0; i < prefix.length; i++) {
+      if (data[start + i] != prefix[i]) return false;
+    }
+    return true;
+  }
+
+  if (at(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) {
     return 'png';
   }
-  if (data.length >= 3 &&
-      data[0] == 0xFF &&
-      data[1] == 0xD8 &&
-      data[2] == 0xFF) {
+  if (data.length >= start + 2 &&
+      data[start] == 0xFF &&
+      data[start + 1] == 0xD8) {
     return 'jpeg';
   }
-  if (_startsWith(data, const [0x47, 0x49, 0x46, 0x38])) {
+  if (at(const [0x47, 0x49, 0x46, 0x38])) {
     return 'gif';
   }
-  if (data.length >= 12 &&
-      _startsWith(data, const [0x52, 0x49, 0x46, 0x46]) &&
-      data[8] == 0x57 &&
-      data[9] == 0x45 &&
-      data[10] == 0x42 &&
-      data[11] == 0x50) {
+  if (data.length >= start + 12 &&
+      at(const [0x52, 0x49, 0x46, 0x46]) &&
+      data[start + 8] == 0x57 &&
+      data[start + 9] == 0x45 &&
+      data[start + 10] == 0x42 &&
+      data[start + 11] == 0x50) {
     return 'webp';
   }
   return null;
 }
 
-/// If [data] starts with an image disguise, return from the first MPEG-TS sync.
+/// If [data] has an image disguise, return from the first MPEG-TS sync.
 Uint8List stripImagePrefix(Uint8List data) {
-  final kind = hlsImageDisguiseKind(data);
-  if (kind == null) return data;
-  final searchFrom = switch (kind) {
-    'png' => 8,
-    'jpeg' => 3,
-    'gif' => 6,
-    'webp' => 12,
-    _ => 0,
-  };
-  final tsOffset = _mpegTsSyncOffset(data, searchFrom);
-  if (tsOffset != null) {
-    return Uint8List.sublistView(data, tsOffset);
-  }
-  if (kind == 'jpeg') {
-    final afterEoi = _jpegPayloadOffset(data);
-    if (afterEoi != null) {
-      return Uint8List.sublistView(data, afterEoi);
+  var kind = hlsImageDisguiseKind(data);
+  var searchFrom = 0;
+  if (kind == null && (data.isEmpty || data[0] != 0x47)) {
+    final magicAt = _imageMagicOffset(data);
+    if (magicAt != null) {
+      kind = hlsImageDisguiseKind(data, magicAt);
+      searchFrom = magicAt;
     }
   }
-  if (kind == 'png' && data.length > 8) {
-    return Uint8List.sublistView(data, 8);
+  if (kind != null) {
+    searchFrom += switch (kind) {
+      'png' => 8,
+      'jpeg' => 2,
+      'gif' => 6,
+      'webp' => 12,
+      _ => 0,
+    };
+    final tsOffset = _mpegTsSyncOffset(data, searchFrom);
+    if (tsOffset != null) {
+      return Uint8List.sublistView(data, tsOffset);
+    }
+    if (kind == 'jpeg') {
+      final afterEoi = _jpegPayloadOffset(data, searchFrom);
+      if (afterEoi != null) {
+        return Uint8List.sublistView(data, afterEoi);
+      }
+    }
+    if (kind == 'png' && data.length > searchFrom) {
+      return Uint8List.sublistView(data, searchFrom);
+    }
+    return data;
+  }
+  final tsOffset = _mpegTsSyncOffset(data, 0);
+  if (tsOffset != null && tsOffset > 0) {
+    return Uint8List.sublistView(data, tsOffset);
   }
   return data;
 }
@@ -197,13 +327,35 @@ Uint8List stripImagePrefix(Uint8List data) {
 /// Legacy name used by existing tests.
 Uint8List stripPngPrefix(Uint8List data) => stripImagePrefix(data);
 
+/// Loopback URL that ends with a video/playlist extension ffmpeg will accept.
+String proxiedUrl(
+  String absolute,
+  String proxyBase, {
+  required String name,
+  int? sequence,
+}) {
+  final encoded = Uri.encodeQueryComponent(absolute);
+  final seq = sequence == null ? '' : '&s=$sequence';
+  // `n=` must be last so ffmpeg av_match_ext sees `.ts` / `.m3u8`, not `.jpg`.
+  return '$proxyBase/$name?u=$encoded$seq&n=$name';
+}
+
+String _resourceName(String absolute, {required bool isTagUri, String? tagLine}) {
+  final lower = absolute.toLowerCase();
+  if (lower.contains('.m3u8')) return 'index.m3u8';
+  if (isTagUri && (tagLine ?? '').contains('#EXT-X-KEY')) return 'key.bin';
+  return 'seg.ts';
+}
+
 /// Rewrites media / key / map URIs in an HLS playlist to go through [proxyBase].
 String rewritePlaylist(
   String body,
   String playlistUrl,
-  String proxyBase,
-) {
+  String proxyBase, {
+  bool stripAesKey = false,
+}) {
   final playlistUri = Uri.parse(playlistUrl);
+  var sequence = parseHlsAes128(body, playlistUrl)?.mediaSequence ?? 0;
   final lines = body.split('\n');
   final out = <String>[];
   for (final line in lines) {
@@ -213,28 +365,53 @@ String rewritePlaylist(
       continue;
     }
     if (trimmed.startsWith('#')) {
-      out.add(_rewriteTagUris(line, playlistUri, proxyBase));
+      if (stripAesKey && trimmed.contains('#EXT-X-KEY')) {
+        continue;
+      }
+      if (trimmed.startsWith('#EXT-X-MEDIA-SEQUENCE')) {
+        final value = int.tryParse(trimmed.substring(trimmed.indexOf(':') + 1).trim());
+        if (value != null) sequence = value;
+      }
+      out.add(_rewriteTagUris(line, playlistUri, proxyBase, stripAesKey));
       continue;
     }
     final absolute = playlistUri.resolve(trimmed).toString();
-    out.add('$proxyBase?u=${Uri.encodeQueryComponent(absolute)}');
+    out.add(
+      proxiedUrl(
+        absolute,
+        proxyBase,
+        name: _resourceName(absolute, isTagUri: false),
+        sequence: sequence,
+      ),
+    );
+    sequence++;
   }
   return out.join('\n');
 }
 
-String _rewriteTagUris(String line, Uri playlistUri, String proxyBase) {
+String _rewriteTagUris(
+  String line,
+  Uri playlistUri,
+  String proxyBase,
+  bool stripAesKey,
+) {
+  if (stripAesKey && line.contains('#EXT-X-KEY')) return line;
   return line.replaceAllMapped(RegExp(r'URI="([^"]+)"'), (match) {
     final absolute = playlistUri.resolve(match.group(1)!).toString();
-    return 'URI="$proxyBase?u=${Uri.encodeQueryComponent(absolute)}"';
+    return 'URI="${proxiedUrl(
+      absolute,
+      proxyBase,
+      name: _resourceName(absolute, isTagUri: true, tagLine: line),
+    )}"';
   });
 }
 
-bool _startsWith(Uint8List data, List<int> prefix) {
-  if (data.length < prefix.length) return false;
-  for (var i = 0; i < prefix.length; i++) {
-    if (data[i] != prefix[i]) return false;
+int? _imageMagicOffset(Uint8List data) {
+  final last = min(data.length, 1024);
+  for (var i = 1; i < last; i++) {
+    if (hlsImageDisguiseKind(data, i) != null) return i;
   }
-  return true;
+  return null;
 }
 
 int? _mpegTsSyncOffset(Uint8List data, int start) {
@@ -248,8 +425,8 @@ int? _mpegTsSyncOffset(Uint8List data, int start) {
   return null;
 }
 
-int? _jpegPayloadOffset(Uint8List data) {
-  for (var i = 2; i < data.length - 1; i++) {
+int? _jpegPayloadOffset(Uint8List data, [int start = 2]) {
+  for (var i = start; i < data.length - 1; i++) {
     if (data[i] == 0xFF && data[i + 1] == 0xD9) {
       final end = i + 2;
       if (end < data.length) return end;

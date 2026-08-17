@@ -1005,8 +1005,9 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
 
     var openUri = streamUri;
     Map<String, String>? openHeaders = prefs.headers;
-    // Desktop libmpv/ffmpeg often fails on CDN HLS segments disguised with an
-    // image header (PNG/JPEG). Proxy rewrites playlists and strips the prefix.
+    // Desktop libmpv/ffmpeg treats CDN HLS `.jpg`/`.png` segments as image2/mjpeg.
+    // Proxy rewrites playlists onto `.ts` URLs, decrypts AES-128, and strips
+    // image disguises so the demuxer sees MPEG-TS.
     if (isDesktop && streamUri.looksLikeHls) {
       try {
         openUri = await _hlsPngProxy.startFor(
