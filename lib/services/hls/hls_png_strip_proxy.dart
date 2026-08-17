@@ -9,13 +9,15 @@ import 'package:mangayomi/services/http/rhttp/src/model/settings.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 
-/// Loopback proxy that rewrites HLS playlists and strips a leading PNG disguise
-/// from media segments so desktop libmpv/ffmpeg can demux them.
+/// Loopback proxy that rewrites HLS playlists and strips a leading image
+/// disguise (PNG/JPEG/GIF/WebP) from media segments so desktop libmpv/ffmpeg
+/// can demux them.
 class HlsPngStripProxy {
   HttpServer? _server;
   Map<String, String> _headers = const {};
   StreamSubscription<HttpRequest>? _subscription;
   final http.Client _client;
+  String? _loggedStripKind;
 
   HlsPngStripProxy({http.Client? client})
     : _client =
@@ -36,6 +38,7 @@ class HlsPngStripProxy {
   }) async {
     await stop();
     _headers = Map<String, String>.from(headers ?? const {});
+    _loggedStripKind = null;
     _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     _subscription = _server!.listen(_handleRequest);
     final proxyUrl = proxyUriFor(m3u8Url);
@@ -98,11 +101,19 @@ class HlsPngStripProxy {
         );
         request.response.write(rewritten);
       } else {
-        final stripped = stripPngPrefix(bytes);
-        request.response.headers.contentType = ContentType(
-          'video',
-          'mp2t',
-        );
+        final kind = hlsImageDisguiseKind(bytes);
+        final stripped = stripImagePrefix(bytes);
+        if (kind != null && _loggedStripKind == null) {
+          _loggedStripKind = kind;
+          AppLogger.log(
+            '[HLS-PNG] stripped $kind prefix '
+            'in=${bytes.length} out=${stripped.length}',
+          );
+        }
+        request.response.headers.contentType = stripped.isNotEmpty &&
+                stripped[0] == 0x47
+            ? ContentType('video', 'mp2t')
+            : ContentType('application', 'octet-stream');
         request.response.add(stripped);
       }
       await request.response.close();
@@ -131,23 +142,60 @@ bool isHlsPlaylist(List<int> bytes) {
   return start.startsWith('#EXTM3U');
 }
 
-/// If [data] starts with a PNG signature, return from the first MPEG-TS sync.
-Uint8List stripPngPrefix(Uint8List data) {
-  if (data.length < 8) return data;
-  const pngSig = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-  for (var i = 0; i < pngSig.length; i++) {
-    if (data[i] != pngSig[i]) return data;
+/// Image disguise on [data], or null when the payload is not PNG/JPEG/GIF/WebP.
+String? hlsImageDisguiseKind(Uint8List data) {
+  if (_startsWith(data, const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) {
+    return 'png';
   }
-  for (var i = 8; i < data.length; i++) {
-    if (data[i] != 0x47) continue;
-    final next = i + 188;
-    if (next < data.length && data[next] == 0x47) {
-      return Uint8List.sublistView(data, i);
+  if (data.length >= 3 &&
+      data[0] == 0xFF &&
+      data[1] == 0xD8 &&
+      data[2] == 0xFF) {
+    return 'jpeg';
+  }
+  if (_startsWith(data, const [0x47, 0x49, 0x46, 0x38])) {
+    return 'gif';
+  }
+  if (data.length >= 12 &&
+      _startsWith(data, const [0x52, 0x49, 0x46, 0x46]) &&
+      data[8] == 0x57 &&
+      data[9] == 0x45 &&
+      data[10] == 0x42 &&
+      data[11] == 0x50) {
+    return 'webp';
+  }
+  return null;
+}
+
+/// If [data] starts with an image disguise, return from the first MPEG-TS sync.
+Uint8List stripImagePrefix(Uint8List data) {
+  final kind = hlsImageDisguiseKind(data);
+  if (kind == null) return data;
+  final searchFrom = switch (kind) {
+    'png' => 8,
+    'jpeg' => 3,
+    'gif' => 6,
+    'webp' => 12,
+    _ => 0,
+  };
+  final tsOffset = _mpegTsSyncOffset(data, searchFrom);
+  if (tsOffset != null) {
+    return Uint8List.sublistView(data, tsOffset);
+  }
+  if (kind == 'jpeg') {
+    final afterEoi = _jpegPayloadOffset(data);
+    if (afterEoi != null) {
+      return Uint8List.sublistView(data, afterEoi);
     }
   }
-  // Signature only / tiny prefix — drop the 8-byte magic.
-  return Uint8List.sublistView(data, 8);
+  if (kind == 'png' && data.length > 8) {
+    return Uint8List.sublistView(data, 8);
+  }
+  return data;
 }
+
+/// Legacy name used by existing tests.
+Uint8List stripPngPrefix(Uint8List data) => stripImagePrefix(data);
 
 /// Rewrites media / key / map URIs in an HLS playlist to go through [proxyBase].
 String rewritePlaylist(
@@ -179,4 +227,33 @@ String _rewriteTagUris(String line, Uri playlistUri, String proxyBase) {
     final absolute = playlistUri.resolve(match.group(1)!).toString();
     return 'URI="$proxyBase?u=${Uri.encodeQueryComponent(absolute)}"';
   });
+}
+
+bool _startsWith(Uint8List data, List<int> prefix) {
+  if (data.length < prefix.length) return false;
+  for (var i = 0; i < prefix.length; i++) {
+    if (data[i] != prefix[i]) return false;
+  }
+  return true;
+}
+
+int? _mpegTsSyncOffset(Uint8List data, int start) {
+  final last = data.length - 188;
+  for (var i = start; i < last; i++) {
+    if (data[i] != 0x47) continue;
+    if (data[i + 188] == 0x47) {
+      return i;
+    }
+  }
+  return null;
+}
+
+int? _jpegPayloadOffset(Uint8List data) {
+  for (var i = 2; i < data.length - 1; i++) {
+    if (data[i] == 0xFF && data[i + 1] == 0xD9) {
+      final end = i + 2;
+      if (end < data.length) return end;
+    }
+  }
+  return null;
 }

@@ -1005,8 +1005,8 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
 
     var openUri = streamUri;
     Map<String, String>? openHeaders = prefs.headers;
-    // Desktop libmpv/ffmpeg often fails on CDN HLS segments disguised with a
-    // PNG header. Proxy rewrites playlists and strips the prefix.
+    // Desktop libmpv/ffmpeg often fails on CDN HLS segments disguised with an
+    // image header (PNG/JPEG). Proxy rewrites playlists and strips the prefix.
     if (isDesktop && streamUri.looksLikeHls) {
       try {
         openUri = await _hlsPngProxy.startFor(
@@ -1267,6 +1267,8 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     );
     final text = log.text.toLowerCase();
     final demuxFatal = text.contains('video: png') ||
+        text.contains('video: mjpeg') ||
+        text.contains('image2:') ||
         (text.contains('lavf') && text.contains('fatal'));
     if (demuxFatal && !_loggedDemuxFatal) {
       _loggedDemuxFatal = true;
