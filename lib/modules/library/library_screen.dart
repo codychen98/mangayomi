@@ -11,7 +11,9 @@ import 'package:mangayomi/modules/library/providers/add_torrent.dart';
 import 'package:mangayomi/modules/library/providers/isar_providers.dart';
 import 'package:mangayomi/modules/library/providers/library_filter_provider.dart';
 import 'package:mangayomi/modules/library/providers/library_state_provider.dart';
+import 'package:mangayomi/modules/browse/extension/providers/extensions_provider.dart';
 import 'package:mangayomi/modules/library/library_source_group.dart';
+import 'package:mangayomi/modules/library/library_source_name.dart';
 import 'package:mangayomi/modules/library/widgets/library_app_bar.dart';
 import 'package:mangayomi/modules/library/widgets/library_body.dart';
 import 'package:mangayomi/modules/library/widgets/library_dialogs.dart';
@@ -76,6 +78,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
     _textEditingController.dispose();
     tabBarController?.dispose();
     _searchDebounce?.cancel();
+    resetLibrarySourceSnapshotLog();
     super.dispose();
   }
 
@@ -134,6 +137,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
       );
     }
 
+    ref.watch(getExtensionsStreamProvider(widget.itemType));
     final groupMode = watchWithSettings(libraryGroupModeStateProvider.call);
     if (_lastGroupMode != null &&
         _lastGroupMode != groupMode &&
@@ -278,6 +282,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen>
                       searchQuery: searchQuery,
                       ignoreFiltersOnSearch: _ignoreFiltersOnSearch,
                     ),
+                  );
+
+                  logLibrarySourceSnapshot(
+                    reason: 'library-build',
+                    itemType: widget.itemType,
+                    favorites: man,
+                    groupsSummary: distinctLibrarySourceGroups(man)
+                        .map((g) => '${g.groupKey}=${g.label}')
+                        .join(','),
                   );
 
                   if (groupMode == LibraryGroupMode.source) {

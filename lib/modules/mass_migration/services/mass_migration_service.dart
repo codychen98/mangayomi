@@ -152,6 +152,7 @@ void _syncMigratedMangaFromPreview({
         preview.description.trimmedOrDefault(oldManga.description) ?? ''
     ..link = preview.link.trimmedOrDefault(oldManga.link)
     ..source = destinationSource.name
+    ..sourceId = destinationSource.id
     ..lang = destinationSource.lang
     ..itemType = destinationSource.itemType
     ..lastUpdate = DateTime.now().millisecondsSinceEpoch

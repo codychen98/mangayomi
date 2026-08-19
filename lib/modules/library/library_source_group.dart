@@ -1,4 +1,5 @@
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/modules/library/library_source_name.dart';
 
 /// Identity of a library source tab / filter (immutable).
 class LibrarySourceGroup {
@@ -23,9 +24,14 @@ class LibrarySourceGroup {
         isLocal: true,
       );
     }
+    final live = liveSourceForId(manga.sourceId);
     return LibrarySourceGroup(
       sourceId: manga.sourceId,
-      source: manga.source ?? '',
+      source: resolveLibrarySourceName(
+        isLocalArchive: false,
+        storedSource: manga.source,
+        liveSourceName: live?.name,
+      ),
       lang: manga.lang ?? '',
       isLocal: false,
     );

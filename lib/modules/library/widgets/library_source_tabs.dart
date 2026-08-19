@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/library/library_source_group.dart';
+import 'package:mangayomi/modules/library/library_source_name.dart';
 import 'package:mangayomi/modules/library/widgets/library_app_bar.dart';
 
 /// Library scaffold with TabBar / TabBarView grouped by source.
@@ -53,6 +54,7 @@ class _LibrarySourceTabsViewState extends State<LibrarySourceTabsView>
     with TickerProviderStateMixin {
   TabController? _tabController;
   int _tabIndex = 0;
+  int _scheduledCount = -1;
 
   @override
   void dispose() {
@@ -60,28 +62,37 @@ class _LibrarySourceTabsViewState extends State<LibrarySourceTabsView>
     super.dispose();
   }
 
-  void _syncTabController(int tabCount) {
-    if (tabCount <= 0) {
-      _tabController?.dispose();
-      _tabController = null;
-      _tabIndex = 0;
-      return;
-    }
-    if (_tabController == null || _tabController!.length != tabCount) {
-      var newIndex = _tabIndex;
-      if (newIndex >= tabCount) newIndex = tabCount - 1;
-      _tabController?.dispose();
-      _tabController = TabController(
-        length: tabCount,
-        vsync: this,
-        initialIndex: newIndex,
-      );
-      _tabIndex = newIndex;
-      _tabController!.addListener(() {
-        if (!mounted) return;
-        setState(() => _tabIndex = _tabController!.index);
-      });
-    }
+  void _createTabController(int tabCount) {
+    var newIndex = _tabIndex;
+    if (newIndex >= tabCount) newIndex = tabCount - 1;
+    _tabController = TabController(
+      length: tabCount,
+      vsync: this,
+      initialIndex: newIndex,
+    );
+    _tabIndex = newIndex;
+    _tabController!.addListener(() {
+      if (!mounted) return;
+      setState(() => _tabIndex = _tabController!.index);
+    });
+  }
+
+  void _scheduleReplace(int tabCount) {
+    if (_scheduledCount == tabCount) return;
+    _scheduledCount = tabCount;
+    final old = _tabController;
+    _tabController = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      old?.dispose();
+      if (!mounted) return;
+      _scheduledCount = -1;
+      if (tabCount > 0) {
+        _createTabController(tabCount);
+      } else {
+        _tabIndex = 0;
+      }
+      setState(() {});
+    });
   }
 
   LibraryAppBar _appBar() {
@@ -107,12 +118,27 @@ class _LibrarySourceTabsViewState extends State<LibrarySourceTabsView>
   @override
   Widget build(BuildContext context) {
     final groups = distinctLibrarySourceGroups(widget.favorites);
+    logLibrarySourceSnapshot(
+      reason: 'library-source-tabs',
+      itemType: widget.itemType,
+      favorites: widget.favorites,
+      groupsSummary: groups.map((g) => '${g.groupKey}=${g.label}').join(','),
+    );
+
     if (groups.isEmpty) {
-      _syncTabController(0);
+      if (_tabController != null) {
+        _scheduleReplace(0);
+      }
       return Scaffold(appBar: _appBar(), body: widget.flatBody());
     }
 
-    _syncTabController(groups.length);
+    final tabCount = groups.length;
+    if (_tabController == null) {
+      _createTabController(tabCount);
+    } else if (_tabController!.length != tabCount) {
+      _scheduleReplace(tabCount);
+      return Scaffold(appBar: _appBar(), body: widget.flatBody());
+    }
 
     return Scaffold(
       appBar: _appBar(),
