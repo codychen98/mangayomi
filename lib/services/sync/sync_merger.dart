@@ -19,6 +19,7 @@ import 'package:mangayomi/modules/more/settings/appearance/providers/pure_black_
 import 'package:mangayomi/modules/more/settings/appearance/providers/theme_mode_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
+import 'package:mangayomi/services/sync/collapse_manga_by_id.dart';
 import 'package:mangayomi/services/sync/device_local_settings.dart';
 import 'package:mangayomi/services/sync/library_category_sort_sync.dart';
 import 'package:mangayomi/services/sync/sync_entity_keys.dart';
@@ -873,6 +874,9 @@ SyncSnapshot mergeSyncSnapshots(SyncSnapshot local, SyncSnapshot remote) {
 }
 
 /// Applies a merged snapshot to Isar (full replace for synced entity types).
+///
+/// Manga are collapsed by Isar id before [putAllSync] so duplicate remote keys
+/// cannot regress favorites via last-write-wins list order.
 Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
   final applySettings = merged.settings.isNotEmpty;
   final applyExtensionsPreferences =
@@ -885,11 +889,16 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
       merged.feedSavedSearches.isNotEmpty ||
       merged.tombstones.isNotEmpty;
 
-  logSyncWrite('applySyncSnapshot manga=${merged.manga.length}');
+  final mangaToApply = collapseMangaById(merged.manga);
+
+  logSyncWrite(
+    'applySyncSnapshot manga=${mangaToApply.length} '
+    'incoming=${merged.manga.length}',
+  );
   logWatchedMangaSnapshot('before-apply');
-  logSnapshotMangaWatch('apply-incoming', merged.manga);
-  logDuplicateMangaIds('apply-incoming', merged.manga);
-  logSnapshotSourceCounts('apply-incoming', merged.manga);
+  logSnapshotMangaWatch('apply-incoming', mangaToApply);
+  logDuplicateMangaIds('apply-incoming', mangaToApply);
+  logSnapshotSourceCounts('apply-incoming', mangaToApply);
 
   isar.writeTxnSync(() {
     isar.categorys.clearSync();
@@ -898,8 +907,8 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
     }
 
     isar.mangas.clearSync();
-    if (merged.manga.isNotEmpty) {
-      isar.mangas.putAllSync(merged.manga);
+    if (mangaToApply.isNotEmpty) {
+      isar.mangas.putAllSync(mangaToApply);
     }
 
     isar.chapters.clearSync();

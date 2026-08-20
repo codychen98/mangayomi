@@ -147,6 +147,156 @@ void main() {
         {'Local', 'Remote'},
       );
     });
+
+    test('collapses duplicate Isar ids after merge (newest updatedAt wins)', () {
+      final local = SyncSnapshot(
+        manga: [
+          Manga(
+            id: 8,
+            source: 'miruro.tv',
+            author: 'A',
+            artist: 'A',
+            genre: const ['Action'],
+            imageUrl: 'https://example.com/miruro.jpg',
+            lang: 'en',
+            link: 'https://miruro.tv/watch?id=170942',
+            name: 'Ao no Hako',
+            status: Status.ongoing,
+            description: 'desc',
+            sourceId: 10,
+            itemType: ItemType.anime,
+            updatedAt: 100,
+            favorite: true,
+          ),
+        ],
+      );
+      final remote = SyncSnapshot(
+        manga: [
+          Manga(
+            id: 8,
+            source: 'Anikoto',
+            author: 'A',
+            artist: 'A',
+            genre: const ['Action'],
+            imageUrl: 'https://example.com/anikoto.jpg',
+            lang: 'en',
+            link: '/watch/blue-box#8#8',
+            name: 'Blue Box',
+            status: Status.ongoing,
+            description: 'desc',
+            sourceId: 20,
+            itemType: ItemType.anime,
+            updatedAt: 150,
+            favorite: true,
+          ),
+          Manga(
+            id: 8,
+            source: 'Anikoto',
+            author: 'A',
+            artist: 'A',
+            genre: const ['Action'],
+            imageUrl: 'https://example.com/anikoto2.jpg',
+            lang: 'en',
+            link: 'https://anikototv.to/watch/blue-box#8#8#8',
+            name: 'Blue Box',
+            status: Status.ongoing,
+            description: 'desc',
+            sourceId: 20,
+            itemType: ItemType.anime,
+            updatedAt: 200,
+            favorite: true,
+          ),
+        ],
+      );
+      final remoteBytes = Uint8List.fromList(
+        utf8.encode(jsonEncode(remote.toJson())),
+      );
+
+      final merged = resolveSnapshotForBidirectionalSync(
+        local: local,
+        pullResult: WebDavPullResult(bytes: remoteBytes, etag: 'etag-1'),
+      );
+
+      expect(merged.manga, hasLength(1));
+      expect(merged.manga.single.source, 'Anikoto');
+      expect(merged.manga.single.updatedAt, 200);
+      expect(
+        merged.manga.single.link,
+        'https://anikototv.to/watch/blue-box#8#8#8',
+      );
+    });
+
+    test('collapses duplicate Isar ids on local-only resolve', () {
+      final local = SyncSnapshot(
+        manga: [
+          Manga(
+            id: 8,
+            source: 'miruro.tv',
+            author: 'A',
+            artist: 'A',
+            genre: const ['Action'],
+            imageUrl: 'https://example.com/miruro.jpg',
+            lang: 'en',
+            link: 'https://miruro.tv/watch?id=170942',
+            name: 'Ao no Hako',
+            status: Status.ongoing,
+            description: 'desc',
+            sourceId: 10,
+            itemType: ItemType.anime,
+            updatedAt: 100,
+          ),
+          Manga(
+            id: 8,
+            source: 'Anikoto',
+            author: 'A',
+            artist: 'A',
+            genre: const ['Action'],
+            imageUrl: 'https://example.com/anikoto.jpg',
+            lang: 'en',
+            link: 'https://anikototv.to/watch/blue-box#8',
+            name: 'Blue Box',
+            status: Status.ongoing,
+            description: 'desc',
+            sourceId: 20,
+            itemType: ItemType.anime,
+            updatedAt: 200,
+          ),
+        ],
+      );
+
+      final resolved = resolveSnapshotForBidirectionalSync(
+        local: local,
+        pullResult: const WebDavPullResult(notFound: true),
+      );
+
+      expect(resolved.manga, hasLength(1));
+      expect(resolved.manga.single.source, 'Anikoto');
+    });
+  });
+
+  group('withCollapsedMangaById', () {
+    test('returns same snapshot when no duplicate ids', () {
+      final snapshot = SyncSnapshot(
+        manga: [
+          Manga(
+            id: 1,
+            source: 'src',
+            author: 'A',
+            artist: 'A',
+            genre: const ['Action'],
+            imageUrl: 'https://example.com/1.jpg',
+            lang: 'en',
+            link: 'https://example.com/1',
+            name: 'One',
+            status: Status.ongoing,
+            description: 'desc',
+            sourceId: 1,
+          ),
+        ],
+      );
+
+      expect(identical(withCollapsedMangaById(snapshot), snapshot), isTrue);
+    });
   });
 
   group('messageForWebDavException', () {

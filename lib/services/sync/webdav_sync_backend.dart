@@ -7,6 +7,7 @@ import 'package:mangayomi/l10n/generated/app_localizations.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/sync_preference.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
+import 'package:mangayomi/services/sync/collapse_manga_by_id.dart';
 import 'package:mangayomi/services/sync/sync_backend.dart';
 import 'package:mangayomi/services/sync/sync_merger.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
@@ -217,7 +218,7 @@ class WebDavSyncBackend implements SyncBackend {
         ifNoneMatch: useConditionalPull ? currentPrefs.lastSyncEtag : null,
       );
       final pushSnapshot = uploadLocalOnly
-          ? localSnapshot
+          ? withCollapsedMangaById(localSnapshot)
           : resolveSnapshotForBidirectionalSync(
               local: localSnapshot,
               pullResult: pullResult,
@@ -361,25 +362,30 @@ bool shouldApplyRemoteSnapshot(WebDavPullResult pullResult) {
 }
 
 /// Resolves the merged snapshot for bidirectional sync from a pull result.
+///
+/// Manga sharing the same Isar id are collapsed (newest [Manga.updatedAt])
+/// before the snapshot is pushed, so remote files stop carrying duplicate ids.
 SyncSnapshot resolveSnapshotForBidirectionalSync({
   required SyncSnapshot local,
   required WebDavPullResult pullResult,
 }) {
   if (pullResult.notFound || pullResult.notModified) {
+    final collapsed = withCollapsedMangaById(local);
     logSyncWrite(
       'resolve local-only notFound=${pullResult.notFound} '
       'notModified=${pullResult.notModified}',
     );
-    logSnapshotMangaWatch('resolve-local-only', local.manga);
-    logDuplicateMangaIds('resolve-local-only', local.manga);
-    logSnapshotSourceCounts('resolve-local-only', local.manga);
-    return local;
+    logSnapshotMangaWatch('resolve-local-only', collapsed.manga);
+    logDuplicateMangaIds('resolve-local-only', collapsed.manga);
+    logSnapshotSourceCounts('resolve-local-only', collapsed.manga);
+    return collapsed;
   }
   final bytes = pullResult.bytes;
   if (bytes == null) {
+    final collapsed = withCollapsedMangaById(local);
     logSyncWrite('resolve local-only bytes=null');
-    logSnapshotMangaWatch('resolve-local-only', local.manga);
-    return local;
+    logSnapshotMangaWatch('resolve-local-only', collapsed.manga);
+    return collapsed;
   }
   final remote = decodeSyncSnapshot(bytes);
   logSyncWrite(
@@ -392,11 +398,36 @@ SyncSnapshot resolveSnapshotForBidirectionalSync({
   logSnapshotMangaWatch('merge-remote', remote.manga);
   logDuplicateMangaIds('merge-remote', remote.manga);
   logSnapshotSourceCounts('merge-remote', remote.manga);
-  final merged = mergeSyncSnapshots(local, remote);
+  final merged = withCollapsedMangaById(mergeSyncSnapshots(local, remote));
   logSnapshotMangaWatch('merge-result', merged.manga);
   logDuplicateMangaIds('merge-result', merged.manga);
   logSnapshotSourceCounts('merge-result', merged.manga);
   return merged;
+}
+
+/// Returns [snapshot] with manga collapsed by Isar id (newest updatedAt wins).
+SyncSnapshot withCollapsedMangaById(SyncSnapshot snapshot) {
+  final collapsed = collapseMangaById(snapshot.manga);
+  if (collapsed.length == snapshot.manga.length) {
+    return snapshot;
+  }
+  return SyncSnapshot(
+    version: snapshot.version,
+    manga: collapsed,
+    categories: snapshot.categories,
+    chapters: snapshot.chapters,
+    tracks: snapshot.tracks,
+    history: snapshot.history,
+    updates: snapshot.updates,
+    settings: snapshot.settings,
+    extensionsPreferences: snapshot.extensionsPreferences,
+    extensionsPreferenceStringValues: snapshot.extensionsPreferenceStringValues,
+    extensions: snapshot.extensions,
+    savedSearches: snapshot.savedSearches,
+    feedSavedSearches: snapshot.feedSavedSearches,
+    tombstones: snapshot.tombstones,
+    libraryCategorySorts: snapshot.libraryCategorySorts,
+  );
 }
 
 /// ETag to send with PUT for optimistic locking (from the current pull only).
