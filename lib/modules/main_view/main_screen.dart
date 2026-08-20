@@ -26,6 +26,7 @@ import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/services/fetch_sources_list.dart';
 import 'package:mangayomi/services/sync/sync_coordinator.dart';
 import 'package:mangayomi/services/sync/sync_trigger_service.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 import 'package:mangayomi/utils/extensions/build_context_extensions.dart';
 import 'package:mangayomi/modules/manga/detail/providers/state_providers.dart';
 import 'package:mangayomi/modules/manga/download/download_queue_utils.dart';
@@ -190,6 +191,7 @@ class _MainScreenState extends ConsumerState<MainScreen>
     }
     try {
       final l10n = l10nLocalizations(context)!;
+      logSyncWrite('autoSyncTimer tick frequency=$_autoSyncFrequency');
       ref.read(syncCoordinatorProvider(syncId: 1).notifier).startSync(l10n, true);
     } catch (e) {
       botToast(

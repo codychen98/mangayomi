@@ -10,6 +10,7 @@ import 'package:mangayomi/router/router.dart';
 import 'package:mangayomi/services/sync/sync_backend.dart';
 import 'package:mangayomi/services/sync/sync_coordinator.dart';
 import 'package:mangayomi/services/sync/sync_tombstone.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 
 enum SyncTriggerEvent {
   chapterSeen,
@@ -51,13 +52,22 @@ bool isSyncTriggerDebounced(
 Future<void> maybeTriggerSync(SyncTriggerRead read, SyncTriggerEvent event) async {
   final prefs = read(synchingProvider(syncId: 1));
   if (!isSyncTriggerEnabled(prefs, event)) {
+    logSyncWrite(
+      'trigger skip event=$event syncOn=${prefs.syncOn} '
+      'configured=${isSyncConfigured(prefs)} '
+      'appStart=${prefs.syncOnAppStart} resume=${prefs.syncOnAppResume} '
+      'chapterSeen=${prefs.syncOnChapterSeen} '
+      'chapterOpen=${prefs.syncOnChapterOpen}',
+    );
     return;
   }
   final now = DateTime.now();
   if (isSyncTriggerDebounced(now)) {
+    logSyncWrite('trigger skip debounce event=$event');
     return;
   }
   _lastTriggerSyncAt = now;
+  logSyncWrite('trigger start event=$event');
   final locale = read(l10nLocaleStateProvider);
   final l10n = lookupAppLocalizations(locale);
   await read(syncCoordinatorProvider(syncId: 1).notifier).startSync(l10n, true);
@@ -67,6 +77,7 @@ Future<void> maybeTriggerSync(SyncTriggerRead read, SyncTriggerEvent event) asyn
 Future<void> maybeTriggerMetadataSync() async {
   final context = navigatorKey.currentContext;
   if (context == null) {
+    logSyncWrite('trigger skip event=metadata noContext');
     return;
   }
   final container = ProviderScope.containerOf(context);
@@ -76,13 +87,19 @@ Future<void> maybeTriggerMetadataSync() async {
 Future<void> maybeTriggerMetadataSyncRead(SyncTriggerRead read) async {
   final prefs = read(synchingProvider(syncId: 1));
   if (!prefs.syncOn || !isSyncConfigured(prefs)) {
+    logSyncWrite(
+      'trigger skip event=metadata syncOn=${prefs.syncOn} '
+      'configured=${isSyncConfigured(prefs)}',
+    );
     return;
   }
   final now = DateTime.now();
   if (isSyncTriggerDebounced(now)) {
+    logSyncWrite('trigger skip debounce event=metadata');
     return;
   }
   _lastTriggerSyncAt = now;
+  logSyncWrite('trigger start event=metadata');
   final locale = read(l10nLocaleStateProvider);
   final l10n = lookupAppLocalizations(locale);
   await read(syncCoordinatorProvider(syncId: 1).notifier).startSync(l10n, true);

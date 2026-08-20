@@ -24,6 +24,7 @@ import 'package:mangayomi/services/sync/library_category_sort_sync.dart';
 import 'package:mangayomi/services/sync/sync_entity_keys.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
 import 'package:mangayomi/services/sync/sync_tombstone.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 
 String normalizeSyncKeyPart(String? value) => (value ?? '').trim().toLowerCase();
 
@@ -884,6 +885,9 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
       merged.feedSavedSearches.isNotEmpty ||
       merged.tombstones.isNotEmpty;
 
+  logSyncWrite('applySyncSnapshot manga=${merged.manga.length}');
+  logWatchedMangaSnapshot('before-apply');
+
   isar.writeTxnSync(() {
     isar.categorys.clearSync();
     if (merged.categories.isNotEmpty) {
@@ -1045,6 +1049,8 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
       }
     }
   });
+
+  logWatchedMangaSnapshot('after-apply');
 
   if (applySettings || applyExtensions || applyFeeds) {
     ref.invalidate(followSystemThemeStateProvider);

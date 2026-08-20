@@ -23,6 +23,7 @@ import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.da
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/services/sync/sync_backend.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 
 /// Delta sync backend for the mangayomi-server HTTP API.
 class MangayomiServerBackend implements SyncBackend {
@@ -327,23 +328,38 @@ class MangayomiServerBackend implements SyncBackend {
     final mangas =
         (jsonData['manga'] as List?)?.map((e) => Manga.fromJson(e)).toList() ??
         [];
+    logSyncWrite('upsertManga incoming=${mangas.length}');
+    logWatchedMangaSnapshot('before-upsertManga');
     await isar.writeTxn(() async {
       for (final manga in await isar.mangas.filter().idIsNotNull().findAll()) {
         final temp = mangas.firstWhereOrNull((e) => e.id == manga.id);
         if (temp != null) {
           if ((manga.updatedAt ?? 0) < (temp.updatedAt ?? 1)) {
+            if (librarySourceWatchIds.contains(manga.id)) {
+              logSyncWrite(
+                'upsertManga overwrite ${formatMangaSourceRow(manga)} -> '
+                '${formatMangaSourceRow(temp)}',
+              );
+            }
             await isar.mangas.put(temp);
           }
           mangas.remove(temp);
         } else {
+          if (librarySourceWatchIds.contains(manga.id)) {
+            logSyncWrite('upsertManga delete ${formatMangaSourceRow(manga)}');
+          }
           await isar.mangas.delete(manga.id!);
         }
       }
       for (final manga in mangas) {
+        if (librarySourceWatchIds.contains(manga.id)) {
+          logSyncWrite('upsertManga insert ${formatMangaSourceRow(manga)}');
+        }
         await isar.mangas.put(manga);
       }
       await syncNotifier.clearChangedParts([ActionType.removeItem], false);
     });
+    logWatchedMangaSnapshot('after-upsertManga');
   }
 
   Future<void> _upsertChapters(

@@ -4,6 +4,7 @@ import 'package:mangayomi/services/sync/mangayomi_server_backend.dart';
 import 'package:mangayomi/services/sync/sync_backend.dart';
 import 'package:mangayomi/services/sync/sync_service_type.dart';
 import 'package:mangayomi/services/sync/webdav_sync_backend.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'sync_coordinator.g.dart';
@@ -43,11 +44,16 @@ class SyncCoordinator extends _$SyncCoordinator {
     bool download = false,
   }) async {
     if (_syncInProgress) {
+      logSyncWrite('startSync skip inProgress silent=$silent');
       return;
     }
     _syncInProgress = true;
     try {
       final prefs = ref.read(synchingProvider(syncId: syncId));
+      logSyncWrite(
+        'startSync begin silent=$silent upload=$upload download=$download '
+        'type=${prefs.syncServiceType.name} autoFreq=${prefs.autoSyncFrequency}',
+      );
       await _backendFor(prefs.syncServiceType).startSync(
         ref: ref,
         l10n: l10n,
@@ -56,6 +62,7 @@ class SyncCoordinator extends _$SyncCoordinator {
         upload: upload,
         download: download,
       );
+      logSyncWrite('startSync end silent=$silent');
     } finally {
       _syncInProgress = false;
     }
