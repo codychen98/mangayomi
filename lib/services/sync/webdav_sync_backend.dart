@@ -11,6 +11,7 @@ import 'package:mangayomi/services/sync/sync_backend.dart';
 import 'package:mangayomi/services/sync/sync_merger.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
 import 'package:mangayomi/services/sync/sync_tombstone.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 import 'package:mangayomi/services/sync/webdav_client.dart';
 import 'package:mangayomi/utils/log/logger.dart';
 
@@ -243,6 +244,18 @@ class WebDavSyncBackend implements SyncBackend {
 
       if (applyRemote && shouldApplyRemoteSnapshot(pullResult)) {
         await applySyncSnapshotToDatabase(pushSnapshot, ref);
+      } else {
+        logSyncWrite(
+          'apply skipped applyRemote=$applyRemote '
+          'notFound=${pullResult.notFound} '
+          'notModified=${pullResult.notModified} '
+          'hasBytes=${pullResult.bytes != null} '
+          'attempt=$attempt',
+        );
+        logWatchedMangaSnapshot('after-skip-apply');
+        logSnapshotMangaWatch('push-snapshot-not-applied', pushSnapshot.manga);
+        logDuplicateMangaIds('push-snapshot-not-applied', pushSnapshot.manga);
+        logSnapshotSourceCounts('push-snapshot-not-applied', pushSnapshot.manga);
       }
       _storeEtag(
         syncNotifier,
@@ -353,14 +366,37 @@ SyncSnapshot resolveSnapshotForBidirectionalSync({
   required WebDavPullResult pullResult,
 }) {
   if (pullResult.notFound || pullResult.notModified) {
+    logSyncWrite(
+      'resolve local-only notFound=${pullResult.notFound} '
+      'notModified=${pullResult.notModified}',
+    );
+    logSnapshotMangaWatch('resolve-local-only', local.manga);
+    logDuplicateMangaIds('resolve-local-only', local.manga);
+    logSnapshotSourceCounts('resolve-local-only', local.manga);
     return local;
   }
   final bytes = pullResult.bytes;
   if (bytes == null) {
+    logSyncWrite('resolve local-only bytes=null');
+    logSnapshotMangaWatch('resolve-local-only', local.manga);
     return local;
   }
   final remote = decodeSyncSnapshot(bytes);
-  return mergeSyncSnapshots(local, remote);
+  logSyncWrite(
+    'resolve merge localManga=${local.manga.length} '
+    'remoteManga=${remote.manga.length}',
+  );
+  logSnapshotMangaWatch('merge-local', local.manga);
+  logDuplicateMangaIds('merge-local', local.manga);
+  logSnapshotSourceCounts('merge-local', local.manga);
+  logSnapshotMangaWatch('merge-remote', remote.manga);
+  logDuplicateMangaIds('merge-remote', remote.manga);
+  logSnapshotSourceCounts('merge-remote', remote.manga);
+  final merged = mergeSyncSnapshots(local, remote);
+  logSnapshotMangaWatch('merge-result', merged.manga);
+  logDuplicateMangaIds('merge-result', merged.manga);
+  logSnapshotSourceCounts('merge-result', merged.manga);
+  return merged;
 }
 
 /// ETag to send with PUT for optimistic locking (from the current pull only).

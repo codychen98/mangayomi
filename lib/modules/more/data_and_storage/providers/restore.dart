@@ -33,6 +33,7 @@ import 'package:mangayomi/modules/more/settings/reader/providers/reader_state_pr
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/router/router.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 import 'package:protobuf/protobuf.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'restore.g.dart';
@@ -172,6 +173,13 @@ void restoreBackup(Ref ref, Map<String, dynamic> backup, {bool full = true}) {
           ?.map((e) => SyncPreference.fromJson(e))
           .toList();
 
+      logSyncWrite('restore clear+putAll manga=${manga?.length ?? 0}');
+      logWatchedMangaSnapshot('before-restore');
+      if (manga != null) {
+        logSnapshotMangaWatch('restore-incoming', manga);
+        logDuplicateMangaIds('restore-incoming', manga);
+        logSnapshotSourceCounts('restore-incoming', manga);
+      }
       isar.writeTxnSync(() {
         isar.mangas.clearSync();
         if (manga != null) {
@@ -290,6 +298,7 @@ void restoreBackup(Ref ref, Map<String, dynamic> backup, {bool full = true}) {
           _invalidateCommonState(ref);
         }
       });
+      logWatchedMangaSnapshot('after-restore');
     } catch (e) {
       rethrow;
     }

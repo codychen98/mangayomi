@@ -41,6 +41,7 @@ import 'package:mangayomi/services/download_manager/m_downloader.dart';
 import 'package:mangayomi/src/rust/frb_generated.dart';
 import 'package:mangayomi/utils/discord_rpc.dart';
 import 'package:mangayomi/utils/log/logger.dart';
+import 'package:mangayomi/services/sync/sync_write_log.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
 import 'package:mangayomi/utils/portable_paths.dart';
 import 'package:mangayomi/utils/url_protocol/api.dart';
@@ -182,6 +183,11 @@ class _StartupErrorApp extends StatelessWidget {
 
 Future<void> _postLaunchInit(StorageProvider storage) async {
   await AppLogger.init();
+  logWatchedMangaSnapshot('logger-ready-disk');
+  logSnapshotSourceCounts(
+    'logger-ready-disk',
+    isar.mangas.filter().idIsNotNull().findAllSync(),
+  );
   unawaited(MDownloader.initializeIsolatePool(poolSize: 6));
   if (PortablePaths.isEnabled) {
     final dbDir = await storage.getDatabaseDirectory();

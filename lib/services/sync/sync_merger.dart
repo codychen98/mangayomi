@@ -887,6 +887,9 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
 
   logSyncWrite('applySyncSnapshot manga=${merged.manga.length}');
   logWatchedMangaSnapshot('before-apply');
+  logSnapshotMangaWatch('apply-incoming', merged.manga);
+  logDuplicateMangaIds('apply-incoming', merged.manga);
+  logSnapshotSourceCounts('apply-incoming', merged.manga);
 
   isar.writeTxnSync(() {
     isar.categorys.clearSync();
@@ -1051,6 +1054,9 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
   });
 
   logWatchedMangaSnapshot('after-apply');
+  final diskManga = isar.mangas.filter().idIsNotNull().findAllSync();
+  logSnapshotMangaWatch('after-apply-disk', diskManga);
+  logSnapshotSourceCounts('after-apply-disk', diskManga);
 
   if (applySettings || applyExtensions || applyFeeds) {
     ref.invalidate(followSystemThemeStateProvider);
