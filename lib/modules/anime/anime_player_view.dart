@@ -800,10 +800,13 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
         Uri.parse(file),
         headers: headers ?? _video.value?.headers ?? _firstVid.headers,
       );
+      // VTTs are UTF-8; Response.body defaults to Latin-1 without charset
+      // and turns symbols like ♪ into mojibake (e.g. â□□).
+      final text = utf8.decode(res.bodyBytes, allowMalformed: true);
       if (res.statusCode >= 200 &&
           res.statusCode < 300 &&
-          res.body.trim().isNotEmpty) {
-        return SubtitleTrack.data(res.body, title: title, language: language);
+          text.trim().isNotEmpty) {
+        return SubtitleTrack.data(text, title: title, language: language);
       }
       AppLogger.log(
         'subtitle fetch failed $_playerLogContext '
