@@ -12,6 +12,7 @@ import 'package:mangayomi/models/page.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/models/video.dart';
+import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
 import 'package:mangayomi/services/http/m_client.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/log/logger.dart';
@@ -107,7 +108,7 @@ class MihonExtensionService implements ExtensionService {
         "method": "getPopular$name",
         "page": page + 1,
         "search": "",
-        "preferences": getSourcePreferences(),
+        "preferences": _preferencesPayload(),
         "data": source.sourceCode,
       }),
       headers: getCookie(),
@@ -145,7 +146,7 @@ class MihonExtensionService implements ExtensionService {
         "method": "getLatest$name",
         "page": page + 1,
         "search": "",
-        "preferences": getSourcePreferences(),
+        "preferences": _preferencesPayload(),
         "data": source.sourceCode,
       }),
       headers: getCookie(),
@@ -184,7 +185,7 @@ class MihonExtensionService implements ExtensionService {
         "page": max(1, page),
         "search": query,
         "filterList": _convertFilters(filters),
-        "preferences": getSourcePreferences(),
+        "preferences": _preferencesPayload(),
         "data": source.sourceCode,
       }),
       headers: getCookie(),
@@ -223,7 +224,7 @@ class MihonExtensionService implements ExtensionService {
         "method": "getDetails$name",
         if (source.itemType == ItemType.manga) "mangaData": {"url": url},
         if (source.itemType == ItemType.anime) "animeData": {"url": url},
-        "preferences": getSourcePreferences(),
+        "preferences": _preferencesPayload(),
         "data": source.sourceCode,
       }),
       headers: getCookie(),
@@ -266,7 +267,7 @@ class MihonExtensionService implements ExtensionService {
             : "getChapterList",
         if (source.itemType == ItemType.manga) "mangaData": {"url": url},
         if (source.itemType == ItemType.anime) "animeData": {"url": url},
-        "preferences": getSourcePreferences(),
+        "preferences": _preferencesPayload(),
         "data": source.sourceCode,
       }),
       headers: getCookie(),
@@ -296,7 +297,7 @@ class MihonExtensionService implements ExtensionService {
       body: jsonEncode({
         "method": "getPageList",
         "chapterData": {"url": url},
-        "preferences": getSourcePreferences(),
+        "preferences": _preferencesPayload(),
         "data": source.sourceCode,
       }),
       headers: getCookie(),
@@ -315,7 +316,7 @@ class MihonExtensionService implements ExtensionService {
       body: jsonEncode({
         "method": "getVideoList",
         "episodeData": {"url": url},
-        "preferences": getSourcePreferences(),
+        "preferences": _preferencesPayload(),
         "data": source.sourceCode,
       }),
       headers: getCookie(),
@@ -392,11 +393,23 @@ class MihonExtensionService implements ExtensionService {
 
   @override
   List<SourcePreference> getSourcePreferences() {
-    if (source.preferenceList == null) {
-      return [];
+    _reloadSourceFromDb();
+    return resolveMihonSourcePreferences(source);
+  }
+
+  /// Fresh [Source.preferenceList] after settings saves on another screen.
+  void _reloadSourceFromDb() {
+    final sourceId = source.id;
+    if (sourceId == null) return;
+    final dbSource = isar.sources.getSync(sourceId);
+    if (dbSource != null) {
+      source = dbSource;
     }
-    final data = jsonDecode(source.preferenceList!) as List;
-    return data.map((e) => SourcePreference.fromJson(e)).toList();
+  }
+
+  List<Map<String, dynamic>> _preferencesPayload() {
+    _reloadSourceFromDb();
+    return mihonPreferencesDalvikPayload(source);
   }
 
   List<dynamic> _convertFilters(List<dynamic> filters) {

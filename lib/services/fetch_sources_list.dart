@@ -695,12 +695,19 @@ Future<List<SourcePreference>?> fetchPreferencesDalvik(
 ) async {
   try {
     final name = source.itemType == ItemType.anime ? "Anime" : "Manga";
+    // Apply saved prefs to JVM SharedPreferences before reading the schema.
+    final dbSource = source.id != null
+        ? (isar.sources.getSync(source.id!) ?? source)
+        : source;
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode(
         dalvikRequestBody(
           method: "preferences$name",
           source: source,
+          extra: {
+            "preferences": mihonPreferencesDalvikPayload(dbSource),
+          },
         ),
       ),
     );

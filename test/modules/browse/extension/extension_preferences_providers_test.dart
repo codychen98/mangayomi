@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mangayomi/eval/model/source_preference.dart';
+import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
 
 void main() {
@@ -116,6 +117,46 @@ void main() {
       expect(merged, hasLength(2));
       expect(merged.last.key, 'preferred_type');
       expect(merged.last.listPreference!.valueIndex, 2);
+    });
+  });
+
+  group('resolveMihonSourcePreferences / dalvik payload', () {
+    test('returns empty when preferenceList is null or empty', () {
+      expect(resolveMihonSourcePreferences(Source()), isEmpty);
+      expect(
+        resolveMihonSourcePreferences(Source()..preferenceList = ''),
+        isEmpty,
+      );
+      expect(
+        resolveMihonSourcePreferences(Source()..preferenceList = '[]'),
+        isEmpty,
+      );
+    });
+
+    test('dalvik payload includes listPreference valueIndex as JSON maps', () {
+      final source = Source()
+        ..preferenceList = jsonEncode([
+          SourcePreference(
+            key: 'preferred_type',
+            listPreference: ListPreference(
+              title: 'Preferred Type',
+              valueIndex: 1,
+              entries: const ['Hard Sub', 'Soft Sub'],
+              entryValues: const ['hard', 'soft'],
+            ),
+          ).toJson(),
+        ]);
+
+      final payload = mihonPreferencesDalvikPayload(source);
+
+      expect(payload, hasLength(1));
+      expect(payload.first['key'], 'preferred_type');
+      expect(
+        (payload.first['listPreference'] as Map)['valueIndex'],
+        1,
+      );
+      // Must be encodable for Dalvik without JsonUnsupportedObjectError.
+      expect(() => jsonEncode({'preferences': payload}), returnsNormally);
     });
   });
 }

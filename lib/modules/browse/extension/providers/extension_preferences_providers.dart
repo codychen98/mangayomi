@@ -42,6 +42,34 @@ List<SourcePreference> mergeFetchedSourcePreferences(
   }).toList();
 }
 
+/// Resolves Mihon prefs from [Source.preferenceList], overlaying Isar saves.
+///
+/// Does not call [getSourcePreference] (avoids recursion through MihonService).
+List<SourcePreference> resolveMihonSourcePreferences(Source source) {
+  final preferenceList = source.preferenceList;
+  if (preferenceList == null || preferenceList.isEmpty) {
+    return const [];
+  }
+  try {
+    final defaults = (jsonDecode(preferenceList) as List)
+        .map((e) => SourcePreference.fromJson(e as Map<String, dynamic>))
+        .toList();
+    if (defaults.isEmpty) return const [];
+    final sourceId = source.id;
+    if (sourceId == null) return defaults;
+    return mergeFetchedSourcePreferences(defaults, sourceId);
+  } catch (_) {
+    return const [];
+  }
+}
+
+/// JSON maps for Dalvik [applyPreferences] (jsonEncode cannot encode models).
+List<Map<String, dynamic>> mihonPreferencesDalvikPayload(Source source) {
+  return resolveMihonSourcePreferences(
+    source,
+  ).map((e) => e.toJson()).toList();
+}
+
 /// Deep-copies a preference for Isar/JSON persist, keeping [valueIndex] explicit.
 SourcePreference copyPreferenceForPersist(
   SourcePreference sourcePreference, {
