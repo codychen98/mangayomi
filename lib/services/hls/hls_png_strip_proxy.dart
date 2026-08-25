@@ -100,6 +100,8 @@ class HlsPngStripProxy {
         return;
       }
       var bytes = response.bodyBytes;
+      final resource = request.uri.queryParameters['n'] ?? '';
+      final wantsPlaylist = resource.toLowerCase().contains('m3u8');
       final playlistOff = hlsPlaylistOffset(bytes);
       if (playlistOff != null) {
         final text = utf8.decode(
@@ -126,8 +128,23 @@ class HlsPngStripProxy {
           charset: 'utf-8',
         );
         request.response.write(rewritten);
+      } else if (wantsPlaylist) {
+        // Extension-server / nested proxies may return URL lists or bodies
+        // without #EXTM3U. Never treat those playlist fetches as TS segments.
+        if (!_loggedPlaylist) {
+          _loggedPlaylist = true;
+          AppLogger.log(
+            '[HLS-PNG] non-EXTM3U playlist passthrough in=${bytes.length} '
+            'magic=${_hexPrefix(Uint8List.fromList(bytes))}',
+          );
+        }
+        request.response.headers.contentType = ContentType(
+          'application',
+          'vnd.apple.mpegurl',
+          charset: 'utf-8',
+        );
+        request.response.add(bytes);
       } else {
-        final resource = request.uri.queryParameters['n'] ?? '';
         final seq = int.tryParse(request.uri.queryParameters['s'] ?? '');
         if (_aesKey != null &&
             seq != null &&
@@ -228,6 +245,42 @@ String _hexPrefix(Uint8List data) {
     out.write(data[i].toRadixString(16).padLeft(2, '0'));
   }
   return out.toString();
+}
+
+/// True when [url] is an M-Extension-Server HLS proxy (`/m3u8` or `/segment`).
+///
+/// Those streams are already proxied (headers / AES) by the extension server;
+/// wrapping them in [HlsPngStripProxy] mis-handles non-`#EXTM3U` bodies.
+bool isExtensionServerHlsProxyUri(String url) {
+  final uri = Uri.tryParse(url.trim());
+  if (uri == null || uri.host.isEmpty) return false;
+  final host = uri.host.toLowerCase();
+  if (host != 'localhost' && host != '127.0.0.1') return false;
+  final path = uri.path.toLowerCase();
+  return path == '/m3u8' ||
+      path.endsWith('/m3u8') ||
+      path == '/segment' ||
+      path.endsWith('/segment');
+}
+
+/// Ensures loopback extension HLS URLs use the running proxy [proxyBase] port.
+///
+/// Leaves URLs that already have an explicit non-default port unchanged.
+String resolveExtensionServerStreamUri(String url, String? proxyBase) {
+  if (!isExtensionServerHlsProxyUri(url)) return url;
+  final uri = Uri.parse(url);
+  final hasExplicitPort = uri.hasPort && uri.port != 80 && uri.port != 443;
+  if (hasExplicitPort) return url;
+  if (proxyBase == null || proxyBase.trim().isEmpty) return url;
+  final base = Uri.tryParse(proxyBase.trim());
+  if (base == null || !base.hasPort) return url;
+  return uri
+      .replace(
+        scheme: base.scheme.isNotEmpty ? base.scheme : uri.scheme,
+        host: base.host.isNotEmpty ? base.host : uri.host,
+        port: base.port,
+      )
+      .toString();
 }
 
 /// Offset of `#EXTM3U` in the first 8KiB, or null.

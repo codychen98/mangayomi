@@ -31,6 +31,7 @@ import 'package:mangayomi/modules/anime/widgets/mobile.dart';
 import 'package:mangayomi/modules/anime/widgets/subtitle_view.dart';
 import 'package:mangayomi/modules/anime/widgets/subtitle_setting_widget.dart';
 import 'package:mangayomi/modules/manga/reader/providers/push_router.dart';
+import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/player/providers/player_audio_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/player/providers/player_decoder_state_provider.dart';
 import 'package:mangayomi/modules/more/settings/player/providers/player_state_provider.dart';
@@ -1011,23 +1012,37 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     // Desktop libmpv/ffmpeg treats CDN HLS `.jpg`/`.png` segments as image2/mjpeg.
     // Proxy rewrites playlists onto `.ts` URLs, decrypts AES-128, and strips
     // image disguises so the demuxer sees MPEG-TS.
+    // Extension-server `/m3u8` is already a proxy — do not wrap it (see roadmap
+    // preferred_stream_selection Step 1.3).
     if (isDesktop && streamUri.looksLikeHls) {
-      try {
-        openUri = await _hlsPngProxy.startFor(
+      if (isExtensionServerHlsProxyUri(streamUri)) {
+        openUri = resolveExtensionServerStreamUri(
           streamUri,
-          headers: prefs.headers,
+          ref.read(androidProxyServerStateProvider),
         );
-        openHeaders = null;
-        AppLogger.log(
-          'player open proxy $_playerLogContext uri=$openUri',
-        );
-      } catch (e) {
-        AppLogger.log(
-          'player open proxy failed $_playerLogContext: $e',
-          logLevel: LogLevel.error,
-        );
-        openUri = streamUri;
         openHeaders = prefs.headers;
+        AppLogger.log(
+          'player open skip HLS-PNG (extension-server) $_playerLogContext '
+          'uri=${openUri.toLogSafeUri()}',
+        );
+      } else {
+        try {
+          openUri = await _hlsPngProxy.startFor(
+            streamUri,
+            headers: prefs.headers,
+          );
+          openHeaders = null;
+          AppLogger.log(
+            'player open proxy $_playerLogContext uri=$openUri',
+          );
+        } catch (e) {
+          AppLogger.log(
+            'player open proxy failed $_playerLogContext: $e',
+            logLevel: LogLevel.error,
+          );
+          openUri = streamUri;
+          openHeaders = prefs.headers;
+        }
       }
     }
 

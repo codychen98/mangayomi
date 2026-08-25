@@ -298,4 +298,66 @@ seg.jpg
       expect(stripImagePrefix(decrypted).first, 0x47);
     });
   });
+
+  group('isExtensionServerHlsProxyUri', () {
+    test('matches loopback /m3u8 and /segment', () {
+      expect(
+        isExtensionServerHlsProxyUri('http://localhost/m3u8'),
+        isTrue,
+      );
+      expect(
+        isExtensionServerHlsProxyUri(
+          'http://localhost:51653/m3u8?url=https%3A%2F%2Fs1.example%2Findex.m3u8',
+        ),
+        isTrue,
+      );
+      expect(
+        isExtensionServerHlsProxyUri('http://127.0.0.1:9/segment?url=x'),
+        isTrue,
+      );
+    });
+
+    test('rejects CDN and non-proxy loopback paths', () {
+      expect(
+        isExtensionServerHlsProxyUri(
+          'https://cdn.watching.onl/anime/x/index.m3u8',
+        ),
+        isFalse,
+      );
+      expect(
+        isExtensionServerHlsProxyUri('http://localhost:51653/dalvik'),
+        isFalse,
+      );
+      expect(isExtensionServerHlsProxyUri(''), isFalse);
+    });
+  });
+
+  group('resolveExtensionServerStreamUri', () {
+    test('fills missing port from proxy base', () {
+      expect(
+        resolveExtensionServerStreamUri(
+          'http://localhost/m3u8?url=https%3A%2F%2Fcdn%2Findex.m3u8',
+          'http://127.0.0.1:51653',
+        ),
+        'http://127.0.0.1:51653/m3u8?url=https%3A%2F%2Fcdn%2Findex.m3u8',
+      );
+    });
+
+    test('keeps explicit proxy port', () {
+      const url =
+          'http://localhost:51653/m3u8?url=https%3A%2F%2Fcdn%2Findex.m3u8';
+      expect(
+        resolveExtensionServerStreamUri(url, 'http://127.0.0.1:9999'),
+        url,
+      );
+    });
+
+    test('leaves CDN URLs unchanged', () {
+      const cdn = 'https://cdn.watching.onl/anime/x/index.m3u8';
+      expect(
+        resolveExtensionServerStreamUri(cdn, 'http://127.0.0.1:51653'),
+        cdn,
+      );
+    });
+  });
 }
