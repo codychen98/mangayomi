@@ -464,30 +464,96 @@ SourcePreferenceStringValue _copySourcePreferenceStringValue(
 
 List<SourcePreference> _mergeExtensionsPreferences(
   List<SourcePreference> local,
-  List<SourcePreference> remote,
-) {
+  List<SourcePreference> remote, {
+  required List<Source> localSources,
+  required List<Source> remoteSources,
+}) {
+  final localSourceUpdatedAt = <int, int>{
+    for (final source in localSources)
+      if (source.id != null) source.id!: source.updatedAt ?? 0,
+  };
+  final remoteSourceUpdatedAt = <int, int>{
+    for (final source in remoteSources)
+      if (source.id != null) source.id!: source.updatedAt ?? 0,
+  };
+
+  final localByKey = <String, SourcePreference>{
+    for (final preference in local)
+      _sourcePreferenceKey(preference): preference,
+  };
+  final remoteByKey = <String, SourcePreference>{
+    for (final preference in remote)
+      _sourcePreferenceKey(preference): preference,
+  };
+
   final merged = <String, SourcePreference>{};
-  for (final preference in local) {
-    merged[_sourcePreferenceKey(preference)] = _copySourcePreference(preference);
-  }
-  for (final preference in remote) {
-    merged[_sourcePreferenceKey(preference)] = _copySourcePreference(preference);
+  for (final key in {...localByKey.keys, ...remoteByKey.keys}) {
+    final localPref = localByKey[key];
+    final remotePref = remoteByKey[key];
+    if (localPref == null) {
+      merged[key] = _copySourcePreference(remotePref!);
+      continue;
+    }
+    if (remotePref == null) {
+      merged[key] = _copySourcePreference(localPref);
+      continue;
+    }
+    final sourceId = localPref.sourceId ?? remotePref.sourceId;
+    final localTs =
+        sourceId != null ? (localSourceUpdatedAt[sourceId] ?? 0) : 0;
+    final remoteTs =
+        sourceId != null ? (remoteSourceUpdatedAt[sourceId] ?? 0) : 0;
+    merged[key] = _copySourcePreference(
+      // Strict >: local wins on equal/missing timestamps so a just-saved
+      // preference is not clobbered by a stale peer with the same clock.
+      remoteTs > localTs ? remotePref : localPref,
+    );
   }
   return merged.values.toList();
 }
 
 List<SourcePreferenceStringValue> _mergeExtensionsPreferenceStringValues(
   List<SourcePreferenceStringValue> local,
-  List<SourcePreferenceStringValue> remote,
-) {
+  List<SourcePreferenceStringValue> remote, {
+  required List<Source> localSources,
+  required List<Source> remoteSources,
+}) {
+  final localSourceUpdatedAt = <int, int>{
+    for (final source in localSources)
+      if (source.id != null) source.id!: source.updatedAt ?? 0,
+  };
+  final remoteSourceUpdatedAt = <int, int>{
+    for (final source in remoteSources)
+      if (source.id != null) source.id!: source.updatedAt ?? 0,
+  };
+
+  final localByKey = <String, SourcePreferenceStringValue>{
+    for (final value in local) _sourcePreferenceStringValueKey(value): value,
+  };
+  final remoteByKey = <String, SourcePreferenceStringValue>{
+    for (final value in remote) _sourcePreferenceStringValueKey(value): value,
+  };
+
   final merged = <String, SourcePreferenceStringValue>{};
-  for (final value in local) {
-    merged[_sourcePreferenceStringValueKey(value)] =
-        _copySourcePreferenceStringValue(value);
-  }
-  for (final value in remote) {
-    merged[_sourcePreferenceStringValueKey(value)] =
-        _copySourcePreferenceStringValue(value);
+  for (final key in {...localByKey.keys, ...remoteByKey.keys}) {
+    final localValue = localByKey[key];
+    final remoteValue = remoteByKey[key];
+    if (localValue == null) {
+      merged[key] = _copySourcePreferenceStringValue(remoteValue!);
+      continue;
+    }
+    if (remoteValue == null) {
+      merged[key] = _copySourcePreferenceStringValue(localValue);
+      continue;
+    }
+    final sourceId = localValue.sourceId ?? remoteValue.sourceId;
+    final localTs =
+        sourceId != null ? (localSourceUpdatedAt[sourceId] ?? 0) : 0;
+    final remoteTs =
+        sourceId != null ? (remoteSourceUpdatedAt[sourceId] ?? 0) : 0;
+    merged[key] = _copySourcePreferenceStringValue(
+      remoteTs > localTs ? remoteValue : localValue,
+    );
   }
   return merged.values.toList();
 }
@@ -824,11 +890,15 @@ SyncSnapshot mergeSyncSnapshots(SyncSnapshot local, SyncSnapshot remote) {
   final mergedExtensionsPreferences = _mergeExtensionsPreferences(
     local.extensionsPreferences,
     remote.extensionsPreferences,
+    localSources: local.extensions,
+    remoteSources: remote.extensions,
   );
   final mergedExtensionsPreferenceStringValues =
       _mergeExtensionsPreferenceStringValues(
     local.extensionsPreferenceStringValues,
     remote.extensionsPreferenceStringValues,
+    localSources: local.extensions,
+    remoteSources: remote.extensions,
   );
   final mergedTombstones = _mergeTombstones(local.tombstones, remote.tombstones);
   final mergedSavedSearches = _filterSavedSearchesByTombstones(

@@ -187,18 +187,19 @@ void setPreferenceSetting(SourcePreference sourcePreference, Source source) {
     }
     isar.sourcePreferences.putSync(persistedPreference);
 
-    if (source.sourceCodeLanguage == SourceCodeLanguage.mihon) {
-      final dbSource = isar.sources.getSync(source.id!);
-      if (dbSource?.preferenceList != null &&
-          dbSource!.preferenceList!.isNotEmpty) {
-        isar.sources.putSync(
-          dbSource
-            ..preferenceList = mergePreferenceIntoPreferenceListJson(
-              dbSource.preferenceList!,
-              persistedPreference,
-            ),
+    final dbSource = source.id != null ? isar.sources.getSync(source.id!) : null;
+    if (dbSource != null) {
+      if (source.sourceCodeLanguage == SourceCodeLanguage.mihon &&
+          dbSource.preferenceList != null &&
+          dbSource.preferenceList!.isNotEmpty) {
+        dbSource.preferenceList = mergePreferenceIntoPreferenceListJson(
+          dbSource.preferenceList!,
+          persistedPreference,
         );
       }
+      // Any extension language: bump so WebDAV LWW can sync this device's change.
+      dbSource.updatedAt = DateTime.now().millisecondsSinceEpoch;
+      isar.sources.putSync(dbSource);
     }
   });
 }
@@ -255,14 +256,24 @@ String getSourcePreferenceStringValue(
       .keyEqualTo(key)
       .findFirstSync();
   if (sourcePreferenceStringValue == null) {
-    setSourcePreferenceStringValue(sourceId, key, defaultValue);
+    setSourcePreferenceStringValue(
+      sourceId,
+      key,
+      defaultValue,
+      bumpSourceUpdatedAt: false,
+    );
     return defaultValue;
   }
 
   return sourcePreferenceStringValue.value ?? "";
 }
 
-void setSourcePreferenceStringValue(int sourceId, String key, String value) {
+void setSourcePreferenceStringValue(
+  int sourceId,
+  String key,
+  String value, {
+  bool bumpSourceUpdatedAt = true,
+}) {
   final sourcePref = isar.sourcePreferenceStringValues
       .filter()
       .sourceIdEqualTo(sourceId)
@@ -278,6 +289,14 @@ void setSourcePreferenceStringValue(int sourceId, String key, String value) {
           ..sourceId = sourceId
           ..value = value,
       );
+    }
+    if (bumpSourceUpdatedAt) {
+      final dbSource = isar.sources.getSync(sourceId);
+      if (dbSource != null) {
+        isar.sources.putSync(
+          dbSource..updatedAt = DateTime.now().millisecondsSinceEpoch,
+        );
+      }
     }
   });
 }

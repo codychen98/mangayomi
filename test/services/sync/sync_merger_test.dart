@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mangayomi/eval/model/source_preference.dart';
 import 'package:mangayomi/models/category.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/models/settings.dart';
+import 'package:mangayomi/models/source.dart';
 import 'package:mangayomi/services/sync/sync_merger.dart';
 import 'package:mangayomi/services/sync/sync_snapshot.dart';
 
@@ -292,6 +294,66 @@ void main() {
       expect(
         Settings.fromJson(merged.settings.first.toJson()).cookiesList,
         hasLength(1),
+      );
+    });
+
+    test('extension preferences follow newer Source.updatedAt', () {
+      Source anikoto({required int updatedAt}) => Source(
+            id: 55365075,
+            name: 'Anikoto',
+            lang: 'en',
+            baseUrl: 'https://anikototv.to',
+            version: '1.0.0',
+            sourceCodeUrl: 'https://example.com/anikoto.apk',
+            typeSource: 'single',
+            iconUrl: '',
+            dateFormat: '',
+            dateFormatLocale: '',
+          )
+            ..itemType = ItemType.anime
+            ..sourceCodeLanguage = SourceCodeLanguage.mihon
+            ..updatedAt = updatedAt
+            ..isAdded = true;
+
+      SourcePreference preferredType(int valueIndex) => SourcePreference(
+            sourceId: 55365075,
+            key: 'preferred_type',
+            listPreference: ListPreference(
+              title: 'Preferred Type',
+              valueIndex: valueIndex,
+              entries: const ['Sub', 'Hard Sub', 'Dub', 'H-Sub', 'A-Dub'],
+              entryValues: const ['sub', 'hard', 'dub', 'hsub', 'adub'],
+            ),
+          );
+
+      // Phone (remote) changed Preferred Type more recently → PC must take it.
+      final pcOlder = SyncSnapshot(
+        extensions: [anikoto(updatedAt: 100)],
+        extensionsPreferences: [preferredType(1)], // Hard Sub
+      );
+      final phoneNewer = SyncSnapshot(
+        extensions: [anikoto(updatedAt: 200)],
+        extensionsPreferences: [preferredType(3)], // H-Sub
+      );
+      final phoneWins = mergeSyncSnapshots(pcOlder, phoneNewer);
+      expect(
+        phoneWins.extensionsPreferences.first.listPreference!.valueIndex,
+        3,
+      );
+
+      // PC changed more recently → keep PC value over stale phone snapshot.
+      final pcNewer = SyncSnapshot(
+        extensions: [anikoto(updatedAt: 300)],
+        extensionsPreferences: [preferredType(3)], // H-Sub
+      );
+      final phoneStale = SyncSnapshot(
+        extensions: [anikoto(updatedAt: 200)],
+        extensionsPreferences: [preferredType(1)], // Hard Sub
+      );
+      final pcWins = mergeSyncSnapshots(pcNewer, phoneStale);
+      expect(
+        pcWins.extensionsPreferences.first.listPreference!.valueIndex,
+        3,
       );
     });
   });
