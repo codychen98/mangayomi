@@ -20,6 +20,7 @@ import 'package:mangayomi/utils/log/logger.dart';
 import '../../models/manga.dart';
 import '../interface.dart';
 import 'models.dart';
+import 'video_list_response_log.dart';
 
 class MihonExtensionService implements ExtensionService {
   late String androidProxyServer;
@@ -311,18 +312,56 @@ class MihonExtensionService implements ExtensionService {
   Future<List<Video>> getVideoList(String url) async {
     url = _urlForMihon(url);
     _logCall("getVideoList", "url=$url");
+    final prefsPayload = _preferencesPayload();
+    final prefsSummary = mihonListPreferenceLogSummary(prefsPayload);
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
       body: jsonEncode({
         "method": "getVideoList",
         "episodeData": {"url": url},
-        "preferences": _preferencesPayload(),
+        "preferences": prefsPayload,
         "data": source.sourceCode,
       }),
       headers: getCookie(),
     );
     hasError(res, context: "getVideoList");
-    final data = jsonDecode(res.body) as List;
+    final httpStatus = res.statusCode;
+    final bodyLen = res.body.length;
+    late final dynamic decoded;
+    try {
+      decoded = jsonDecode(res.body);
+    } catch (e) {
+      AppLogger.log(
+        '[MIHON] getVideoList decode-failed source=${source.name} '
+        'httpStatus=$httpStatus bodyLen=$bodyLen prefs=$prefsSummary '
+        'preview=${mihonResponseBodyPreview(res.body)} err=$e',
+        logLevel: LogLevel.error,
+      );
+      rethrow;
+    }
+    if (decoded is! List) {
+      AppLogger.log(
+        '[MIHON] getVideoList unexpected-body source=${source.name} '
+        'httpStatus=$httpStatus bodyLen=$bodyLen type=${decoded.runtimeType} '
+        'prefs=$prefsSummary preview=${mihonResponseBodyPreview(res.body)}',
+        logLevel: LogLevel.error,
+      );
+      throw 'getVideoList: unexpected response type ${decoded.runtimeType}';
+    }
+    final data = decoded;
+    AppLogger.log(
+      '[MIHON] getVideoList done source=${source.name} '
+      'httpStatus=$httpStatus bodyLen=$bodyLen count=${data.length} '
+      'prefs=$prefsSummary',
+    );
+    if (data.isEmpty) {
+      AppLogger.log(
+        '[MIHON] getVideoList empty source=${source.name} '
+        'httpStatus=$httpStatus bodyLen=$bodyLen url=$url '
+        'prefs=$prefsSummary preview=${mihonResponseBodyPreview(res.body)}',
+        logLevel: LogLevel.error,
+      );
+    }
     final videos = data.map((e) {
       final tempHeaders =
           e['headers']?['namesAndValues\$okhttp'] as List<dynamic>?;

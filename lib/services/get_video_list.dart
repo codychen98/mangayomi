@@ -176,7 +176,21 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
       }
     }
 
+    final dedupedCount = videos.length;
     videos = _applyPreferredStreamOrder(videos, source);
+    AppLogger.log(
+      '[VIDEO] getVideoList pipeline source=${source?.name} '
+      'raw=${list.length} deduped=$dedupedCount ordered=${videos.length} '
+      'episode=${episode.url}',
+    );
+    if (videos.isEmpty) {
+      AppLogger.log(
+        '[VIDEO] getVideoList empty-after-pipeline source=${source?.name} '
+        'raw=${list.length} deduped=$dedupedCount '
+        'episode=${episode.url}',
+        logLevel: LogLevel.error,
+      );
+    }
     result = (videos, false, infoHashes, mpvDirectory);
 
     keepAlive.close();
