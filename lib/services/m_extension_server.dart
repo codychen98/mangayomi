@@ -7,6 +7,7 @@ import 'package:m_extension_server/m_extension_server.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/settings.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
+import 'package:mangayomi/services/extension_server/bridge_log_forwarder.dart';
 import 'package:mangayomi/services/extension_server_bootstrap.dart';
 import 'package:mangayomi/utils/platform_utils.dart';
 
@@ -73,10 +74,20 @@ class MExtensionServerPlatform {
             !await File(serverJarPath!).exists()) {
           return;
         }
+        final enableLogs = settings?.enableLogs == true;
+        final jvmArgs = enableLogs
+            ? const [
+                '-Dsuwayomi.tachidesk.config.server.debugLogsEnabled=true',
+              ]
+            : null;
         final currentUrl = ref.read(androidProxyServerStateProvider);
         if (await isExtensionServerDalvikReady(currentUrl)) {
+          if (enableLogs) {
+            BridgeLogForwarder.instance.start();
+          }
           return;
         }
+        await BridgeLogForwarder.instance.stop();
         await MExtensionServer().stopServer();
         final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
         final port = server.port;
@@ -85,10 +96,14 @@ class MExtensionServerPlatform {
           port,
           jvmPath: jrePath,
           serverJarPath: serverJarPath,
+          jvmArgs: jvmArgs,
         );
         ref
             .read(androidProxyServerStateProvider.notifier)
             .set("http://127.0.0.1:$port");
+        if (enableLogs) {
+          BridgeLogForwarder.instance.start();
+        }
         return;
       }
 
@@ -111,6 +126,7 @@ class MExtensionServerPlatform {
 
   Future<void> stopServer() async {
     try {
+      await BridgeLogForwarder.instance.stop();
       await MExtensionServer().stopServer();
     } catch (_) {}
   }
