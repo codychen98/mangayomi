@@ -105,13 +105,15 @@ class MihonExtensionService implements ExtensionService {
     _logCall("getPopular$name", "page=${page + 1}");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "getPopular$name",
-        "page": page + 1,
-        "search": "",
-        "preferences": _preferencesPayload(),
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        _dalvikBody(
+          "getPopular$name",
+          fields: {
+            "page": page + 1,
+            "search": "",
+          },
+        ),
+      ),
       headers: getCookie(),
     );
     hasError(res, context: "getPopular$name");
@@ -143,13 +145,15 @@ class MihonExtensionService implements ExtensionService {
     _logCall("getLatest$name", "page=${page + 1}");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "getLatest$name",
-        "page": page + 1,
-        "search": "",
-        "preferences": _preferencesPayload(),
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        _dalvikBody(
+          "getLatest$name",
+          fields: {
+            "page": page + 1,
+            "search": "",
+          },
+        ),
+      ),
       headers: getCookie(),
     );
     hasError(res, context: "getLatest$name");
@@ -181,14 +185,16 @@ class MihonExtensionService implements ExtensionService {
     _logCall("getSearch$name", "page=${max(1, page)} query=$query");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "getSearch$name",
-        "page": max(1, page),
-        "search": query,
-        "filterList": _convertFilters(filters),
-        "preferences": _preferencesPayload(),
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        _dalvikBody(
+          "getSearch$name",
+          fields: {
+            "page": max(1, page),
+            "search": query,
+            "filterList": _convertFilters(filters),
+          },
+        ),
+      ),
       headers: getCookie(),
     );
     hasError(res, context: "getSearch$name");
@@ -221,13 +227,15 @@ class MihonExtensionService implements ExtensionService {
     _logCall("getDetails$name", "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "getDetails$name",
-        if (source.itemType == ItemType.manga) "mangaData": {"url": url},
-        if (source.itemType == ItemType.anime) "animeData": {"url": url},
-        "preferences": _preferencesPayload(),
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        _dalvikBody(
+          "getDetails$name",
+          fields: {
+            if (source.itemType == ItemType.manga) "mangaData": {"url": url},
+            if (source.itemType == ItemType.anime) "animeData": {"url": url},
+          },
+        ),
+      ),
       headers: getCookie(),
     );
     hasError(res, context: "getDetails$name");
@@ -262,15 +270,17 @@ class MihonExtensionService implements ExtensionService {
     _logCall(listMethod, "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": source.itemType == ItemType.anime
-            ? "getEpisodeList"
-            : "getChapterList",
-        if (source.itemType == ItemType.manga) "mangaData": {"url": url},
-        if (source.itemType == ItemType.anime) "animeData": {"url": url},
-        "preferences": _preferencesPayload(),
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        _dalvikBody(
+          source.itemType == ItemType.anime
+              ? "getEpisodeList"
+              : "getChapterList",
+          fields: {
+            if (source.itemType == ItemType.manga) "mangaData": {"url": url},
+            if (source.itemType == ItemType.anime) "animeData": {"url": url},
+          },
+        ),
+      ),
       headers: getCookie(),
     );
     hasError(res, context: listMethod);
@@ -295,12 +305,14 @@ class MihonExtensionService implements ExtensionService {
     _logCall("getPageList", "url=$url");
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "getPageList",
-        "chapterData": {"url": url},
-        "preferences": _preferencesPayload(),
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        _dalvikBody(
+          "getPageList",
+          fields: {
+            "chapterData": {"url": url},
+          },
+        ),
+      ),
       headers: getCookie(),
     );
     hasError(res, context: "getPageList");
@@ -316,12 +328,15 @@ class MihonExtensionService implements ExtensionService {
     final prefsSummary = mihonListPreferenceLogSummary(prefsPayload);
     final res = await client.post(
       Uri.parse("$androidProxyServer/dalvik"),
-      body: jsonEncode({
-        "method": "getVideoList",
-        "episodeData": {"url": url},
-        "preferences": prefsPayload,
-        "data": source.sourceCode,
-      }),
+      body: jsonEncode(
+        _dalvikBody(
+          "getVideoList",
+          preferences: prefsPayload,
+          fields: {
+            "episodeData": {"url": url},
+          },
+        ),
+      ),
       headers: getCookie(),
     );
     hasError(res, context: "getVideoList");
@@ -449,6 +464,22 @@ class MihonExtensionService implements ExtensionService {
   List<Map<String, dynamic>> _preferencesPayload() {
     _reloadSourceFromDb();
     return mihonPreferencesDalvikPayload(source);
+  }
+
+  /// Shared `/dalvik` fields: method, APK bytes, prefs, and v1.0.7 source selectors.
+  Map<String, dynamic> _dalvikBody(
+    String method, {
+    List<Map<String, dynamic>>? preferences,
+    Map<String, dynamic> fields = const {},
+  }) {
+    return {
+      'method': method,
+      'preferences': preferences ?? _preferencesPayload(),
+      'data': source.sourceCode,
+      'lang': source.lang,
+      'sourceId': source.id?.toString(),
+      ...fields,
+    };
   }
 
   List<dynamic> _convertFilters(List<dynamic> filters) {
