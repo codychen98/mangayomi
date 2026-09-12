@@ -1461,7 +1461,7 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
               selected,
             ),
             onTap: () async {
-              if (_video.value?.videoTrack?.id == quality.videoTrack?.id) {
+              if (_video.value?.videoTrack?.title == quality.videoTrack?.title) {
                 Navigator.pop(context);
                 return;
               }

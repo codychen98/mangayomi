@@ -66,7 +66,7 @@ jobs:
           $extDir = "$releaseDir/extension_server"
           New-Item -ItemType Directory -Force -Path $extDir | Out-Null
           $bundleZip = Join-Path $extDir "windows-x64-bundle.zip"
-          $bundleUrl = "https://github.com/codychen98/M-Extension-Server/releases/download/v1.0.7-win2/windows-x64-bundle.zip"
+          $bundleUrl = "https://github.com/codychen98/M-Extension-Server/releases/download/v1.0.8-win2/windows-x64-bundle.zip"
           $minBytes = 50MB
           $maxAttempts = 5
           $ok = $false
@@ -74,7 +74,7 @@ jobs:
             try {
               if (Test-Path $bundleZip) { Remove-Item $bundleZip -Force }
               # Prefer gh (API); fall back to curl with retries for flaky CDN.
-              gh release download v1.0.7-win2 `
+              gh release download v1.0.8-win2 `
                 --repo codychen98/M-Extension-Server `
                 --pattern windows-x64-bundle.zip `
                 --dir $extDir `
