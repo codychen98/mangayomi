@@ -35,6 +35,8 @@ import 'package:mangayomi/modules/widgets/custom_extended_image_provider.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/http/m_client.dart';
+import 'package:mangayomi/services/sync/sync_entity_keys.dart';
+import 'package:mangayomi/services/sync/sync_tombstone.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/riverpod.dart';
 import 'package:mangayomi/utils/utils.dart';
@@ -1007,6 +1009,7 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
                                     TextButton(
                                       onPressed: () async {
                                         final navigator = Navigator.of(context);
+                                        final parent = widget.manga!;
                                         await isar.writeTxn(() async {
                                           final idsToDelete = selectedChapters
                                               .map((c) => c.id!)
@@ -1015,6 +1018,15 @@ class _MangaDetailViewState extends ConsumerState<MangaDetailView>
                                             idsToDelete,
                                           );
                                         });
+                                        await SyncTombstoneStore
+                                            .recordChaptersDeleted(
+                                          selectedChapters.map(
+                                            (c) => chapterTombstoneKey(
+                                              parent,
+                                              c,
+                                            ),
+                                          ),
+                                        );
                                         if (!mounted) return;
                                         ref
                                             .read(

@@ -11,6 +11,8 @@ import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/services/get_detail.dart';
 import 'package:mangayomi/services/library_update_preferences_service.dart';
+import 'package:mangayomi/services/sync/sync_entity_keys.dart';
+import 'package:mangayomi/services/sync/sync_tombstone.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/fetch_interval.dart';
 import 'package:mangayomi/utils/orphan_chapter_policy.dart';
@@ -96,6 +98,9 @@ Future<dynamic> updateMangaDetail(
     // Synching.addChangedPart uses sync Isar calls, which are not allowed
     // inside an async writeTxn. Collect here and record after commit.
     final pendingChangedParts = <_PendingChangedPart>[];
+    // WebDAV tombstone keys for orphans removed below; the store is file IO,
+    // so it is written after the transaction commits.
+    final deletedChapterTombstoneKeys = <String>[];
 
     await isar.writeTxn(() async {
       // Persist updated manga metadata.
@@ -226,6 +231,7 @@ Future<dynamic> updateMangaDetail(
             ),
           );
           deletedChapterIds.add(id);
+          deletedChapterTombstoneKeys.add(chapterTombstoneKey(manga, chapter));
         }
       }
 
@@ -253,6 +259,11 @@ Future<dynamic> updateMangaDetail(
       for (final part in pendingChangedParts) {
         syncNotifier.addChangedPart(part.action, part.isarId, "{}", true);
       }
+    }
+    if (deletedChapterTombstoneKeys.isNotEmpty) {
+      await SyncTombstoneStore.recordChaptersDeleted(
+        deletedChapterTombstoneKeys,
+      );
     }
   } catch (e, s) {
     if (showToast) {

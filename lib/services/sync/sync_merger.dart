@@ -705,6 +705,43 @@ List<SavedSearch> _filterSavedSearchesByTombstones(
       .toList();
 }
 
+/// Drops chapters whose `chapterTombstoneKey` has a tombstone at least as new
+/// as the chapter's [Chapter.updatedAt]. Chapters whose parent manga is
+/// missing from [mergedManga] are kept (they are already skipped on apply).
+List<Chapter> _filterChaptersByTombstones(
+  List<Chapter> chapters,
+  List<Manga> mergedManga,
+  List<SyncTombstone> tombstones,
+) {
+  final chapterTombstones = tombstones
+      .where((t) => t.entity == SyncTombstoneEntity.chapter)
+      .toList();
+  if (chapterTombstones.isEmpty) {
+    return chapters;
+  }
+  final mergedMangaById = {
+    for (final manga in mergedManga)
+      if (manga.id != null) manga.id!: manga,
+  };
+  final kept = chapters.where((chapter) {
+    final parent = mergedMangaById[chapter.mangaId];
+    if (parent == null) {
+      return true;
+    }
+    return !_isTombstoned(
+      entity: SyncTombstoneEntity.chapter,
+      key: chapterTombstoneKey(parent, chapter),
+      tombstones: chapterTombstones,
+      itemUpdatedAt: chapter.updatedAt,
+    );
+  }).toList();
+  logSyncWrite(
+    'chapter-tombstones filtered=${chapters.length - kept.length} '
+    'total=${chapters.length} tombstones=${chapterTombstones.length}',
+  );
+  return kept;
+}
+
 List<FeedSavedSearch> _filterFeedsByTombstones(
   List<FeedSavedSearch> feeds,
   List<SavedSearch> savedSearches,
@@ -855,12 +892,17 @@ SyncSnapshot mergeSyncSnapshots(SyncSnapshot local, SyncSnapshot remote) {
     remote.categories,
     mergedCategories,
   );
-  final mergedChapters = _mergeChapters(
-    local.chapters,
-    remote.chapters,
-    local.manga,
-    remote.manga,
+  final mergedTombstones = _mergeTombstones(local.tombstones, remote.tombstones);
+  final mergedChapters = _filterChaptersByTombstones(
+    _mergeChapters(
+      local.chapters,
+      remote.chapters,
+      local.manga,
+      remote.manga,
+      mergedManga,
+    ),
     mergedManga,
+    mergedTombstones,
   );
   final mergedTracks = _mergeTracks(
     local.tracks,
@@ -900,7 +942,6 @@ SyncSnapshot mergeSyncSnapshots(SyncSnapshot local, SyncSnapshot remote) {
     localSources: local.extensions,
     remoteSources: remote.extensions,
   );
-  final mergedTombstones = _mergeTombstones(local.tombstones, remote.tombstones);
   final mergedSavedSearches = _filterSavedSearchesByTombstones(
     _mergeSavedSearches(local.savedSearches, remote.savedSearches),
     mergedTombstones,
@@ -952,12 +993,16 @@ Future<void> applySyncSnapshotToDatabase(SyncSnapshot merged, Ref ref) async {
   final applyExtensionsPreferences =
       merged.extensionsPreferences.isNotEmpty ||
       merged.extensionsPreferenceStringValues.isNotEmpty;
+  bool hasTombstone(SyncTombstoneEntity entity) =>
+      merged.tombstones.any((t) => t.entity == entity);
   final applyExtensions =
-      merged.extensions.isNotEmpty || merged.tombstones.isNotEmpty;
+      merged.extensions.isNotEmpty ||
+      hasTombstone(SyncTombstoneEntity.extension);
   final applyFeeds =
       merged.savedSearches.isNotEmpty ||
       merged.feedSavedSearches.isNotEmpty ||
-      merged.tombstones.isNotEmpty;
+      hasTombstone(SyncTombstoneEntity.savedSearch) ||
+      hasTombstone(SyncTombstoneEntity.feed);
 
   final mangaToApply = collapseMangaById(merged.manga);
 

@@ -239,10 +239,7 @@ class SyncSnapshot {
   }
 
   static List<SyncTombstone> _parseTombstoneList(Object? raw) {
-    return (raw as List?)
-            ?.map((e) => SyncTombstone.fromJson(e as Map<String, dynamic>))
-            .toList() ??
-        [];
+    return parseSyncTombstoneList(raw);
   }
 
   static ItemType _itemTypeFromJson(Map<String, dynamic> json) {

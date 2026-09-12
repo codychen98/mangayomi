@@ -4,7 +4,8 @@ import 'dart:io';
 import 'package:mangayomi/utils/portable_paths.dart';
 import 'package:path_provider/path_provider.dart';
 
-enum SyncTombstoneEntity { extension, savedSearch, feed }
+/// Append only: indices are persisted in the WebDAV file and local store.
+enum SyncTombstoneEntity { extension, savedSearch, feed, chapter }
 
 class SyncTombstone {
   final SyncTombstoneEntity entity;
@@ -18,18 +19,46 @@ class SyncTombstone {
   });
 
   factory SyncTombstone.fromJson(Map<String, dynamic> json) {
+    final parsed = SyncTombstone.tryFromJson(json);
+    if (parsed == null) {
+      throw FormatException('Unknown tombstone entity: ${json['entity']}');
+    }
+    return parsed;
+  }
+
+  /// Returns null for entity indices this build does not know about so a
+  /// newer peer's file does not break decoding.
+  static SyncTombstone? tryFromJson(Map<String, dynamic> json) {
+    final index = json['entity'] as int? ?? 0;
+    if (index < 0 || index >= SyncTombstoneEntity.values.length) {
+      return null;
+    }
     return SyncTombstone(
-      entity: SyncTombstoneEntity.values[json['entity'] as int? ?? 0],
+      entity: SyncTombstoneEntity.values[index],
       key: json['key'] as String? ?? '',
       deletedAt: json['deletedAt'] as int? ?? 0,
     );
   }
+
+  String get compositeKey => '${entity.index}|$key';
 
   Map<String, dynamic> toJson() => {
     'entity': entity.index,
     'key': key,
     'deletedAt': deletedAt,
   };
+}
+
+/// Parses a JSON list of tombstones, skipping entries with unknown entities.
+List<SyncTombstone> parseSyncTombstoneList(Object? raw) {
+  if (raw is! List) return const [];
+  return raw
+      .whereType<Map>()
+      .map(
+        (entry) => SyncTombstone.tryFromJson(Map<String, dynamic>.from(entry)),
+      )
+      .whereType<SyncTombstone>()
+      .toList();
 }
 
 /// Records deletions locally so WebDAV sync can propagate removes across devices.
@@ -47,23 +76,24 @@ class SyncTombstoneStore {
     try {
       final file = await _file;
       if (!await file.exists()) return const [];
-      final raw = jsonDecode(await file.readAsString());
-      if (raw is! List) return const [];
-      return raw
-          .map((e) => SyncTombstone.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return parseSyncTombstoneList(jsonDecode(await file.readAsString()));
     } catch (_) {
       return const [];
     }
   }
 
-  static Future<void> record(SyncTombstone tombstone) async {
+  static Future<void> record(SyncTombstone tombstone) {
+    return recordAll([tombstone]);
+  }
+
+  /// Records several tombstones with a single read/write of the store file.
+  static Future<void> recordAll(List<SyncTombstone> tombstones) async {
+    if (tombstones.isEmpty) return;
     try {
       final existing = await loadAll();
       final merged = <String, SyncTombstone>{
-        for (final entry in existing)
-          '${entry.entity.index}|${entry.key}': entry,
-        '${tombstone.entity.index}|${tombstone.key}': tombstone,
+        for (final entry in existing) entry.compositeKey: entry,
+        for (final entry in tombstones) entry.compositeKey: entry,
       };
       final file = await _file;
       await file.writeAsString(
@@ -80,9 +110,7 @@ class SyncTombstoneStore {
       final keys = compositeKeys.toSet();
       final existing = await loadAll();
       final remaining = existing
-          .where(
-            (entry) => !keys.contains('${entry.entity.index}|${entry.key}'),
-          )
+          .where((entry) => !keys.contains(entry.compositeKey))
           .toList();
       final file = await _file;
       if (remaining.isEmpty) {
@@ -125,5 +153,19 @@ class SyncTombstoneStore {
         deletedAt: DateTime.now().millisecondsSinceEpoch,
       ),
     );
+  }
+
+  /// Records chapter/episode deletions so WebDAV merge stops re-adding them.
+  /// [keys] come from `chapterTombstoneKey` in `sync_entity_keys.dart`.
+  static Future<void> recordChaptersDeleted(Iterable<String> keys) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return recordAll([
+      for (final key in keys)
+        SyncTombstone(
+          entity: SyncTombstoneEntity.chapter,
+          key: key,
+          deletedAt: now,
+        ),
+    ]);
   }
 }
