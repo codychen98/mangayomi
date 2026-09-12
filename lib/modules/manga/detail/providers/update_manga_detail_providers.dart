@@ -93,6 +93,9 @@ Future<dynamic> updateMangaDetail(
 
     final chaps = getManga.chapters;
     var unseenUpdatesToAdd = 0;
+    // Synching.addChangedPart uses sync Isar calls, which are not allowed
+    // inside an async writeTxn. Collect here and record after commit.
+    final pendingChangedParts = <_PendingChangedPart>[];
 
     await isar.writeTxn(() async {
       // Persist updated manga metadata.
@@ -216,10 +219,11 @@ Future<dynamic> updateMangaDetail(
           )) {
             continue;
           }
-          await _deleteOrphanChapterCascade(
-            chapter: chapter,
-            download: download,
-            syncNotifier: syncNotifier,
+          pendingChangedParts.addAll(
+            await _deleteOrphanChapterCascade(
+              chapter: chapter,
+              download: download,
+            ),
           );
           deletedChapterIds.add(id);
         }
@@ -244,6 +248,12 @@ Future<dynamic> updateMangaDetail(
     if (unseenUpdatesToAdd > 0) {
       incrementUnseenUpdatesCount(manga.itemType, unseenUpdatesToAdd);
     }
+
+    if (syncNotifier != null) {
+      for (final part in pendingChangedParts) {
+        syncNotifier.addChangedPart(part.action, part.isarId, "{}", true);
+      }
+    }
   } catch (e, s) {
     if (showToast) {
       botToast('$e\n$s');
@@ -253,16 +263,27 @@ Future<dynamic> updateMangaDetail(
   }
 }
 
+/// Sync bookkeeping deferred until the enclosing async writeTxn commits.
+class _PendingChangedPart {
+  const _PendingChangedPart(this.action, this.isarId);
+
+  final ActionType action;
+  final int? isarId;
+}
+
 /// Updates + history + incomplete download + chapter; mirrors `_removeImport`
 /// cascade for a single chapter. History is removed so Continue/history cannot
 /// point at a deleted chapter id. On-disk download files are left untouched
 /// (only fully downloaded orphans are kept, and those skip this path).
-Future<void> _deleteOrphanChapterCascade({
+///
+/// Must run inside an async writeTxn. Returns the sync changed-parts to record
+/// once that transaction has committed.
+Future<List<_PendingChangedPart>> _deleteOrphanChapterCascade({
   required Chapter chapter,
   required Download? download,
-  required Synching syncNotifier,
 }) async {
   final id = chapter.id!;
+  final parts = <_PendingChangedPart>[];
 
   final updates = await isar.updates
       .filter()
@@ -271,7 +292,7 @@ Future<void> _deleteOrphanChapterCascade({
       .findAll();
   for (final update in updates) {
     await isar.updates.delete(update.id!);
-    syncNotifier.addChangedPart(ActionType.removeUpdate, update.id, "{}", false);
+    parts.add(_PendingChangedPart(ActionType.removeUpdate, update.id));
   }
 
   final histories = await isar.historys
@@ -280,12 +301,7 @@ Future<void> _deleteOrphanChapterCascade({
       .findAll();
   for (final history in histories) {
     await isar.historys.delete(history.id!);
-    syncNotifier.addChangedPart(
-      ActionType.removeHistory,
-      history.id,
-      "{}",
-      false,
-    );
+    parts.add(_PendingChangedPart(ActionType.removeHistory, history.id));
   }
 
   if (download != null) {
@@ -293,5 +309,6 @@ Future<void> _deleteOrphanChapterCascade({
   }
 
   await isar.chapters.delete(id);
-  syncNotifier.addChangedPart(ActionType.removeChapter, id, "{}", false);
+  parts.add(_PendingChangedPart(ActionType.removeChapter, id));
+  return parts;
 }
