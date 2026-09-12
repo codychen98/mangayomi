@@ -1,9 +1,11 @@
+import 'package:isar_community/isar.dart';
 import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/utils/chapter_recognition.dart';
 import 'package:mangayomi/main.dart';
 import 'package:mangayomi/models/changed.dart';
 import 'package:mangayomi/models/chapter.dart';
 import 'package:mangayomi/models/download.dart';
+import 'package:mangayomi/models/history.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/manga.dart';
 import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
@@ -257,20 +259,20 @@ Future<void> _deleteOrphanChapterCascade({
 }) async {
   final id = chapter.id!;
 
-  final updates = isar.updates
+  final updates = await isar.updates
       .filter()
       .mangaIdEqualTo(chapter.mangaId)
       .chapterNameEqualTo(chapter.name)
-      .findAllSync();
+      .findAll();
   for (final update in updates) {
     await isar.updates.delete(update.id!);
     syncNotifier.addChangedPart(ActionType.removeUpdate, update.id, "{}", false);
   }
 
-  final histories = isar.historys
+  final histories = await isar.historys
       .filter()
       .chapterIdEqualTo(id)
-      .findAllSync();
+      .findAll();
   for (final history in histories) {
     await isar.historys.delete(history.id!);
     syncNotifier.addChangedPart(
