@@ -4836,6 +4836,12 @@ abstract class AppLocalizations {
 
   /// No description provided for @exclude.
   String get exclude;
+
+  /// Shown when the player switches to another stream after the selected one failed to open.
+  ///
+  /// In en, this message translates to:
+  /// **'{failed} failed, trying {next}'**
+  String playback_fallback_toast(String failed, String next);
 }
 
 class _AppLocalizationsDelegate

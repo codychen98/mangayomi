@@ -6,6 +6,7 @@ import 'package:mangayomi/models/video.dart';
 import 'package:mangayomi/modules/browse/extension/providers/extension_preferences_providers.dart';
 import 'package:mangayomi/modules/more/settings/browse/providers/browse_state_provider.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
+import 'package:mangayomi/services/anime/playback_fallback.dart';
 import 'package:mangayomi/services/anime/preferred_video_selector.dart';
 import 'package:mangayomi/services/isolate_service.dart';
 import 'package:mangayomi/services/torrent_server.dart';
@@ -178,6 +179,19 @@ Future<(List<Video>, bool, List<String>, Directory?)> getVideoList(
 
     final dedupedCount = videos.length;
     videos = _applyPreferredStreamOrder(videos, source);
+    final dupes = duplicateStreamUrlLabels(videos);
+    if (dupes.isNotEmpty) {
+      final labels = dupes.entries
+          .map(
+            (e) => '${e.key.toLogSafeUri()}:[${e.value.join(',')}]',
+          )
+          .join(';');
+      AppLogger.log(
+        '[VIDEO] duplicate-url source=${source?.name} '
+        'groups=${dupes.length} labels=$labels',
+        logLevel: LogLevel.warning,
+      );
+    }
     AppLogger.log(
       '[VIDEO] getVideoList pipeline source=${source?.name} '
       'raw=${list.length} deduped=$dedupedCount ordered=${videos.length} '

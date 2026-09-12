@@ -1014,5 +1014,10 @@
   "all": "All",
   "none": "None",
   "include": "Include",
-  "exclude": "Exclude"
+  "exclude": "Exclude",
+  "playback_fallback_toast": "{failed} failed, trying {next}",
+  "@playback_fallback_toast": {
+    "description": "Shown when the player switches to another stream after the selected one failed to open.",
+    "placeholders": { "failed": {}, "next": {} }
+  }
 }

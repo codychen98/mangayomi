@@ -2693,6 +2693,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get exclude => 'Exclude';
 
+  @override
+  String playback_fallback_toast(String failed, String next) {
+    return '$failed failed, trying $next';
+  }
+
 }
 
 /// The translations for Spanish Castilian, as used in Latin America and the Caribbean (`es_419`).

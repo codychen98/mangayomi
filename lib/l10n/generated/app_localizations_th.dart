@@ -2662,4 +2662,9 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String get exclude => 'Exclude';
 
+  @override
+  String playback_fallback_toast(String failed, String next) {
+    return '$failed failed, trying $next';
+  }
+
 }

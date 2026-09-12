@@ -40,6 +40,7 @@ import 'package:mangayomi/modules/widgets/progress_center.dart';
 import 'package:mangayomi/providers/l10n_providers.dart';
 import 'package:mangayomi/providers/storage_provider.dart';
 import 'package:mangayomi/services/aniskip.dart';
+import 'package:mangayomi/services/anime/playback_fallback.dart';
 import 'package:mangayomi/services/fetch_subtitles.dart';
 import 'package:mangayomi/services/get_video_list.dart';
 import 'package:mangayomi/services/hls/hls_png_strip_proxy.dart';
@@ -304,6 +305,8 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
   bool _didClampResume = false;
   bool _mediaOpened = false;
   bool _loggedDemuxFatal = false;
+  PlaybackFallbackState _fallback = PlaybackFallbackState.empty;
+  bool _fallbackInFlight = false;
   /// Blocks auto-next until resume seek has settled away from EOF.
   /// Opening near a saved end position can fire `completed` before seek(0).
   bool _allowAutoNextEpisode = false;
@@ -321,6 +324,10 @@ class _AnimeStreamPageState extends riv.ConsumerState<AnimeStreamPage>
       .duration
       .listen((duration) {
         _currentTotalDuration.value = duration;
+        if (duration > Duration.zero) {
+          _fallback = PlaybackFallbackState.empty;
+          _fallbackInFlight = false;
+        }
         discordRpc?.updateChapterTimestamp(_currentPosition.value, duration);
         _applyResumeAfterDuration(duration);
       });
@@ -1246,12 +1253,69 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
     if (_isNonFatalPlayerError(error) || _hasPlaybackStarted) {
       return;
     }
+    if (!widget.isLocal && !widget.isTorrent && _tryFallback(error)) {
+      return;
+    }
     BotToast.showText(
       onlyOne: true,
       align: const Alignment(0, 0.90),
       duration: const Duration(seconds: 3),
       text: 'Playback error: $error',
     );
+  }
+
+  /// Tries the next distinct stream URL after an open failure.
+  ///
+  /// Returns true when a fallback open was started (or duplicate errors are
+  /// being swallowed while one is in flight), so the Playback error toast
+  /// should not be shown.
+  bool _tryFallback(String error) {
+    if (_fallbackInFlight) {
+      return true;
+    }
+    final currentUrl = _video.value?.videoTrack?.id ?? '';
+    final fromLabel = _video.value?.videoTrack?.title ?? '';
+    _fallback = _fallback.markFailed(currentUrl);
+    final next = nextFallbackVideo(
+      widget.videos,
+      currentUrl: currentUrl,
+      state: _fallback,
+    );
+    if (next == null) {
+      AppLogger.log(
+        'player fallback exhausted $_playerLogContext '
+        'tried=${_fallback.attempts}',
+        logLevel: LogLevel.warning,
+      );
+      _fallbackInFlight = false;
+      return false;
+    }
+    _fallbackInFlight = true;
+    final toLabel = next.quality;
+    AppLogger.log(
+      'player fallback $_playerLogContext '
+      'from=$fromLabel|${currentUrl.toLogSafeUri()} '
+      'to=$toLabel|${next.url.toLogSafeUri()} '
+      'reason=$error',
+    );
+    BotToast.showText(
+      onlyOne: true,
+      align: const Alignment(0, 0.90),
+      duration: const Duration(seconds: 3),
+      text: context.l10n.playback_fallback_toast(fromLabel, toLabel),
+    );
+    final prefs = VideoPrefs(
+      videoTrack: VideoTrack(next.url, next.quality, next.quality),
+      headers: next.headers,
+      isLocal: false,
+    );
+    _video.value = prefs;
+    _player.stop();
+    _initSubtitleAndAudio = true;
+    _openMedia(prefs).whenComplete(() {
+      _fallbackInFlight = false;
+    });
+    return true;
   }
 
   bool get _hasPlaybackStarted {
@@ -1401,6 +1465,8 @@ mp.register_script_message('call_button_${button.id}_long', button${button.id}lo
                 Navigator.pop(context);
                 return;
               }
+              _fallback = PlaybackFallbackState.empty;
+              _fallbackInFlight = false;
               _video.value = quality;
               _player.stop();
               final resumeAt = _currentPosition.value;
