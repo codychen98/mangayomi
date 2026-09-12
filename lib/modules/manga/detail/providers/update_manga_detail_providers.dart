@@ -1,13 +1,17 @@
 import 'package:mangayomi/eval/model/m_bridge.dart';
 import 'package:mangayomi/utils/chapter_recognition.dart';
 import 'package:mangayomi/main.dart';
+import 'package:mangayomi/models/changed.dart';
 import 'package:mangayomi/models/chapter.dart';
+import 'package:mangayomi/models/download.dart';
 import 'package:mangayomi/models/update.dart';
 import 'package:mangayomi/models/manga.dart';
+import 'package:mangayomi/modules/more/settings/sync/providers/sync_providers.dart';
 import 'package:mangayomi/services/get_detail.dart';
 import 'package:mangayomi/services/library_update_preferences_service.dart';
 import 'package:mangayomi/utils/extensions/string_extensions.dart';
 import 'package:mangayomi/utils/fetch_interval.dart';
+import 'package:mangayomi/utils/orphan_chapter_policy.dart';
 import 'package:mangayomi/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'update_manga_detail_providers.g.dart';
@@ -79,6 +83,8 @@ Future<dynamic> updateMangaDetail(
 
     final chaps = getManga.chapters;
     var unseenUpdatesToAdd = 0;
+    final removeMissing =
+        getLibraryUpdatePreferences().removeMissingChaptersOnUpdate;
 
     await isar.writeTxn(() async {
       // Persist updated manga metadata.
@@ -185,11 +191,40 @@ Future<dynamic> updateMangaDetail(
         }
         unseenUpdatesToAdd = newUpdateCount;
       }
+
+      // Drop orphans no longer on the source (pref on; keep fully downloaded).
+      final deletedChapterIds = <int>{};
+      if (removeMissing) {
+        final sourceUrls = sourceUrlSet(chaps.map((c) => c.url));
+        final syncNotifier = ref.read(synchingProvider(syncId: 1).notifier);
+        for (final chapter in existingChapters) {
+          final id = chapter.id;
+          if (id == null) continue;
+          final download = await isar.downloads.get(id);
+          if (!shouldDeleteOrphan(
+            isOrphan: isOrphanChapterUrl(chapter.url, sourceUrls),
+            isFullyDownloaded: download?.isDownload == true,
+            removeMissingEnabled: true,
+            sourceListNonEmpty: sourceUrls.isNotEmpty,
+          )) {
+            continue;
+          }
+          await _deleteOrphanChapterCascade(
+            chapter: chapter,
+            download: download,
+            syncNotifier: syncNotifier,
+          );
+          deletedChapterIds.add(id);
+        }
+      }
+
       // Calculate fetch interval:
       // median of gaps between recent distinct chapter dates, clamped [1, 28].
-      final allChapters = newChapters.isEmpty
-          ? existingChapters
-          : [...existingChapters, ...newChapters];
+      final remainingExisting = [
+        for (final c in existingChapters)
+          if (c.id == null || !deletedChapterIds.contains(c.id)) c,
+      ];
+      final allChapters = [...remainingExisting, ...newChapters];
       if (allChapters.isNotEmpty) {
         final interval = FetchInterval.calculateInterval(allChapters);
         manga
@@ -209,4 +244,47 @@ Future<dynamic> updateMangaDetail(
       rethrow;
     }
   }
+}
+
+/// Updates + history + incomplete download + chapter; mirrors `_removeImport`
+/// cascade for a single chapter. History is removed so Continue/history cannot
+/// point at a deleted chapter id. On-disk download files are left untouched
+/// (only fully downloaded orphans are kept, and those skip this path).
+Future<void> _deleteOrphanChapterCascade({
+  required Chapter chapter,
+  required Download? download,
+  required Synching syncNotifier,
+}) async {
+  final id = chapter.id!;
+
+  final updates = isar.updates
+      .filter()
+      .mangaIdEqualTo(chapter.mangaId)
+      .chapterNameEqualTo(chapter.name)
+      .findAllSync();
+  for (final update in updates) {
+    await isar.updates.delete(update.id!);
+    syncNotifier.addChangedPart(ActionType.removeUpdate, update.id, "{}", false);
+  }
+
+  final histories = isar.historys
+      .filter()
+      .chapterIdEqualTo(id)
+      .findAllSync();
+  for (final history in histories) {
+    await isar.historys.delete(history.id!);
+    syncNotifier.addChangedPart(
+      ActionType.removeHistory,
+      history.id,
+      "{}",
+      false,
+    );
+  }
+
+  if (download != null) {
+    await isar.downloads.delete(id);
+  }
+
+  await isar.chapters.delete(id);
+  syncNotifier.addChangedPart(ActionType.removeChapter, id, "{}", false);
 }

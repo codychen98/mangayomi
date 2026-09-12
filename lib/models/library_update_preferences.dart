@@ -29,6 +29,9 @@ class LibraryUpdatePreferences {
 
   List<int> novelUpdateCategoriesExclude;
 
+  // Declared last so Isar property id 10 is appended without renumbering.
+  bool removeMissingChaptersOnUpdate;
+
   LibraryUpdatePreferences({
     this.id = libraryUpdatePreferencesRecordId,
     this.unseenUpdatesCountManga = 0,
@@ -41,6 +44,7 @@ class LibraryUpdatePreferences {
     this.animeUpdateCategoriesExclude = const [],
     this.novelUpdateCategoriesInclude = const [],
     this.novelUpdateCategoriesExclude = const [],
+    this.removeMissingChaptersOnUpdate = true,
   });
 
   LibraryUpdatePreferences.fromJson(Map<String, dynamic> json)
@@ -60,7 +64,9 @@ class LibraryUpdatePreferences {
       novelUpdateCategoriesInclude =
           (json['novelUpdateCategoriesInclude'] as List?)?.cast<int>() ?? const [],
       novelUpdateCategoriesExclude =
-          (json['novelUpdateCategoriesExclude'] as List?)?.cast<int>() ?? const [];
+          (json['novelUpdateCategoriesExclude'] as List?)?.cast<int>() ?? const [],
+      removeMissingChaptersOnUpdate =
+          json['removeMissingChaptersOnUpdate'] ?? true;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -74,5 +80,6 @@ class LibraryUpdatePreferences {
     'animeUpdateCategoriesExclude': animeUpdateCategoriesExclude,
     'novelUpdateCategoriesInclude': novelUpdateCategoriesInclude,
     'novelUpdateCategoriesExclude': novelUpdateCategoriesExclude,
+    'removeMissingChaptersOnUpdate': removeMissingChaptersOnUpdate,
   };
 }

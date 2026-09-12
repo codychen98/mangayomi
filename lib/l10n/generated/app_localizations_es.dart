@@ -2648,6 +2648,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get show_updates_tab_badge => 'Show notification badge on Updates tab';
 
   @override
+  String get remove_missing_chapters_on_update =>
+      'Remove missing chapters/episodes on update';
+
+  @override
+  String get remove_missing_chapters_on_update_subtitle =>
+      'Removes entries no longer on the source. Fully downloaded entries are kept for offline use.';
+
+  @override
   String get update_categories => 'Categories';
 
   @override

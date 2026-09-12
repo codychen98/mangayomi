@@ -41,6 +41,12 @@ class LibrarySettingsScreen extends ConsumerWidget {
             title: Text(l10n.show_updates_tab_badge),
             onChanged: setShowUpdatesTabBadge,
           ),
+          SwitchListTile(
+            value: preferences.removeMissingChaptersOnUpdate,
+            title: Text(l10n.remove_missing_chapters_on_update),
+            subtitle: Text(l10n.remove_missing_chapters_on_update_subtitle),
+            onChanged: setRemoveMissingChaptersOnUpdate,
+          ),
           ...visibleTypes.map((itemType) {
             final categoriesAsync = ref.watch(
               getMangaCategorieStreamProvider(itemType: itemType),

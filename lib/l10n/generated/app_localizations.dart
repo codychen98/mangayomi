@@ -4798,6 +4798,12 @@ abstract class AppLocalizations {
   /// No description provided for @show_updates_tab_badge.
   String get show_updates_tab_badge;
 
+  /// No description provided for @remove_missing_chapters_on_update.
+  String get remove_missing_chapters_on_update;
+
+  /// No description provided for @remove_missing_chapters_on_update_subtitle.
+  String get remove_missing_chapters_on_update_subtitle;
+
   /// No description provided for @update_categories.
   String get update_categories;
 

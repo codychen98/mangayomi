@@ -65,6 +65,11 @@ const LibraryUpdatePreferencesSchema = CollectionSchema(
       name: r'novelUpdateCategoriesExclude',
       type: IsarType.longList,
     ),
+    r'removeMissingChaptersOnUpdate': PropertySchema(
+      id: 10,
+      name: r'removeMissingChaptersOnUpdate',
+      type: IsarType.bool,
+    ),
   },
   estimateSize: _libraryUpdatePreferencesEstimateSize,
   serialize: _libraryUpdatePreferencesSerialize,
@@ -111,6 +116,7 @@ void _libraryUpdatePreferencesSerialize(
   writer.writeLongList(offsets[7], object.animeUpdateCategoriesExclude);
   writer.writeLongList(offsets[8], object.novelUpdateCategoriesInclude);
   writer.writeLongList(offsets[9], object.novelUpdateCategoriesExclude);
+  writer.writeBool(offsets[10], object.removeMissingChaptersOnUpdate);
 }
 
 LibraryUpdatePreferences _libraryUpdatePreferencesDeserialize(
@@ -137,6 +143,8 @@ LibraryUpdatePreferences _libraryUpdatePreferencesDeserialize(
         reader.readLongList(offsets[8]) ?? const [],
     novelUpdateCategoriesExclude:
         reader.readLongList(offsets[9]) ?? const [],
+    removeMissingChaptersOnUpdate:
+        reader.readBoolOrNull(offsets[10]) ?? true,
   );
 }
 
@@ -153,6 +161,8 @@ P _libraryUpdatePreferencesDeserializeProp<P>(
       return (reader.readLong(offset)) as P;
     case 3:
       return (reader.readBool(offset)) as P;
+    case 10:
+      return (reader.readBoolOrNull(offset) ?? true) as P;
     case 4:
     case 5:
     case 6:

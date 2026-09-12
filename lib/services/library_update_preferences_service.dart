@@ -97,6 +97,12 @@ void setShowUpdatesTabBadge(bool value) {
   saveLibraryUpdatePreferences(preferences);
 }
 
+void setRemoveMissingChaptersOnUpdate(bool value) {
+  final preferences = getLibraryUpdatePreferences();
+  preferences.removeMissingChaptersOnUpdate = value;
+  saveLibraryUpdatePreferences(preferences);
+}
+
 List<Manga> filterLibraryEntriesForUpdate({
   required List<Manga> entries,
   required ItemType itemType,
