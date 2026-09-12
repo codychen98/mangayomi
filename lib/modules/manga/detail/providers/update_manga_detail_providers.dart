@@ -44,6 +44,14 @@ Future<dynamic> updateMangaDetail(
     );
     if (source == null) return;
 
+    // Capture before any await. Library updates autoDispose this provider after
+    // the first async gap; reading Ref inside the later writeTxn throws.
+    final removeMissing =
+        getLibraryUpdatePreferences().removeMissingChaptersOnUpdate;
+    final syncNotifier = removeMissing
+        ? ref.read(synchingProvider(syncId: 1).notifier)
+        : null;
+
     final detailProvider = getDetailProvider(url: manga.link!, source: source);
     if (!isInit) {
       ref.invalidate(detailProvider);
@@ -85,8 +93,6 @@ Future<dynamic> updateMangaDetail(
 
     final chaps = getManga.chapters;
     var unseenUpdatesToAdd = 0;
-    final removeMissing =
-        getLibraryUpdatePreferences().removeMissingChaptersOnUpdate;
 
     await isar.writeTxn(() async {
       // Persist updated manga metadata.
@@ -196,9 +202,8 @@ Future<dynamic> updateMangaDetail(
 
       // Drop orphans no longer on the source (pref on; keep fully downloaded).
       final deletedChapterIds = <int>{};
-      if (removeMissing) {
+      if (removeMissing && syncNotifier != null) {
         final sourceUrls = sourceUrlSet(chaps.map((c) => c.url));
-        final syncNotifier = ref.read(synchingProvider(syncId: 1).notifier);
         for (final chapter in existingChapters) {
           final id = chapter.id;
           if (id == null) continue;
