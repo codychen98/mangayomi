@@ -999,8 +999,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "c0292f1"
-      resolved-ref: c0292f15a140d1e3bd96d41a33430584bd3f6a29
+      ref: "c23ce85"
+      resolved-ref: c23ce85735b4e2634fa549e445c78885c85e921b
       url: "https://github.com/codychen98/m_extension_server.git"
     source: git
     version: "0.0.2"
